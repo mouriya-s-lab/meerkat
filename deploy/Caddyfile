@@ -1,0 +1,37 @@
+# Serves the dashboard's web build and, on the same origin, the GitHub API
+# and the two programs it reads. The browser holds no credential: the
+# GitHub token comes from this process's environment.
+#
+# Environment:
+#   LISTEN         address to listen on, e.g. :8088
+#   SITE_DIR       the web build (`nsh package --target web` output)
+#   GH_TOKEN       token sent to the GitHub API
+#   COUNCIL_URL    the council daemon, e.g. http://127.0.0.1:7421
+#   GUARDIANS_URL  the guardians program, e.g. http://127.0.0.1:7410
+{
+	admin off
+	auto_https off
+}
+
+{$LISTEN} {
+	handle_path /gh/* {
+		reverse_proxy https://api.github.com {
+			header_up Host api.github.com
+			header_up Authorization "Bearer {env.GH_TOKEN}"
+			header_up -Cookie
+		}
+	}
+
+	handle_path /council/* {
+		reverse_proxy {$COUNCIL_URL}
+	}
+
+	handle_path /guardians/* {
+		reverse_proxy {$GUARDIANS_URL}
+	}
+
+	handle {
+		root * "{$SITE_DIR}"
+		file_server
+	}
+}

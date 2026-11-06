@@ -1,0 +1,13 @@
+targets:
+  macos:
+    githubApi: https://api.github.com
+    council: http://127.0.0.1:7421
+    guardians: http://127.0.0.1:7410
+  web:
+    githubApi: http://127.0.0.1:8088/gh
+    council: http://127.0.0.1:8088/council
+    guardians: http://127.0.0.1:8088/guardians
+refreshSeconds: 30
+attention:
+  sessionFailureHours: 24
+  rateLimitPercent: 10

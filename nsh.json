@@ -1,0 +1,8 @@
+{
+  "name": "PM Dashboard",
+  "id": "dev.pepgent.pm-dashboard",
+  "version": "0.1.0",
+  "appearance": "system",
+  "rust": ".",
+  "root": "App"
+}
