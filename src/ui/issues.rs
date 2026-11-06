@@ -8,8 +8,8 @@
 use std::rc::Rc;
 
 use nsh_base::{
-    DataTableColumn, DataTablePress, DataTableRows, DataTableSelection, DataTableSort,
-    DataTableSortDirection, data_table, theme,
+    DataTableClasses, DataTableColumn, DataTablePress, DataTableRows, DataTableSelection,
+    DataTableSort, DataTableSortDirection, data_table, theme,
 };
 use nsh_core::{element::TransformOrigin, prelude::*};
 
@@ -692,7 +692,7 @@ fn column_title(column: ListColumn) -> &'static str {
 
 fn column_width(column: ListColumn) -> f32 {
     match column {
-        ListColumn::Title => 240.0,
+        ListColumn::Title => 160.0,
         ListColumn::State => 130.0,
         ListColumn::BlockedBy => 120.0,
         ListColumn::Agenda => 90.0,
@@ -751,6 +751,17 @@ fn cell(node: &Node, column: ListColumn, pm: &RepoName, fields: &Fields) -> Stri
             }
         }
     }
+}
+
+/// The sort button draws both chevrons and leaves their look to the app
+/// (`nsh-base` `data_table::view::sort_icon`): the one the table is sorted
+/// by is solid, the others faint.
+fn sort_chevrons() -> DataTableClasses {
+    let mut classes = DataTableClasses::default();
+    let chevron = SharedString::from("opacity-25 selected:opacity-100");
+    classes.sort_ascending = Some(chevron.clone());
+    classes.sort_descending = Some(chevron);
+    classes
 }
 
 fn table_panel(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: IssuesState) -> View {
@@ -830,6 +841,7 @@ fn table_panel(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: Is
         .column_selectable(false)
         .movable_columns(false)
         .stripe(true)
+        .classes(sort_chevrons())
         .row_height(px(30.0))
         .font_size(px(13.0))
         .accessibility_label(Some(SharedString::from("议题表")))

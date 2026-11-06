@@ -807,17 +807,18 @@ mod tests {
     #[test]
     fn geometry_centres_layers_across_the_widest() {
         let graph = build(&fixture(), Council::Unreachable, &repo("o/pm"), ALL);
+        let black = || HexColor::try_from(format!("#{:06}", 0)).unwrap();
         let dag = Dag {
             colors: DagColors {
-                decided: HexColor::try_from("#000000".to_owned()).unwrap(),
-                superseded: HexColor::try_from("#000000".to_owned()).unwrap(),
-                blocked: HexColor::try_from("#000000".to_owned()).unwrap(),
-                held: HexColor::try_from("#000000".to_owned()).unwrap(),
-                deliberating: HexColor::try_from("#000000".to_owned()).unwrap(),
-                interrupted: HexColor::try_from("#000000".to_owned()).unwrap(),
-                failed: HexColor::try_from("#000000".to_owned()).unwrap(),
-                ready: HexColor::try_from("#000000".to_owned()).unwrap(),
-                unreachable: HexColor::try_from("#000000".to_owned()).unwrap(),
+                decided: black(),
+                superseded: black(),
+                blocked: black(),
+                held: black(),
+                deliberating: black(),
+                interrupted: black(),
+                failed: black(),
+                ready: black(),
+                unreachable: black(),
             },
             layer_gap: 50,
             node_gap: 10,
@@ -832,6 +833,35 @@ mod tests {
         assert_eq!(g.boxes[0], Rect { x: 10.0, y: 10.0, w: 100.0, h: 40.0 });
         assert_eq!(g.boxes[3], Rect { x: 120.0, y: 100.0, w: 100.0, h: 40.0 });
         assert_eq!(g.boxes[4].y, 190.0);
+    }
+
+    #[test]
+    fn the_table_sorts_by_state_in_the_queue_decision_order() {
+        let items: Vec<ProjectItem> = (1..=6)
+            .map(|n| item(n, Kind::Agenda, &format!("D{n}"), &[]))
+            .collect();
+        // Issue 6 is not in the queue: its Project Status (Todo) sorts after
+        // every queue state.
+        let queue = vec![
+            entry(1, QueueState::Ready, &[]),
+            entry(2, QueueState::Held, &[]),
+            entry(3, QueueState::Decided, &[]),
+            entry(4, QueueState::Deliberating, &[]),
+            entry(5, QueueState::Failed, &[]),
+        ];
+        let graph = build(&items, Council::Queue(&queue), &repo("o/pm"), ALL);
+        let rows = |descending| -> Vec<u64> {
+            let sort = ListSort {
+                column: ListColumn::State,
+                descending,
+            };
+            sorted(&graph.nodes, Some(sort))
+                .into_iter()
+                .map(|i| graph.nodes[i].issue.number)
+                .collect()
+        };
+        assert_eq!(rows(false), vec![3, 2, 4, 5, 1, 6]);
+        assert_eq!(rows(true), vec![6, 1, 5, 4, 2, 3]);
     }
 
     #[test]
