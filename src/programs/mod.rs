@@ -73,6 +73,21 @@ pub struct Session {
     pub error: Option<String>,
     #[serde(rename = "ref")]
     pub reference: Option<IssueRef>,
+    /// The session this one was forked from (decision 6697558783 §E); the
+    /// key is required, its value `null` for a session that is no fork.
+    #[serde(deserialize_with = "Option::deserialize")]
+    pub parent: Option<String>,
+}
+
+/// What the guardians answered a rewarm request (decision 6695362696 §3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RewarmOutcome {
+    /// `202`: warming began.
+    Started,
+    /// `409 warming`: the base is warming already.
+    Warming,
+    /// `404 unknown_base`: the guardians have no such base.
+    Unknown,
 }
 
 /// Where a session is.
@@ -167,8 +182,50 @@ impl ProgramClient {
         self.get("/v1/queue").await
     }
 
+    /// Asks the guardians to warm `base` again. Statuses other than the
+    /// three the contract names, and requests that got no answer, are the
+    /// error's text.
+    pub async fn rewarm(&self, base: &str) -> Result<RewarmOutcome, String> {
+        let url = self.base.join(&format!("/v1/bases/{base}/rewarm"));
+        let response = http::send(HttpRequest::post(url.clone(), Vec::new())).await?;
+        match response.status() {
+            202 => Ok(RewarmOutcome::Started),
+            409 => Ok(RewarmOutcome::Warming),
+            404 => Ok(RewarmOutcome::Unknown),
+            _ => Err(http::failure(&url, &response)),
+        }
+    }
+
+    /// A session's record: the omp session file as it is.
+    pub async fn log(&self, session: &str) -> Result<Vec<u8>, String> {
+        http::bytes(HttpRequest::get(self.session_log_url(session))).await
+    }
+
     /// Where a session's record is.
     pub fn session_log_url(&self, session: &str) -> String {
         self.base.join(&format!("/v1/sessions/{session}/log"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const ROW: &str = r#"{"id":"01a1b2d6","kind":"proxy","label":"ClaudeHigh","model":"m","startedAt":"2026-11-06T21:49:17.496Z","endedAt":null,"state":"done","error":null,"ref":"oh-my-omp/pm-e2e-agenda#1""#;
+
+    #[test]
+    fn a_session_row_names_its_parent() {
+        let fork: Session = serde_json::from_str(&format!(r#"{ROW},"parent":"01a1b2d4"}}"#)).unwrap();
+        assert_eq!(fork.parent.as_deref(), Some("01a1b2d4"));
+        let root: Session = serde_json::from_str(&format!(r#"{ROW},"parent":null}}"#)).unwrap();
+        assert_eq!(root.parent, None);
+    }
+
+    #[test]
+    fn a_session_row_without_parent_does_not_parse() {
+        let error = serde_json::from_str::<Session>(&format!("{ROW}}}"))
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("missing field `parent`"), "{error}");
     }
 }

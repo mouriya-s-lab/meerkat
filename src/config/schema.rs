@@ -83,6 +83,7 @@ pub struct Dashboard {
     /// Seconds between two refreshes of every source.
     pub refresh_seconds: NonZeroU32,
     pub attention: Attention,
+    pub digest: Digest,
 }
 
 /// The addresses each build talks to.
@@ -110,6 +111,20 @@ pub struct Attention {
     pub session_failure_hours: NonZeroU32,
     /// GitHub API remaining below this share of the limit asks for a person.
     pub rate_limit_percent: Percent,
+}
+
+/// How a session's record is reduced to its decision log.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Digest {
+    /// Tools whose calls show with their arguments and result.
+    pub keep_tools: Vec<Name>,
+    /// Tools whose consecutive calls show as one count per tool.
+    pub fold_tools: Vec<Name>,
+    /// Whether the assistant's text shows.
+    pub show_assistant_text: bool,
+    /// Records longer than this many bytes are parsed from their tail only.
+    pub max_bytes: NonZeroU32,
 }
 
 /// An absolute `http` or `https` URL without a trailing slash, to which

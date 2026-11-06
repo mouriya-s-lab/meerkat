@@ -13,19 +13,20 @@ use super::{
 };
 use crate::{
     attention::{self, Concern, Inputs, Links, ProgramView, first_line},
-    config::{Attention, Fields},
+    config::{Attention, Digest, Fields},
     gh::project::{Kind, ProjectItem, Status},
     programs::{AgendaKind, Base, BaseState, ProgramClient, QueueEntry, QueueState, Session},
     sources::{ProgramSources, Sources},
     time,
 };
 
-/// What the overview needs besides its sources.
+/// What the pages need besides their sources.
 pub struct Context {
     pub council: ProgramClient,
     pub guardians: ProgramClient,
     pub attention: Attention,
     pub fields: Fields,
+    pub digest: Digest,
 }
 
 /// The overview page's content.
@@ -302,7 +303,7 @@ fn bases_card(sources: Sources) -> View {
     card("守护基座", vec![source_status("基座", sources.bases)], body)
 }
 
-fn base_state(state: BaseState) -> (&'static str, AdaptiveColor) {
+pub(super) fn base_state(state: BaseState) -> (&'static str, AdaptiveColor) {
     match state {
         BaseState::Warming => ("预热中", IN_PROGRESS),
         BaseState::Ready => ("就绪", DONE),
