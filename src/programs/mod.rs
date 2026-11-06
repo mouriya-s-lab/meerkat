@@ -135,6 +135,22 @@ pub enum QueueState {
     Ready,
 }
 
+impl QueueState {
+    /// Its name in the UI.
+    pub fn label(self) -> &'static str {
+        match self {
+            QueueState::Decided => "已定案",
+            QueueState::Superseded => "已取代",
+            QueueState::Blocked => "等前置",
+            QueueState::Held => "被人类议题挂起",
+            QueueState::Deliberating => "在审",
+            QueueState::Interrupted => "中断",
+            QueueState::Failed => "失败",
+            QueueState::Ready => "可召集",
+        }
+    }
+}
+
 /// A panel's progress.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct PanelProgress {

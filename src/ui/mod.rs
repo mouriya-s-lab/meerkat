@@ -1,6 +1,7 @@
 //! The dashboard's screens and its own component library.
 
 mod guardians;
+mod issues;
 mod overview;
 mod parts;
 mod sessions;

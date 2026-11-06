@@ -38,6 +38,17 @@ Every source loads, fails and refreshes on its own; the top bar shows the
 last refresh, how many sources fail, what is left of the API allowance,
 and a button that refreshes everything now.
 
+The second page, 「议题」, draws the agenda issues (Project `Kind` human or
+agenda in the PM repository) as a DAG of their GitHub "Blocked by"
+relations beside a table of the same issues. A node's state is the
+council's `/v1/queue` verdict; while the council is unreachable it is the
+Project's `Status`, marked 「议会不可达」. Layers follow the longest chain of
+human prerequisites; a "Blocked by" on a non-human issue is drawn dashed and
+the strip under the page shows the council's notes on it. Filters apply to
+both halves; a node or a row opens the issue on GitHub. Drag pans the DAG;
+the buttons, Control + wheel and trackpad pinches zoom it. Windows narrower
+than 900 pt show the DAG and the table as tabs.
+
 ## Configuration
 
 Both builds read the PM config directory (the layout shared with
@@ -70,6 +81,12 @@ repositories.
 | `digest.foldTools` | Tools whose consecutive calls the decision log shows as one count (the file-reading tools) |
 | `digest.showAssistantText` | Whether the decision log shows the assistant's text |
 | `digest.maxBytes` | A session record longer than this many bytes is parsed from its tail only, and the decision log says it is cut |
+| `dag.colors.<state>` | A node's color, `#rrggbb`, for each queue state (`decided`, `superseded`, `blocked`, `held`, `deliberating`, `interrupted`, `failed`, `ready`) and `unreachable`; a Project `Status` shown instead colors Done as `decided`, Superseded as `superseded`, the rest as `unreachable` |
+| `dag.layerGap`, `dag.nodeGap` | Points between two layers, and between two nodes of a layer (and around the drawing) |
+| `dag.nodeWidth`, `dag.nodeHeight` | A node's size in points (at zoom 1) |
+| `list.columns` | The table's columns, left to right, each once: `agenda`, `title`, `kind`, `state`, `proposer`, `blockedBy`, `progress` |
+| `list.defaultSort` | `{column, descending}`: the table's order when the page opens; `column` is one of `list.columns` |
+| `filters.hideDecided`, `filters.hideSuperseded`, `filters.humanOnly` | The filters' values when the app starts (`humanOnly`: human issues and the issues they block, transitively) |
 
 Addresses are absolute `http(s)` URLs without a query; NSH's `fetch` takes
 absolute URLs only, so the web addresses name the proxy's origin.
@@ -148,6 +165,7 @@ everything else.
 | `src/digest.rs` | The decision log: a session record reduced by the `digest` rules (tests over real session files in `tests/fixtures/`) |
 | `src/sources.rs` | One `resource` per source, refreshed together |
 | `src/attention.rs` | What needs a person, derived from the sources |
-| `src/ui/` | The shell, the pages (overview, guardians, sessions) and the app's own controls |
+| `src/dag.rs` | The 「议题」 model: the issue DAG, its layers and filters, the table's order |
+| `src/ui/` | The shell, the pages (overview, 「议题」, guardians, sessions) and the app's own controls |
 | `deploy/Caddyfile` | The web build's same-origin proxy |
 | `config.example/` | A PM config directory for local runs |

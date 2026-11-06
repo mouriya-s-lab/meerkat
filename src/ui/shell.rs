@@ -1,7 +1,7 @@
 //! The shell: a top bar (the page, last refresh, manual refresh, failing
 //! sources, API remaining) over the page; in windows at least 900 pt wide
 //! a sidebar of the pages beside it, else one column with the pages in the
-//! top bar. The pages: the overview, the guardians' bases and the
+//! top bar. The pages: the overview, 「议题」, the guardians' bases and the
 //! sessions.
 
 use std::rc::Rc;
@@ -11,6 +11,7 @@ use nsh_core::prelude::*;
 
 use super::{
     guardians::guardians,
+    issues::{IssuesState, Settings, issues},
     overview::{Context, overview},
     parts::{action, note},
     sessions::{OpenSession, sessions},
@@ -36,17 +37,19 @@ fn wide() -> bool {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Page {
     Overview,
+    Issues,
     Guardians,
     Sessions,
 }
 
 impl Page {
     /// The pages, in the sidebar's order.
-    const ALL: [Page; 3] = [Page::Overview, Page::Guardians, Page::Sessions];
+    const ALL: [Page; 4] = [Page::Overview, Page::Issues, Page::Guardians, Page::Sessions];
 
     fn label(self) -> &'static str {
         match self {
             Page::Overview => "概览",
+            Page::Issues => "议题",
             Page::Guardians => "守护",
             Page::Sessions => "会话",
         }
@@ -71,6 +74,14 @@ impl Nav {
     }
 }
 
+/// The 「议题」 page's settings, and what the user set on it, which outlives
+/// a visit to the page.
+#[derive(Clone)]
+struct Issues {
+    settings: Rc<Settings>,
+    state: IssuesState,
+}
+
 /// The app for `config`: its sources start now and refresh every
 /// `config.refresh`.
 pub fn shell(config: AppConfig) -> AnyElement {
@@ -83,6 +94,16 @@ pub fn shell(config: AppConfig) -> AnyElement {
         fields: config.fields.clone(),
         digest: config.digest.clone(),
     });
+    let settings = Settings {
+        dag: config.dag.clone(),
+        list: config.list.clone(),
+        pm: config.repos.pm.repo.clone(),
+        fields: config.fields.clone(),
+    };
+    let issues = Issues {
+        state: IssuesState::new(&settings, config.filters),
+        settings: Rc::new(settings),
+    };
     let nav = Nav {
         page: signal(Page::Overview),
         session: signal(None),
@@ -92,21 +113,22 @@ pub fn shell(config: AppConfig) -> AnyElement {
         .child(
             when(wide, {
                 let context = context.clone();
+                let issues = issues.clone();
                 move || {
                     view()
                         .flex_1()
                         .flex_row()
                         .child(sidebar(nav))
-                        .child(page(sources, context.clone(), nav, false))
+                        .child(page(sources, context.clone(), issues.clone(), nav, false))
                 }
             })
-            .otherwise(move || page(sources, context.clone(), nav, true)),
+            .otherwise(move || page(sources, context.clone(), issues.clone(), nav, true)),
         )
         .into_element()
 }
 
 /// The top bar and the current page under it.
-fn page(sources: Sources, context: Rc<Context>, nav: Nav, narrow: bool) -> View {
+fn page(sources: Sources, context: Rc<Context>, issues_page: Issues, nav: Nav, narrow: bool) -> View {
     view()
         .flex_1()
         .min_w(px(0.0))
@@ -118,6 +140,13 @@ fn page(sources: Sources, context: Rc<Context>, nav: Nav, narrow: bool) -> View 
                     .flex_1()
                     .child(overview(sources, context))
                     .into_element(),
+                Page::Issues => issues(
+                    sources,
+                    issues_page.settings.clone(),
+                    issues_page.state,
+                    wide,
+                )
+                .into_element(),
                 Page::Guardians => scroll()
                     .flex_1()
                     .child(guardians(sources, context, nav))

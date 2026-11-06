@@ -158,15 +158,15 @@ fn concern_color(concern: &Concern) -> AdaptiveColor {
 // 议题
 
 /// The queue's states, in the order the card lists them.
-const QUEUE_STATES: [(QueueState, &str, AdaptiveColor); 8] = [
-    (QueueState::Deliberating, "在审", IN_PROGRESS),
-    (QueueState::Blocked, "等前置", WAITING),
-    (QueueState::Held, "被人类议题挂起", WAITING),
-    (QueueState::Ready, "可召集", TODO),
-    (QueueState::Interrupted, "中断", WAITING),
-    (QueueState::Failed, "失败", FAILED),
-    (QueueState::Decided, "已定案", DONE),
-    (QueueState::Superseded, "已取代", SUPERSEDED),
+const QUEUE_STATES: [(QueueState, AdaptiveColor); 8] = [
+    (QueueState::Deliberating, IN_PROGRESS),
+    (QueueState::Blocked, WAITING),
+    (QueueState::Held, WAITING),
+    (QueueState::Ready, TODO),
+    (QueueState::Interrupted, WAITING),
+    (QueueState::Failed, FAILED),
+    (QueueState::Decided, DONE),
+    (QueueState::Superseded, SUPERSEDED),
 ];
 
 fn agenda_card(sources: Sources) -> View {
@@ -195,7 +195,7 @@ fn agenda_counts(queue: &[QueueEntry]) -> AnyElement {
     view()
         .gap_1()
         .children(
-            QUEUE_STATES.map(|(state, label, color)| count_row(color, label, count(state))),
+            QUEUE_STATES.map(|(state, color)| count_row(color, state.label(), count(state))),
         )
         .child(
             view()
