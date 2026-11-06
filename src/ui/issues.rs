@@ -8,8 +8,8 @@
 use std::rc::Rc;
 
 use nsh_base::{
-    DataTableClasses, DataTableColumn, DataTablePress, DataTableRows, DataTableSelection,
-    DataTableSort, DataTableSortDirection, data_table, theme,
+    DataTableCell, DataTableClasses, DataTableColumn, DataTablePress, DataTableRows,
+    DataTableSelection, DataTableSort, DataTableSortDirection, data_table, theme,
 };
 use nsh_core::{element::TransformOrigin, prelude::*};
 
@@ -831,6 +831,14 @@ fn table_panel(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: Is
             .map(|g| format!("{} 行", g.nodes.len()))
             .unwrap_or_default()
     };
+    // The table's own cell text is one line but as wide as its content, so a
+    // long title runs into the next column (`nsh-base` `data_table::view::cell`
+    // gives it no width). A cell drawn here fills its column and ends in an
+    // ellipsis. The body takes no pointer events (`data_table::view`, the
+    // `PointerEvents::None` over the regions), so a cell cannot report a
+    // hover: pressing a row selects it, and the detail strip shows its full
+    // title.
+    let render_cell = |cell: &DataTableCell| text(cell.text.clone()).truncate();
     let table = data_table()
         .flex_1()
         .min_h(px(160.0))
@@ -842,6 +850,7 @@ fn table_panel(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: Is
         .movable_columns(false)
         .stripe(true)
         .classes(sort_chevrons())
+        .render_cell(render_cell)
         .row_height(px(30.0))
         .font_size(px(13.0))
         .accessibility_label(Some(SharedString::from("议题表")))
