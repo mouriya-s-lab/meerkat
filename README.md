@@ -53,7 +53,7 @@ The pages:
 - **会话** (sessions): the sessions of both programs in one table with
   their count by hour, filtered by state, program and kind and searched by
   issue, model or error. Selecting one shows its facts, its error, and its
-  decision log, reduced by `dashboard.yaml`'s `digest` rules: the opening
+  decision log, reduced by `quorum.yaml`'s `digest` rules: the opening
   message, the program's later prompts, kept tools' calls with arguments
   and results, a count per run of a folded tool, the assistant's text when
   configured, and highlighted LLM errors, automatic retries (a run of the
@@ -77,7 +77,7 @@ Every source loads, fails and refreshes on its own: a panel whose source
 fails shows the error with a retry button and keeps the data it had.
 
 Every page draws from one design system: the colors, type sizes,
-spacings, radii and graph lengths of `dashboard/theme.json`, and one
+spacings, radii and graph lengths of `quorum/theme.json`, and one
 vocabulary of state words and glyphs shared by all pages.
 
 ## Configuration
@@ -87,8 +87,8 @@ pm-council and pm-guardians):
 
 ```
 <config dir>/
-  dashboard/dashboard.yaml
-  dashboard/theme.json
+  quorum/quorum.yaml
+  quorum/theme.json
   shared/repos.yaml
   shared/project.yaml
 ```
@@ -96,7 +96,7 @@ pm-council and pm-guardians):
 `config.example/` is a complete directory for local runs against the e2e
 repositories.
 
-`dashboard/dashboard.yaml`:
+`quorum/quorum.yaml`:
 
 | Key | Meaning |
 |---|---|
@@ -117,13 +117,13 @@ repositories.
 | `filters.humanOnly` | The 「仅人类议题」 filter when the app starts: human issues and the issues they block, transitively |
 | `appearance` | `system` follows the system's light or dark appearance (the browser's on the web), `light` or `dark` keeps that one whatever the system's; the macOS window, title bar included, opens in it |
 
-`dashboard/theme.json` holds the design tokens: `cssVars.theme` (fonts
+`quorum/theme.json` holds the design tokens: `cssVars.theme` (fonts
 and lengths), `cssVars.light` and `cssVars.dark` (colors), each with
-exactly the tokens of `config.example/dashboard/theme.json`. Colors are
+exactly the tokens of `config.example/quorum/theme.json`. Colors are
 `#rrggbb`, lengths `<n>px`, fonts CSS family lists. A missing token, an
 unknown one or a value that does not parse is an error that names the
 file, the token's key path (`cssVars.light.ok-text`) and what is wrong;
-the web build checks the same file when it is built.
+both ends show that error while they load.
 
 Addresses are absolute `http(s)` URLs without a query; NSH's `fetch` takes
 absolute URLs only, so the web addresses name the proxy's origin.
@@ -134,16 +134,27 @@ and omp repositories; `shared/project.yaml` gives the Project's field and
 option names (`fields.status`, `fields.kind`, `fields.agenda`,
 `fields.proposer`). Unknown keys and missing keys are errors that name the
 file and the key path, for example
-``dashboard/dashboard.yaml: missing field `refreshSeconds` ``.
+``quorum/quorum.yaml: missing field `refreshSeconds` ``.
 
 ### How each build gets it
 
+Both ends use the same `schema::parse` and `theme::parse`, so a config that
+loads on one loads on the other.
+
 - **macOS** reads the directory `PM_CONFIG_DIR` names when it starts. A
   missing variable, file or key shows a configuration error in the window.
-- **Web** carries the config in the WebAssembly module: `build.rs` reads the
-  directory `PM_CONFIG_DIR` names at build time, checks it with the same
-  parsers, and embeds its four files. A bad config fails the build with the
-  key path. Rebuild to change it.
+- **Web** fetches `/config/quorum/quorum.yaml`, `/config/quorum/theme.json`,
+  `/config/shared/repos.yaml` and `/config/shared/project.yaml` when the page
+  starts, from the same origin it was served by. `deploy/Caddyfile` serves
+  them out of `CONFIG_DIR`. Nothing is embedded in the WebAssembly module, so
+  editing those files takes effect on the next reload, with no rebuild. A
+  missing file, a bad status or an invalid key shows the file, the key path
+  and the reason in the window instead of a blank page.
+
+Each end records the git blob sha (`sha1("blob <len>\0" + bytes)`, what
+`git hash-object` gives the same file) of every file it loaded, in
+`AppConfig.loaded`, so the config page can compare what runs with pm-config's
+`main`.
 
 ## macOS
 
@@ -168,8 +179,7 @@ wasm-bindgen; `nsh package` prints the exact `cargo install` line when the
 CLI is missing).
 
 ```sh
-PATH=/opt/homebrew/opt/llvm/bin:$PATH PM_CONFIG_DIR=$PWD/config.example \
-  nsh package --target web -o /tmp/quorum-web
+PATH=/opt/homebrew/opt/llvm/bin:$PATH nsh package --target web -o /tmp/quorum-web
 ```
 
 The site holds no credential. It reaches GitHub and the two programs through
@@ -180,13 +190,16 @@ config repo `CONFIG_REPO` (the contents API, with `sha` to update). To run it
 locally (with the example config's web addresses):
 
 ```sh
-LISTEN=:8088 SITE_DIR=/tmp/quorum-web GH_TOKEN=<token> \
-  CONFIG_REPO=oh-my-omp/pm-config COUNCIL_URL=http://127.0.0.1:7421 \
-  GUARDIANS_URL=http://127.0.0.1:7410 \
+LISTEN=:8088 SITE_DIR=/tmp/quorum-web CONFIG_DIR=$PWD/config.example \
+  GH_TOKEN=<token> CONFIG_REPO=oh-my-omp/pm-config \
+  COUNCIL_URL=http://127.0.0.1:7421 GUARDIANS_URL=http://127.0.0.1:7410 \
   caddy run --config deploy/Caddyfile --adapter caddyfile
 ```
 
-then open `http://127.0.0.1:8088/`. The proxy maps `/gh/*` to
+then open `http://127.0.0.1:8088/`. The proxy serves `/config/*` out of
+`CONFIG_DIR` for `GET` and `HEAD` only (`Cache-Control: no-store`, and `404`
+when `CONFIG_DIR` is unset), which is where the page loads its configuration
+from. It maps `/gh/*` to
 `https://api.github.com` with `Authorization: Bearer $GH_TOKEN` for reads
 only: REST `GET` and `HEAD`, and `POST /gh/graphql` whose body contains
 neither `mutation` (any case) nor a `\u` escape. The one write is
@@ -204,7 +217,7 @@ else.
 |---|---|
 | `src/lib.rs` | The root component `App` (config, appearance, tokens) and the NSH module |
 | `src/main.rs` | `cargo run`: the macOS window, opened in the config's appearance |
-| `src/config/` | The config files as types (`schema.rs`, shared with `build.rs`; `theme.rs`, the design tokens) and how each build loads them |
+| `src/config/` | The config files as types (`schema.rs`, `theme.rs`, the design tokens), how each end loads them from bytes, and the git blob sha of each loaded file |
 | `src/gh/` | The GitHub reader: Project items (GraphQL), comments, PM markers, open escalations, rate limit |
 | `src/programs/` | The program reader: health, sessions, session records, bases, rewarm, queue |
 | `src/digest.rs` | The decision log: a session record reduced by the `digest` rules (tests over real session files in `tests/fixtures/`) |
@@ -217,5 +230,5 @@ else.
 | `src/ui/overview.rs`, `issues.rs`, `sessions.rs`, `runtime.rs` | The four pages |
 | `src/ui/parts.rs`, `status.rs`, `icons.rs`, `tokens.rs` | The app's own controls, its state words and glyphs, icons, and the theme's tokens as NSH tokens and type roles |
 | `src/ui/text.rs` | Every word the UI shows |
-| `deploy/Caddyfile` | The web build's same-origin proxy |
+| `deploy/Caddyfile` | The web build's same-origin proxy: the site, its `/config`, GitHub and the two programs |
 | `config.example/` | A PM config directory for local runs |

@@ -1,10 +1,10 @@
-//! The PM config as each build gets it. macOS reads the directory named by
+//! The PM config as each end loads it. macOS reads the directory named by
 //! `PM_CONFIG_DIR` at startup; the web build fetches the same four files
 //! from the site's `/config/` when it starts, so a config change takes
-//! effect on the next deploy and refresh, with no rebuild. Both parse
-//! the YAML files with [`schema`] and `quorum/theme.json` with [`theme`],
-//! use their own section of `quorum.yaml`'s `targets`, and remember the
-//! git blob sha of every file they loaded.
+//! effect on the next deploy and refresh, with no rebuild. Both parse the
+//! YAML files with [`schema`] and `quorum/theme.json` with [`theme`], use
+//! their own section of `quorum.yaml`'s `targets`, and remember the git
+//! blob sha of every file they loaded.
 
 pub mod schema;
 pub mod theme;
@@ -119,42 +119,49 @@ fn assemble(
         repos: text_of(schema::REPOS_FILE, repos)?,
         project: text_of(schema::PROJECT_FILE, project)?,
     })?;
-    Ok(AppConfig::of(config, theme::parse(text_of(theme::THEME_FILE, theme)?)?, loaded))
+    Ok(AppConfig::of(
+        config,
+        theme::parse(text_of(theme::THEME_FILE, theme)?)?,
+        loaded,
+    ))
 }
 
 /// The environment variable naming the PM config directory.
 pub const CONFIG_DIR_VAR: &str = "PM_CONFIG_DIR";
 
-/// The config the site serves under `/config/`: the four files in order,
-/// fetched when the app starts. A request or status that fails names the
-/// file it was for.
+/// The config the site serves under `/config/`: the four files, fetched
+/// when the app starts. A request or status that fails names the file it
+/// was for.
 #[cfg(target_arch = "wasm32")]
 pub async fn load() -> Result<AppConfig, ConfigError> {
-    use nsh_core::prelude::HttpRequest;
-
-    let get = async |file: &'static str| {
-        let url = format!("{}/config/{file}", origin());
-        crate::http::bytes(HttpRequest::get(url))
-            .await
-            .map_err(|message| ConfigError {
-                file: file.to_owned(),
-                path: String::new(),
-                message,
-            })
-    };
-    let quorum = get(schema::QUORUM_FILE).await?;
-    let theme = get(theme::THEME_FILE).await?;
-    let repos = get(schema::REPOS_FILE).await?;
-    let project = get(schema::PROJECT_FILE).await?;
+    let quorum = fetch(schema::QUORUM_FILE).await?;
+    let theme = fetch(theme::THEME_FILE).await?;
+    let repos = fetch(schema::REPOS_FILE).await?;
+    let project = fetch(schema::PROJECT_FILE).await?;
     assemble(&quorum, &theme, &repos, &project)
 }
 
-/// The site's own origin, to which `/config/<file>` is appended (NSH's
-/// `fetch` takes absolute URLs only).
+/// `/config/<file>` of the site the page came from, fetched in full.
+#[cfg(target_arch = "wasm32")]
+async fn fetch(file: &'static str) -> Result<Vec<u8>, ConfigError> {
+    use nsh_core::prelude::HttpRequest;
+
+    let url = format!("{}/config/{file}", origin());
+    crate::http::bytes(HttpRequest::get(url))
+        .await
+        .map_err(|message| ConfigError {
+            file: file.to_owned(),
+            path: String::new(),
+            message,
+        })
+}
+
+/// The site's own origin, to which `/config/<file>` is appended: NSH's
+/// `fetch` takes absolute URLs only.
 #[cfg(target_arch = "wasm32")]
 fn origin() -> String {
     web_sys::window()
-        .map(|window| window.location().origin())
+        .and_then(|window| window.location().origin().ok())
         .unwrap_or_default()
 }
 
@@ -171,6 +178,14 @@ pub fn load() -> Result<AppConfig, ConfigError> {
             path: String::new(),
             message: "未设置：应指向 PM 配置目录".to_owned(),
         })?;
+    let read = |file: &'static str| {
+        let path = dir.join(file);
+        std::fs::read(&path).map_err(|error| ConfigError {
+            file: file.to_owned(),
+            path: String::new(),
+            message: format!("{}: {error}", path.display()),
+        })
+    };
     let quorum = read(schema::QUORUM_FILE)?;
     let theme = read(theme::THEME_FILE)?;
     let repos = read(schema::REPOS_FILE)?;
@@ -182,47 +197,74 @@ pub fn load() -> Result<AppConfig, ConfigError> {
 mod tests {
     use super::*;
 
-    /// `blob_sha` is the value `git hash-object` gives the same bytes:
-    /// the empty blob and "hello\n" have known shas.
-    #[test]
-    fn blob_sha_matches_git_hash_object() {
-        assert_eq!(blob_sha(b""), "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391");
-        assert_eq!(blob_sha(b"hello\n"), "ce013625030ba8dba906f756967f9e9ca394464a");
-    }
-
-    /// Loading remembers every file with the sha `git hash-object` gives
-    /// its bytes (run here on the example files themselves).
-    #[test]
-    fn loaded_files_record_their_blob_sha() {
+    /// The example config directory, read whole.
+    fn example() -> [Vec<u8>; 4] {
         let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("config.example");
-        let example = |file: &str| {
+        let read = |file: &str| {
             std::fs::read(dir.join(file))
                 .unwrap_or_else(|error| panic!("config.example/{file}: {error}"))
         };
-        let quorum = example(schema::QUORUM_FILE);
-        let theme = example(theme::THEME_FILE);
-        let repos = example(schema::REPOS_FILE);
-        let project = example(schema::PROJECT_FILE);
+        [
+            read(schema::QUORUM_FILE),
+            read(theme::THEME_FILE),
+            read(schema::REPOS_FILE),
+            read(schema::PROJECT_FILE),
+        ]
+    }
+
+    /// `blob_sha` gives what `git hash-object --stdin` gives the same
+    /// bytes: these are its answers for the empty file and `hello\n`.
+    #[test]
+    fn blob_sha_matches_git_hash_object() {
+        assert_eq!(
+            blob_sha(b""),
+            "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        );
+        assert_eq!(
+            blob_sha(b"hello\n"),
+            "ce013625030ba8dba906f756967f9e9ca394464a"
+        );
+    }
+
+    /// Loading the example configuration remembers each of the four files
+    /// by the name the PM config directory gives it and the sha of its
+    /// bytes.
+    #[test]
+    fn loading_records_each_files_blob_sha() {
+        let [quorum, theme, repos, project] = example();
         let config = assemble(&quorum, &theme, &repos, &project).unwrap();
-        for (loaded, bytes) in config.loaded.iter().zip([&quorum, &theme, &repos, &project]) {
-            let output = std::process::Command::new("git")
-                .args(["hash-object", "--stdin"])
-                .stdin(std::process::Stdio::piped())
-                .stdout(std::process::Stdio::piped())
-                .spawn()
-                .and_then(|mut child| {
-                    use std::io::Write;
-                    child.stdin.take().unwrap().write_all(bytes)?;
-                    child.wait_with_output()
-                })
-                .expect("git hash-object runs");
-            assert!(output.status.success());
-            assert_eq!(
-                loaded.sha,
-                String::from_utf8(output.stdout).unwrap().trim(),
-                "{}",
-                loaded.file
-            );
+        let expected = [
+            (schema::QUORUM_FILE, &quorum),
+            (theme::THEME_FILE, &theme),
+            (schema::REPOS_FILE, &repos),
+            (schema::PROJECT_FILE, &project),
+        ];
+        assert_eq!(config.loaded.len(), expected.len());
+        for (loaded, (file, bytes)) in config.loaded.iter().zip(expected) {
+            assert_eq!(loaded.file, file);
+            assert_eq!(loaded.sha, blob_sha(bytes), "{file}");
+            assert_eq!(loaded.sha.len(), 40, "{file}");
         }
+    }
+
+    /// A file that does not parse is reported under its own name, with the
+    /// key path that is wrong.
+    #[test]
+    fn a_bad_file_names_itself_and_its_key() {
+        let [quorum, theme, repos, project] = example();
+        let unknown = String::from_utf8(quorum).unwrap() + "unexpectedKey: 1\n";
+        let error = assemble(unknown.as_bytes(), &theme, &repos, &project).unwrap_err();
+        assert_eq!(error.file, schema::QUORUM_FILE);
+        assert_eq!(error.path, "unexpectedKey");
+        assert!(error.message.contains("unknown field"), "{}", error.message);
+    }
+
+    /// A file that is not UTF-8 is a config error naming the file.
+    #[test]
+    fn a_file_that_is_not_utf8_is_an_error() {
+        let [_, theme, repos, project] = example();
+        let error = assemble(&[0xff, 0xfe], &theme, &repos, &project).unwrap_err();
+        assert_eq!(error.file, schema::QUORUM_FILE);
+        assert!(error.message.starts_with("不是 UTF-8"), "{}", error.message);
     }
 }

@@ -346,7 +346,7 @@ impl fmt::Display for Msg {
             Msg::LastHours(h) => write!(f, "最近 {h} 小时"),
             Msg::ConfigError => f.write_str("配置有误"),
             Msg::ConfigHint => f.write_str(
-                "PM_CONFIG_DIR 应指向 PM 配置目录（含 dashboard/dashboard.yaml、dashboard/theme.json、shared/repos.yaml、shared/project.yaml）；修正后重新启动。",
+                "配置目录应包含 quorum/quorum.yaml、quorum/theme.json、shared/repos.yaml、shared/project.yaml；修正后重新加载。",
             ),
 
             // -- status words

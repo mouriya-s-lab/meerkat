@@ -409,19 +409,19 @@ impl TryFrom<String> for Name {
 mod tests {
     use super::*;
 
-    const DASHBOARD: &str = include_str!("../../config.example/dashboard/dashboard.yaml");
+    const QUORUM: &str = include_str!("../../config.example/quorum/quorum.yaml");
     const REPOS: &str = include_str!("../../config.example/shared/repos.yaml");
     const PROJECT: &str = include_str!("../../config.example/shared/project.yaml");
 
     /// The example config with its `appearance` line replaced by `line`.
     fn with_appearance(line: &str) -> Result<Config, ConfigError> {
-        let dashboard = DASHBOARD
+        let quorum = QUORUM
             .lines()
             .map(|l| if l.starts_with("appearance:") { line } else { l })
             .collect::<Vec<_>>()
             .join("\n");
         parse(ConfigText {
-            dashboard: &dashboard,
+            quorum: &quorum,
             repos: REPOS,
             project: PROJECT,
         })
@@ -430,27 +430,33 @@ mod tests {
     #[test]
     fn the_example_config_parses() {
         let config = parse(ConfigText {
-            dashboard: DASHBOARD,
+            quorum: QUORUM,
             repos: REPOS,
             project: PROJECT,
         })
         .unwrap();
-        assert_eq!(config.dashboard.appearance, Appearance::System);
+        assert_eq!(config.quorum.appearance, Appearance::System);
     }
 
     #[test]
     fn appearance_is_system_light_or_dark() {
-        let of = |value: &str| with_appearance(&format!("appearance: {value}")).map(|c| c.dashboard.appearance);
+        let of = |value: &str| {
+            with_appearance(&format!("appearance: {value}")).map(|c| c.quorum.appearance)
+        };
         assert_eq!(of("system"), Ok(Appearance::System));
         assert_eq!(of("light"), Ok(Appearance::Light));
         assert_eq!(of("dark"), Ok(Appearance::Dark));
         let error = of("dim").unwrap_err();
-        assert_eq!(error.file, DASHBOARD_FILE);
+        assert_eq!(error.file, QUORUM_FILE);
         assert_eq!(error.path, "appearance");
-        assert!(error.message.starts_with("unknown variant `dim`"), "{}", error.message);
+        assert!(
+            error.message.starts_with("unknown variant `dim`"),
+            "{}",
+            error.message
+        );
         assert_eq!(
             error.to_string(),
-            format!("{DASHBOARD_FILE}: appearance: {}", error.message)
+            format!("{QUORUM_FILE}: appearance: {}", error.message)
         );
         assert_eq!(of("Dark").unwrap_err().path, "appearance");
     }
@@ -458,7 +464,11 @@ mod tests {
     #[test]
     fn appearance_is_required() {
         let error = with_appearance("").unwrap_err();
-        assert_eq!(error.file, DASHBOARD_FILE);
-        assert!(error.message.contains("missing field `appearance`"), "{}", error.message);
+        assert_eq!(error.file, QUORUM_FILE);
+        assert!(
+            error.message.contains("missing field `appearance`"),
+            "{}",
+            error.message
+        );
     }
 }

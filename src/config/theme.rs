@@ -1,18 +1,16 @@
-//! `dashboard/theme.json`: the dashboard's visual values, in shadcn's
+//! `quorum/theme.json`: Quorum's visual values, in shadcn's
 //! `cssVars` layout. `theme` holds the fonts and the lengths (text sizes,
 //! spacing, radii, row heights, the sidebar's width, the DAG's geometry),
 //! `light` and `dark` the colors of each appearance. Every token is
 //! required and no other is allowed; a color is `#rrggbb`, a length
-//! `<number>px`, a font a CSS family list. `build.rs` includes this file
-//! too, so the web build rejects a theme with the same messages the macOS
-//! app shows.
+//! `<number>px`, a font a CSS family list.
 
 use serde_json::{Map, Value};
 
 use super::schema::{ConfigError, HexColor};
 
-/// `dashboard/theme.json`, relative to the PM config directory.
-pub const THEME_FILE: &str = "dashboard/theme.json";
+/// `quorum/theme.json`, relative to the PM config directory.
+pub const THEME_FILE: &str = "quorum/theme.json";
 
 /// A font family token (`cssVars.theme`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -307,7 +305,7 @@ pub struct ThemeColor {
     pub dark: HexColor,
 }
 
-/// `dashboard/theme.json`, parsed: every token's value, indexed as the
+/// `quorum/theme.json`, parsed: every token's value, indexed as the
 /// tokens' `ALL` lists them.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Theme {
@@ -333,7 +331,7 @@ impl Theme {
     }
 }
 
-/// Parses `dashboard/theme.json`: the first missing, unknown or bad token,
+/// Parses `quorum/theme.json`: the first missing, unknown or bad token,
 /// with its key path (`cssVars.light.ok-text`).
 pub fn parse(text: &str) -> Result<Theme, ConfigError> {
     let error = |path: String, message: String| ConfigError {
@@ -444,7 +442,7 @@ fn object<'a>(
 mod tests {
     use super::*;
 
-    const EXAMPLE: &str = include_str!("../../config.example/dashboard/theme.json");
+    const EXAMPLE: &str = include_str!("../../config.example/quorum/theme.json");
 
     fn edited(edit: impl FnOnce(&mut Value)) -> String {
         let mut json: Value = serde_json::from_str(EXAMPLE).unwrap();
@@ -478,7 +476,7 @@ mod tests {
                 .remove("ok-text");
         });
         let error = error_of(&text);
-        assert_eq!(error.file, "dashboard/theme.json");
+        assert_eq!(error.file, THEME_FILE);
         assert_eq!(error.path, "cssVars.light.ok-text");
         assert!(error.to_string().contains("ok-text"), "{error}");
         let text = edited(|json| {

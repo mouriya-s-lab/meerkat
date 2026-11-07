@@ -1,4 +1,4 @@
-//! Runs the dashboard in a native macOS window (`cargo run`), reading the
+//! Runs Quorum in a native macOS window (`cargo run`), reading the
 //! PM config directory `PM_CONFIG_DIR` names.
 
 #[cfg(target_os = "macos")]

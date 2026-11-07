@@ -1,5 +1,5 @@
 //! The decision log (C4 `logDigest`): an omp session file reduced by
-//! `dashboard.yaml`'s `digest` rules. The opening message, the program's
+//! `quorum.yaml`'s `digest` rules. The opening message, the program's
 //! later prompts, the kept tools' calls with their arguments and results,
 //! a count for each run of a folded tool, the assistant's text when the
 //! rules show it, LLM errors, automatic retries, the plugin's continuation

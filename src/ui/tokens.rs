@@ -1,4 +1,4 @@
-//! The design tokens of `dashboard/theme.json` as the UI reads them: the
+//! The design tokens of `quorum/theme.json` as the UI reads them: the
 //! app hands them to NSH once ([`of`]) and every color, text size, spacing,
 //! radius and DAG length the pages draw with is read back here by its
 //! token's name. The shell mounts only once NSH draws with them, so a
