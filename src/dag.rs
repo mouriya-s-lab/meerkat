@@ -82,28 +82,32 @@ impl Group {
 }
 
 impl NodeState {
-    /// The list's group: a verdict's, or what the Project `Status`
-    /// amounts to.
-    pub fn group(&self) -> Group {
+    /// The list's group of a verdict. A Project `Status` shown in place
+    /// of one has none: no verdict to group it by.
+    pub fn group(&self) -> Option<Group> {
         match self {
-            NodeState::Queue(state) => match state {
+            NodeState::Queue(state) => Some(match state {
                 QueueState::Failed | QueueState::Interrupted => Group::Attention,
                 QueueState::Deliberating => Group::Deliberating,
                 QueueState::Ready => Group::Ready,
                 QueueState::Blocked | QueueState::Held => Group::Waiting,
                 QueueState::Decided | QueueState::Superseded => Group::Closed,
-            },
-            NodeState::Project { status, .. } => match status {
-                Some(Status::Done | Status::Superseded) => Group::Closed,
-                Some(Status::InProgress) => Group::Deliberating,
-                Some(Status::Todo | Status::Other(_)) | None => Group::Ready,
-            },
+            }),
+            NodeState::Project { .. } => None,
         }
     }
 
-    /// Decided or superseded.
+    /// Decided or superseded: by the council's verdict, or by the
+    /// Project's `Status` in place of one.
     pub fn closed(&self) -> bool {
-        self.group() == Group::Closed
+        matches!(
+            self,
+            NodeState::Queue(QueueState::Decided | QueueState::Superseded)
+                | NodeState::Project {
+                    status: Some(Status::Done | Status::Superseded),
+                    ..
+                }
+        )
     }
 
     pub fn superseded(&self) -> bool {
@@ -390,12 +394,52 @@ pub const LATEST_CLOSED: usize = 3;
 /// order, the closed group by `updatedAt`, newest first.
 pub fn rows(graph: &Graph, group: Group, keep: &dyn Fn(&Node) -> bool) -> Vec<usize> {
     let mut rows: Vec<usize> = (0..graph.nodes.len())
-        .filter(|&i| graph.nodes[i].state.group() == group && keep(&graph.nodes[i]))
+        .filter(|&i| graph.nodes[i].state.group() == Some(group) && keep(&graph.nodes[i]))
         .collect();
     if group == Group::Closed {
         rows.sort_by(|&a, &b| graph.nodes[b].updated_at.cmp(&graph.nodes[a].updated_at));
     }
     rows
+}
+
+/// The list's groups after the queue's: the nodes `keep` keeps that show
+/// their Project `Status` in place of a verdict, one group per `Status`
+/// (in progress, to do, the options the config does not name by name,
+/// unset, done, superseded), each in the queue's order, the done and
+/// superseded ones by `updatedAt`, newest first.
+pub fn status_groups(graph: &Graph, keep: &dyn Fn(&Node) -> bool) -> Vec<(Option<Status>, Vec<usize>)> {
+    let mut groups: Vec<(Option<Status>, Vec<usize>)> = Vec::new();
+    for (i, node) in graph.nodes.iter().enumerate() {
+        let NodeState::Project { status, .. } = &node.state else {
+            continue;
+        };
+        if !keep(node) {
+            continue;
+        }
+        match groups.iter_mut().find(|(s, _)| s == status) {
+            Some((_, rows)) => rows.push(i),
+            None => groups.push((status.clone(), vec![i])),
+        }
+    }
+    groups.sort_by(|(a, _), (b, _)| status_order(a).cmp(&status_order(b)));
+    for (_, rows) in &mut groups {
+        if graph.nodes[rows[0]].state.closed() {
+            rows.sort_by(|&a, &b| graph.nodes[b].updated_at.cmp(&graph.nodes[a].updated_at));
+        }
+    }
+    groups
+}
+
+/// Where a `Status` group goes among the others.
+fn status_order(status: &Option<Status>) -> (u8, &str) {
+    match status {
+        Some(Status::InProgress) => (0, ""),
+        Some(Status::Todo) => (1, ""),
+        Some(Status::Other(name)) => (2, name),
+        None => (3, ""),
+        Some(Status::Done) => (4, ""),
+        Some(Status::Superseded) => (5, ""),
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -811,7 +855,7 @@ mod tests {
             }
         );
         assert!(decided.state.closed());
-        assert_eq!(decided.state.group(), Group::Closed);
+        assert_eq!(decided.state.group(), None);
     }
 
     #[test]
@@ -850,6 +894,48 @@ mod tests {
         assert_eq!(group(Group::Waiting), vec![2]);
         // Newest update first.
         assert_eq!(group(Group::Closed), vec![7, 6, 3]);
+    }
+
+    #[test]
+    fn project_statuses_group_apart_from_the_verdicts() {
+        let mut items: Vec<ProjectItem> = (1..=8)
+            .map(|n| item(n, Kind::Agenda, &format!("D{n}"), &[]))
+            .collect();
+        items[1].status = Some(Status::InProgress);
+        items[2].status = Some(Status::Done);
+        items[3].status = None;
+        items[4].status = Some(Status::Other("Parked".to_owned()));
+        items[5].status = Some(Status::Done);
+        items[6].status = Some(Status::Superseded);
+        // Only 1 and 8 are in the queue; the others fall back as unlisted.
+        let queue = vec![entry(1, QueueState::Ready, &[]), entry(8, QueueState::Decided, &[])];
+        let graph = build(&items, Council::Queue(&queue), &repo("o/pm"), false);
+        let group = |g| numbers(&graph, &rows(&graph, g, &all));
+        assert_eq!(group(Group::Ready), vec![1]);
+        assert_eq!(group(Group::Closed), vec![8]);
+        let statuses: Vec<(Option<Status>, Vec<u64>)> = status_groups(&graph, &all)
+            .into_iter()
+            .map(|(s, rows)| (s, numbers(&graph, &rows)))
+            .collect();
+        assert_eq!(
+            statuses,
+            vec![
+                (Some(Status::InProgress), vec![2]),
+                (Some(Status::Other("Parked".to_owned())), vec![5]),
+                (None, vec![4]),
+                // Newest update first.
+                (Some(Status::Done), vec![6, 3]),
+                (Some(Status::Superseded), vec![7]),
+            ]
+        );
+        // Unreachable, every node falls back and no verdict group is left.
+        let graph = build(&items, Council::Unreachable, &repo("o/pm"), false);
+        assert!(Group::ALL.iter().all(|&g| rows(&graph, g, &all).is_empty()));
+        let todo = status_groups(&graph, &all)
+            .into_iter()
+            .find(|(s, _)| *s == Some(Status::Todo))
+            .map(|(_, rows)| numbers(&graph, &rows));
+        assert_eq!(todo, Some(vec![1, 8]));
     }
 
     #[test]

@@ -131,10 +131,11 @@ impl IssuesState {
         self.shown.set(shown);
     }
 
-    /// Whether the status and text filters keep `node` (tracked).
+    /// Whether the status and text filters keep `node` (tracked). A status
+    /// token keeps only the verdicts of its group.
     fn keeps(&self, node: &Node) -> bool {
         let query = self.query.get().trim().trim_start_matches('#').to_lowercase();
-        self.group.get().is_none_or(|g| g == node.state.group())
+        self.group.get().is_none_or(|g| node.state.group() == Some(g))
             && (query.is_empty()
                 || node.title.to_lowercase().contains(&query)
                 || node.agenda.as_deref().is_some_and(|a| a.to_lowercase().contains(&query))
@@ -293,6 +294,7 @@ pub fn page(sources: Sources, context: Rc<Context>, _nav: Nav) -> impl IntoEleme
         .min_h(Points::ZERO)
         .child(filter_bar(graph, state))
         .child(source_bar(sources.project, 0))
+        .child(source_bar(sources.queue, 0))
         .child(split(split_parts, |parts| {
             view()
                 .flex_1()
@@ -375,6 +377,9 @@ fn visible_rows(graph: &Graph, state: IssuesState) -> Vec<usize> {
             _ => order.extend(rows),
         }
     }
+    for (_, rows) in dag::status_groups(graph, &keep) {
+        order.extend(rows);
+    }
     order
 }
 
@@ -415,9 +420,10 @@ fn list_view(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: Issu
                 .into_iter()
                 .map(|g| (g, dag::rows(&graph, g, &|n| state.keeps(n))))
                 .collect();
+            let statuses = dag::status_groups(&graph, &|n| state.keeps(n));
             let settings = settings.clone();
             untracked(move || {
-                if groups.iter().all(|(_, rows)| rows.is_empty()) {
+                if groups.iter().all(|(_, rows)| rows.is_empty()) && statuses.is_empty() {
                     return empty(Msg::NoIssues).into_element();
                 }
                 let mut children: Vec<AnyElement> = Vec::new();
@@ -453,6 +459,18 @@ fn list_view(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: Issu
                         );
                     }
                 }
+                // The issues showing their Project `Status` in place of a
+                // verdict: neutral, under the option's name.
+                for (status, rows) in statuses {
+                    let (g, word) = status::project_option(&status, &settings.fields);
+                    children.push(
+                        super::parts::group_header(status::glyph(g, Role::Neutral).into_element(), word, rows.len())
+                            .into_element(),
+                    );
+                    for &i in &rows {
+                        children.push(list_row(&graph, i, &settings, state).into_element());
+                    }
+                }
                 view().children(children).into_element()
             })
         }))
@@ -475,6 +493,14 @@ fn list_row(graph: &Rc<Graph>, i: usize, settings: &Settings, state: IssuesState
         .flex_shrink(1.0)
         .number_of_lines(1);
     let title = if node.state.superseded() { title.line_through() } else { title };
+    // A Project `Status` in place of a verdict says which and why; a
+    // verdict's word is its group's header.
+    let fallback = match node.state {
+        NodeState::Project { .. } => {
+            Some(small(st.word.clone()).text_color(st.role.text()).flex_shrink_0().number_of_lines(1))
+        }
+        NodeState::Queue(_) => None,
+    };
     row(selected, node.title.clone(), move || state.selected.set(Some(issue.clone())))
         .child(view().w(glyph).flex_shrink_0().child(status::glyph(st.glyph, st.role)))
         .child(small(agenda(node)).w(agenda_w).flex_shrink_0())
@@ -487,7 +513,8 @@ fn list_row(graph: &Rc<Graph>, i: usize, settings: &Settings, state: IssuesState
                 .min_w(Points::ZERO)
                 .overflow_hidden()
                 .child(title)
-                .children(human_tag(node)),
+                .children(human_tag(node))
+                .children(fallback),
         )
         .child(view().w(progress_w).flex_shrink_0().overflow_hidden().child(progress(graph, i)))
         .child(view().w(deps_w).flex_shrink_0().overflow_hidden().child(deps(graph, i)))

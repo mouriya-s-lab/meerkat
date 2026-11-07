@@ -141,8 +141,15 @@ pub fn queue(state: QueueState) -> Status {
 /// A Project `Status` shown in place of a verdict: neutral, the glyph of
 /// the state it amounts to, its option's name and why.
 pub fn project(status: &Option<ProjectStatus>, why: Fallback, fields: &Fields) -> Status {
+    let (glyph, word) = project_option(status, fields);
+    Status::of(Role::Neutral, glyph, Msg::Fallback { word, why })
+}
+
+/// A Project `Status` option: the glyph of the state it amounts to and
+/// its name (the field's name when unset).
+pub fn project_option(status: &Option<ProjectStatus>, fields: &Fields) -> (Glyph, String) {
     let options = &fields.status.options;
-    let (glyph, word) = match status {
+    match status {
         Some(ProjectStatus::Todo) => (Glyph::Ring, options.todo.to_string()),
         Some(ProjectStatus::InProgress) => (Glyph::Half, options.in_progress.to_string()),
         Some(ProjectStatus::Done) => (Glyph::Check, options.done.to_string()),
@@ -152,8 +159,7 @@ pub fn project(status: &Option<ProjectStatus>, why: Fallback, fields: &Fields) -
             Glyph::Ring,
             Msg::StatusUnset(fields.status.name.to_string()).to_string(),
         ),
-    };
-    Status::of(Role::Neutral, glyph, Msg::Fallback { word, why })
+    }
 }
 
 /// A node's state: its verdict, or its Project `Status`.
