@@ -653,6 +653,7 @@ fn limits(sources: Sources, context: Rc<Context>) -> View {
             .child(
                 view()
                     .flex_row()
+                    .gap(len(Space2))
                     .child(text(label).ty(Type::BodyStrong).flex_1())
                     .child(small(Msg::Allowance(bucket.remaining, bucket.limit).to_string()).text_color(color(Foreground))),
             )
@@ -691,6 +692,7 @@ fn limits(sources: Sources, context: Rc<Context>) -> View {
                                     .child(
                                         view()
                                             .flex_row()
+                                            .gap(len(Space2))
                                             .child(text("LLM 429").ty(Type::BodyStrong).flex_1())
                                             .child(small(Msg::LimitedSessions { hours, sessions: limited }.to_string()).text_color(color(Foreground))),
                                     )

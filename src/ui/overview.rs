@@ -263,11 +263,11 @@ fn need_row(need: Need, sources: Sources, context: Rc<Context>, nav: Nav) -> Any
                 .overflow_hidden()
                 .gap(len(Space1) / 2.0)
                 .child(
-                    // A title longer than the row wraps rather than being cut.
+                    // A title longer than the row wraps rather than being
+                    // cut; the count stays beside its first line.
                     view()
                         .flex_row()
-                        .flex_wrap()
-                        .items_center()
+                        .items_start()
                         .gap(len(Space2))
                         .min_w(Points::ZERO)
                         .child(text(line.title.clone()).ty(Type::BodyStrong).flex_shrink(1.0).min_w(Points::ZERO))
