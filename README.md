@@ -207,7 +207,9 @@ PM_CONFIG_DIR=$PWD/config.example cargo run
 ```
 
 The GitHub token is `GH_TOKEN`, or what `gh auth token` prints when
-`GH_TOKEN` is empty.
+`GH_TOKEN` is empty. Until `gh` answers, the panels that read GitHub say
+the credential is being fetched; the council's and the guardians' load at
+once.
 
 ## Web
 

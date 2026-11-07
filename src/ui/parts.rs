@@ -1,7 +1,7 @@
 //! Quorum's own controls, styled once from the theme's tokens: panels and
 //! their heads, buttons, segmented choices, filter tokens, a search field,
-//! table heads, selectable rows and group headers, inline error bars,
-//! skeleton rows, key–value lines, meters and the summary sentence.
+//! table heads, selectable rows and group headers, inline error and wait
+//! bars, skeleton rows, key–value lines, meters and the summary sentence.
 
 use std::rc::Rc;
 
@@ -16,6 +16,7 @@ use super::{
 };
 use crate::{
     config::{ColorToken::*, LengthToken::*},
+    gh::Credential,
     sources::Source,
     time,
 };
@@ -468,6 +469,46 @@ pub fn source_bar<T: 'static>(source: Source<T>, rows: usize) -> AnyElement {
         }
     })
     .into_element()
+}
+
+/// What a source read from GitHub lacks: while the credential is fetched,
+/// a bar saying so (the source has not started); then as [`source_bar`].
+pub fn github_bar<T: 'static>(
+    credential: Signal<Option<Credential>>,
+    source: Source<T>,
+    rows: usize,
+) -> AnyElement {
+    dynamic(move || {
+        if credential.with(Option::is_none) {
+            wait_bar(Msg::FetchingCredential).into_element()
+        } else {
+            source_bar(source, rows)
+        }
+    })
+    .into_element()
+}
+
+/// An inline bar over a panel whose source waits for something else: the
+/// glyph and what it waits for.
+fn wait_bar(waits_for: Msg) -> View {
+    view()
+        .flex_row()
+        .items_center()
+        .gap(len(Space2))
+        .min_h(len(Row))
+        .px(len(Space4))
+        .bg(Role::Wait.subtle())
+        .border_b_1()
+        .border_b_color(color(Border))
+        .child(super::status::glyph(super::status::Glyph::Dashed, Role::Wait))
+        .child(
+            text(SharedString::from(waits_for))
+                .ty(Type::Body)
+                .text_color(Role::Wait.text())
+                .flex_1()
+                .min_w(Points::ZERO)
+                .number_of_lines(1),
+        )
 }
 
 /// `rows` placeholder rows at the final row height, while data loads.

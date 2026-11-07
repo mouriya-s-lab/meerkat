@@ -12,7 +12,7 @@ use nsh_core::{element::TransformOrigin, prelude::*};
 use super::{
     icons::Icon,
     parts::{
-        Choice, Look, action, empty, head_row, icon_button, kv, mono, nothing, press,
+        Choice, Look, action, empty, github_bar, head_row, icon_button, kv, mono, nothing, press,
         row, search_field, segmented, small, source_bar, tag, th, token, votes_bar, meter,
     },
     shell::{Context, Nav, Split, graph_of, side, split},
@@ -293,7 +293,7 @@ pub fn page(sources: Sources, context: Rc<Context>, _nav: Nav) -> impl IntoEleme
         .flex_1()
         .min_h(Points::ZERO)
         .child(filter_bar(graph, state))
-        .child(source_bar(sources.project, 0))
+        .child(github_bar(sources.credential, sources.project, 0))
         .child(source_bar(sources.queue, 0))
         .child(split(split_parts, |parts| {
             view()
