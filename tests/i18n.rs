@@ -34,6 +34,7 @@ use quorum::{
     Lang, Msg, QueueMotion,
     config::{self, ConfigError, Problem},
     dag::{self, Closed, Group},
+    detail,
     failure::{self, Failure, NoCredential},
     gh,
     programs::{BaseState, Program, QueueState, SessionState},
@@ -505,8 +506,30 @@ fn s() -> String {
 }
 
 /// The pages, as the command bar's 「前往」 names them.
-fn pages() -> [Msg; 5] {
-    [Msg::PageOverview, Msg::PageIssues, Msg::PageSessions, Msg::PageRuntime, Msg::PageConfig]
+fn pages() -> [Msg; 6] {
+    [
+        Msg::PageOverview,
+        Msg::PageIssues,
+        Msg::PageImplementations,
+        Msg::PageSessions,
+        Msg::PageRuntime,
+        Msg::PageConfig,
+    ]
+}
+
+/// Every state of the council's queue.
+fn queue_states() -> [QueueState; 9] {
+    [
+        QueueState::Decided,
+        QueueState::Superseded,
+        QueueState::Closed,
+        QueueState::Blocked,
+        QueueState::Held,
+        QueueState::Deliberating,
+        QueueState::Interrupted,
+        QueueState::Failed,
+        QueueState::Ready,
+    ]
 }
 
 /// What the programs panels say a program is working on.
@@ -572,7 +595,17 @@ fn instances() -> Vec<Msg> {
         OpenDetail, FilterFiles, TopFiles, NoReaders, ReadersLabel, OlderMark, EditedMark,
         ModePreview, ModeYaml, ModeChanges, SameAsBranch, GateChecking, GatePass, GateBlocked,
         Discard, Saving, OpenCommit, ChecksTitle, Unchanged, CheckRunning, Passed, NoInput,
-        VersionsTitle, QuorumHere, Checkout, Pull, Pulling,
+        VersionsTitle, QuorumHere, Checkout, Pull, Pulling, PageImplementations,
+        // -- agenda detail (#4)
+        StepDecided, NoDraftYet, Votes, DecisionRow, SeatSessionFailed, Reached,
+        HasCounterexample, HasVeto, Counterexample, Citation, Classification, OpenSession,
+        Comment, NoReason, DraftChange, Draft, RowAdded, RowRemoved, Body, NoBody,
+        InvalidMarkers, Decision, NotDecided, Rulings, NoRulings, CouncilSessions,
+        NoCouncilSessions, Relations, Implementations, Supersedes, SupersededBy, AfterDecision,
+        LoadingComments, NoMarkers,
+        // -- implementations (#4)
+        WaitsGuardians, Timeline, SelectImplementation, NoImplementations, ImplStarted,
+        ImplResumed, Worker, WorkerAsks, GuardianReply, WaitGuardians, InvalidMarker,
     ];
     let n = counts();
     let pairs: Vec<(u64, u64)> = n.iter().flat_map(|a| n.iter().map(move |b| (*a, *b))).collect();
@@ -593,20 +626,7 @@ fn instances() -> Vec<Msg> {
     all.extend(tooks.into_iter().map(Took));
 
     // -- status words
-    all.extend(
-        [
-            QueueState::Decided,
-            QueueState::Superseded,
-            QueueState::Closed,
-            QueueState::Blocked,
-            QueueState::Held,
-            QueueState::Deliberating,
-            QueueState::Interrupted,
-            QueueState::Failed,
-            QueueState::Ready,
-        ]
-        .map(Queue),
-    );
+    all.extend(queue_states().map(Queue));
     all.extend([SessionState::Running, SessionState::Done, SessionState::Failed].map(Session));
     let base_states = [BaseState::Warming, BaseState::Ready, BaseState::Failed];
     all.extend(base_states.map(Base));
@@ -779,6 +799,96 @@ fn instances() -> Vec<Msg> {
     all.extend(lists().into_iter().map(RunningOld));
     all.push(UpToDate(s()));
     all.extend(n.map(|commits| Behind { branch: s(), commits: commits as u32 }));
+
+    // -- agenda detail (#4)
+    let stances = [
+        detail::Stance::Approve,
+        detail::Stance::Oppose,
+        detail::Stance::Veto,
+        detail::Stance::Counterexample,
+        detail::Stance::Pending,
+    ];
+    let outcomes = [gh::markers::Outcome::Passed, gh::markers::Outcome::Rejected, gh::markers::Outcome::Withdrawn];
+    let versions = n.map(|v| v as u32);
+    for human in bools {
+        all.extend(maybe(&[s()]).into_iter().map(|proposer| IssueKind { human, proposer }));
+    }
+    all.push(CreatedAt(s()));
+    for (a, b) in &pairs {
+        let (a, b) = (*a as u32, *b as u32);
+        all.push(StepDraft { round: a, version: b });
+        all.push(StepRevision { from: a, to: b });
+        all.push(VotesNote { round: a, version: b });
+        all.push(VersionArrow { from: a, to: b });
+        all.push(StepVoted { voted: a as usize, seats: b as usize });
+    }
+    all.extend(maybe(&[s()]).into_iter().map(|to| StepSpan { from: s(), to }));
+    all.extend(n.map(|k| StepObjections(k as usize)));
+    all.extend(lists().into_iter().map(StepChanged));
+    all.extend(versions.map(Rule));
+    all.extend(stances.map(StanceGlyph));
+    all.extend(stances.map(Msg::Stance));
+    for (approve, waiting) in &pairs {
+        for threshold in maybe(&versions) {
+            all.push(Approvals { approve: *approve as usize, threshold, waiting: *waiting as usize });
+        }
+    }
+    all.extend(outcomes.map(Msg::Outcome));
+    for outcome in outcomes {
+        all.extend(pairs.iter().map(|(approve, threshold)| OutcomeCount {
+            outcome,
+            approve: *approve as u32,
+            threshold: *threshold as u32,
+        }));
+    }
+    all.push(Ruled(s()));
+    all.extend(stances.map(|stance| Cell { seat: s(), row: s(), stance }));
+    all.extend(versions.map(Version));
+    all.extend(lists().into_iter().map(DraftUnchanged));
+    for round in versions {
+        for seats in lists() {
+            all.extend(maybe(&[s()]).into_iter().map(|ruler| RevisionWhy { round, seats: seats.clone(), ruler }));
+        }
+    }
+    all.push(DecidedAt(s()));
+    for round in versions {
+        all.extend(queue_states().map(|state| RoundStopped { round, state, at: s() }));
+        all.push(RulingMeta { seat: s(), round, at: s() });
+        all.push(RoundNumber(round));
+    }
+    all.push(RulingLine { row: s(), category: s() });
+    all.extend(failures().into_iter().map(CommentsFailed));
+
+    // -- implementations (#4)
+    all.extend(detail::ImplGroup::ALL.map(Msg::ImplGroup));
+    all.extend(maybe(&[s()]).into_iter().map(|agenda| ImplFrom { issue: s(), agenda }));
+    all.push(WaitsCouncil(s()));
+    all.extend(agos().into_iter().map(WorkerRan));
+    let pulls = [gh::project::PullState::Open, gh::project::PullState::Closed, gh::project::PullState::Merged];
+    for state in pulls {
+        all.extend(n.map(|number| PullRequest { number, state }));
+    }
+    all.extend(n.map(|pid| ImplSession { session: s(), host: s(), pid }));
+    for k in n {
+        for answered in maybe(&agos()) {
+            for escalated in maybe(&agos()) {
+                all.push(AskHead { n: k as usize, at: s(), answered, escalated });
+            }
+        }
+    }
+    all.push(CouncilReply(s()));
+    all.push(Escalate(s()));
+    all.push(ReplacedBy(s()));
+    all.push(Replaces(s()));
+    all.extend(agos().into_iter().map(After));
+    all.push(WaitDecision(s()));
+    all.extend(agos().into_iter().map(Waited));
+    for kind in kinds() {
+        all.extend(maybe(&[s()]).into_iter().map(|seat| SessionSeat { kind: kind.clone(), seat }));
+    }
+    all.extend(quorum::DraftField::ALL.map(Msg::DraftField));
+    all.extend(agos().into_iter().map(Lasted));
+    all.push(FromAgenda(s()));
     all
 }
 

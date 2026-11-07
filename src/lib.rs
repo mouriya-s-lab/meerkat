@@ -17,7 +17,7 @@ pub mod sources;
 pub mod time;
 mod ui;
 
-pub use ui::{Lang, Msg, QueueMotion};
+pub use ui::{DraftField, Lang, Msg, QueueMotion};
 
 use nsh_base::theme;
 use nsh_core::prelude::*;

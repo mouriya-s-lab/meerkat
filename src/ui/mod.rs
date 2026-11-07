@@ -17,6 +17,7 @@ mod status;
 mod text;
 mod tokens;
 
+pub use agenda::DraftField;
 pub use lang::{Lang, install as install_lang};
 pub use shell::{app, config_error, config_loading};
 pub use text::{Msg, QueueMotion};

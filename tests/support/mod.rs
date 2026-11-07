@@ -8,6 +8,10 @@
 //! `targets` pointing at the stub network's hosts), handed to the app through
 //! `PM_CONFIG_DIR`. A test that answers some requests itself passes its own
 //! routes to [`Fixture::start_with`]; they come before the recorded ones.
+//! The detail pages' recordings, and what was written by hand where the
+//! records lack a case, are under `tests/fixtures/detail/`; each hand-written
+//! file says in its leading `//` lines what it supplements and from what,
+//! and [`detail`] reads a file without them.
 
 // Each test crate (`credential`, `i18n`) uses a part of the fixture.
 #![allow(dead_code)]
@@ -31,7 +35,7 @@ use quorum::{Lang, Msg};
 /// `tests/fixtures/config/quorum/quorum.yaml`.
 pub const GITHUB: &str = "http://github.test";
 /// The stub network's council host.
-const COUNCIL: &str = "http://council.test";
+pub const COUNCIL: &str = "http://council.test";
 /// The stub network's guardians host.
 const GUARDIANS: &str = "http://guardians.test";
 /// The agenda repository the fixture config names (`repos.pm.repo`).
@@ -173,6 +177,16 @@ impl Fixture {
     /// Whether the window shows `text` (one text, whole, as read).
     pub fn shows(&self, text: &str) -> bool {
         self.app.screen().shows(text)
+    }
+
+    /// How many views `selector` names on screen now.
+    pub fn count(&self, selector: &str) -> Result<usize, String> {
+        self.app.screen().count(selector)
+    }
+
+    /// Whether the one view `selector` names is selected.
+    pub fn selected(&self, selector: &str) -> Result<bool, String> {
+        self.app.screen().selected(selector)
     }
 
     /// Waits for the window to show `text`, `timeout` at most.
@@ -379,6 +393,31 @@ pub fn clear_github_token() {
 /// `config.example/`, its endpoints pointing at the stub network's hosts.
 pub fn config_dir() -> PathBuf {
     fixtures_dir().join("config")
+}
+
+/// A file under `tests/fixtures/detail/` without its `//` lines, which say
+/// what in it was written by hand and from what.
+pub fn detail(name: &str) -> String {
+    let path = fixtures_dir().join("detail").join(name);
+    let text = std::fs::read_to_string(&path).unwrap_or_else(|error| panic!("{}: {error}", path.display()));
+    text.lines().filter(|line| !line.starts_with("//")).collect::<Vec<_>>().join("\n")
+}
+
+/// The council's recorded `/v1/sessions` answer with the sessions of the
+/// JSON array `newer` ahead of them.
+pub fn sessions_with(newer: &str) -> String {
+    let mut sessions: Vec<serde_json::Value> = serde_json::from_str(newer).expect("the sessions are a JSON array");
+    let recorded: Vec<serde_json::Value> =
+        serde_json::from_str(COUNCIL_SESSIONS).expect("the recorded sessions are a JSON array");
+    sessions.extend(recorded);
+    serde_json::Value::Array(sessions).to_string()
+}
+
+/// The route of the comments of `issue` (`owner/repo#n`), as Quorum asks
+/// GitHub for them.
+pub fn comments_route(issue: &str) -> String {
+    let (repo, number) = issue.split_once('#').expect("an issue is owner/repo#n");
+    format!("GET {GITHUB}/repos/{repo}/issues/{number}/comments?per_page=100&page=1")
 }
 
 /// `tests/fixtures/`.

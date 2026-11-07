@@ -286,7 +286,7 @@ pub fn page(sources: Sources, context: Rc<Context>, nav: Nav) -> impl IntoElemen
     let graph = computed(move || graph_of(sources, &pm, state.human_only.get()));
     // The selected issue's comments: the inspector's matrix and the
     // detail opened on it (opening a detail selects its issue).
-    let comments = agenda::comments_of(sources, context.github.clone(), move || {
+    let comments = agenda::comments_of(sources, context.github, move || {
         state.selected.get()
     });
     // J / K move the selection through the list's rows.

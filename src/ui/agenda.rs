@@ -146,7 +146,7 @@ pub enum DraftField {
 }
 
 impl DraftField {
-    const ALL: [DraftField; 5] = [
+    pub const ALL: [DraftField; 5] = [
         DraftField::What,
         DraftField::Where,
         DraftField::How,

@@ -167,7 +167,7 @@ pub fn page(sources: Sources, context: Rc<Context>, nav: Nav) -> impl IntoElemen
             loaded.is_some_and(|loaded| loaded.data.iter().any(|i| i.item.issue == *issue))
         })
     };
-    let comments = comments_of(sources, context.github.clone(), move || {
+    let comments = comments_of(sources, context.github, move || {
         state.selected.get().filter(|issue| !held(issue))
     });
     let here = Here {
@@ -946,7 +946,17 @@ fn ask_unit(here: &Here, thread: &AskThread<'_>, n: usize) -> View {
             (None, escalated_after)
         }
     };
+    let head = Msg::AskHead {
+        n,
+        at: asked.map(time::hm).unwrap_or_default(),
+        answered,
+        escalated: escalated_after,
+    }
+    .to_string();
+    // The unit is named by its head, so a reader (and a test) finds the
+    // ask, its escalation and its settlement as one.
     view()
+        .label(head.clone())
         .gap(len(Space3))
         .px(len(Space4))
         .py(len(Space3))
@@ -959,20 +969,7 @@ fn ask_unit(here: &Here, thread: &AskThread<'_>, n: usize) -> View {
                 .items_center()
                 .gap(len(Space2))
                 .child(icon(Icon::Message, || color(Ink2)))
-                .child(
-                    text(
-                        Msg::AskHead {
-                            n,
-                            at: time::parse_ms(&thread.ask.comment.created_at)
-                                .map(time::hm)
-                                .unwrap_or_default(),
-                            answered,
-                            escalated: escalated_after,
-                        }
-                        .to_string(),
-                    )
-                    .ty(Type::Label),
-                ),
+                .child(text(head).ty(Type::Label)),
         )
         .children(lines)
 }
