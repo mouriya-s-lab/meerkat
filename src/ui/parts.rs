@@ -120,6 +120,95 @@ pub fn action(label: &'static str, on_press: impl Fn() + 'static) -> impl IntoEl
         )
 }
 
+/// A check box with its label, as a button screen readers hear as
+/// selected while `checked`; a press asks for the other value.
+pub fn toggle(
+    label: &'static str,
+    checked: impl Fn() -> bool + Copy + 'static,
+    on_change: impl Fn(bool) + 'static,
+) -> impl IntoElement {
+    button()
+        .on_press(move || on_change(!checked()))
+        .selected(checked)
+        .flex_row()
+        .items_center()
+        .gap_2()
+        .h(px(28.0))
+        .px_1()
+        .rounded(px(4.0))
+        .hover(|s| s.bg(move || theme().accent))
+        .focus(|s| s.outline(px(2.0)).outline_color(move || theme().ring))
+        .cursor_pointer()
+        .child(
+            view()
+                .size(px(14.0))
+                .rounded(px(3.0))
+                .border_1()
+                .border_color(move || {
+                    if checked() {
+                        theme().primary
+                    } else {
+                        theme().border
+                    }
+                })
+                .bg(move || {
+                    if checked() {
+                        theme().primary
+                    } else {
+                        theme().background
+                    }
+                })
+                .items_center()
+                .justify_center()
+                .child(
+                    text(move || if checked() { "✓" } else { "" })
+                        .text_xs()
+                        .text_color(move || theme().primary_foreground),
+                ),
+        )
+        .child(text(label).text_sm())
+}
+
+/// One choice of a row of choices (a tab, a page): highlighted while
+/// `selected`.
+pub fn segment(
+    label: &'static str,
+    selected: impl Fn() -> bool + Copy + 'static,
+    on_press: impl Fn() + 'static,
+) -> impl IntoElement {
+    button()
+        .on_press(on_press)
+        .role(Some(AccessibilityRole::Tab))
+        .selected(selected)
+        .h(px(28.0))
+        .px_3()
+        .items_center()
+        .justify_center()
+        .rounded(px(6.0))
+        .bg(move || {
+            if selected() {
+                theme().secondary
+            } else {
+                theme().background.opacity(0.0)
+            }
+        })
+        .hover(|s| s.bg(move || theme().accent))
+        .focus(|s| s.outline(px(2.0)).outline_color(move || theme().ring))
+        .cursor_pointer()
+        .child(
+            text(label)
+                .text_sm()
+                .font_weight(FontWeight::MEDIUM)
+                .text_color(move || {
+                    if selected() {
+                        theme().secondary_foreground
+                    } else {
+                        theme().muted_foreground
+                    }
+                }),
+        )
+}
+
 /// `content`, opening `href` when pressed; as it is with no `href`.
 pub fn maybe_link(href: Option<String>, content: View) -> AnyElement {
     match href {

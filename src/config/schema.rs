@@ -4,7 +4,10 @@
 //!
 //! Every error names the file and the key path (`targets.web.council`).
 
-use std::{fmt, num::NonZeroU32};
+use std::{
+    fmt,
+    num::{NonZeroU16, NonZeroU32},
+};
 
 use serde::{Deserialize, de::DeserializeOwned};
 
@@ -84,6 +87,9 @@ pub struct Dashboard {
     pub refresh_seconds: NonZeroU32,
     pub attention: Attention,
     pub digest: Digest,
+    pub dag: Dag,
+    pub list: List,
+    pub filters: Filters,
 }
 
 /// The addresses each build talks to.
@@ -183,6 +189,136 @@ impl TryFrom<u8> for Percent {
             Err(format!("{value} is over 100"))
         }
     }
+}
+
+/// How the 「议题」 page draws the DAG.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Dag {
+    pub colors: DagColors,
+    /// Points between two layers.
+    pub layer_gap: u16,
+    /// Points between two nodes of a layer, and around the drawing.
+    pub node_gap: u16,
+    pub node_width: NonZeroU16,
+    pub node_height: NonZeroU16,
+}
+
+/// A node's color for each queue state, and for an issue whose Project
+/// Status no council verdict replaces (`unreachable`).
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DagColors {
+    pub decided: HexColor,
+    pub superseded: HexColor,
+    pub blocked: HexColor,
+    pub held: HexColor,
+    pub deliberating: HexColor,
+    pub interrupted: HexColor,
+    pub failed: HexColor,
+    pub ready: HexColor,
+    pub unreachable: HexColor,
+}
+
+/// A color written `#rrggbb`, kept as `0xrrggbb`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(try_from = "String")]
+pub struct HexColor(u32);
+
+impl HexColor {
+    pub fn rgb(self) -> u32 {
+        self.0
+    }
+}
+
+impl TryFrom<String> for HexColor {
+    type Error = String;
+
+    fn try_from(text: String) -> Result<Self, String> {
+        text.strip_prefix('#')
+            .filter(|hex| hex.len() == 6 && hex.chars().all(|c| c.is_ascii_hexdigit()))
+            .and_then(|hex| u32::from_str_radix(hex, 16).ok())
+            .map(Self)
+            .ok_or_else(|| format!("{text:?} is not #rrggbb"))
+    }
+}
+
+/// The 「议题」 table: its columns, left to right, and its order before
+/// the user sorts it.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(try_from = "ListText")]
+pub struct List {
+    pub columns: Vec<ListColumn>,
+    pub default_sort: ListSort,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct ListText {
+    columns: Vec<ListColumn>,
+    default_sort: ListSort,
+}
+
+impl TryFrom<ListText> for List {
+    type Error = String;
+
+    fn try_from(list: ListText) -> Result<Self, String> {
+        if list.columns.is_empty() {
+            return Err("columns is empty".to_owned());
+        }
+        if let Some((i, column)) = list
+            .columns
+            .iter()
+            .enumerate()
+            .find(|(i, column)| list.columns[..*i].contains(column))
+        {
+            return Err(format!("columns[{i}]: {column:?} is listed twice"));
+        }
+        if !list.columns.contains(&list.default_sort.column) {
+            return Err(format!(
+                "defaultSort.column: {:?} is not one of the columns",
+                list.default_sort.column
+            ));
+        }
+        Ok(Self {
+            columns: list.columns,
+            default_sort: list.default_sort,
+        })
+    }
+}
+
+/// A column of the 「议题」 table.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ListColumn {
+    Agenda,
+    Title,
+    Kind,
+    State,
+    Proposer,
+    BlockedBy,
+    Progress,
+}
+
+/// What the table is sorted by.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ListSort {
+    pub column: ListColumn,
+    pub descending: bool,
+}
+
+/// The filters of the 「议题」 page when it opens; the user toggles them
+/// there. They apply to the DAG and the table alike.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Filters {
+    /// Hide decided issues.
+    pub hide_decided: bool,
+    /// Hide superseded issues.
+    pub hide_superseded: bool,
+    /// Show only human issues and the issues they block, transitively.
+    pub human_only: bool,
 }
 
 // ---------------------------------------------------------------------------
