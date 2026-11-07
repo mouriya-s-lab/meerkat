@@ -5,6 +5,7 @@ mod command;
 mod config;
 mod icons;
 mod issues;
+mod lang;
 mod overview;
 mod parts;
 mod runtime;
@@ -14,6 +15,7 @@ mod status;
 mod text;
 mod tokens;
 
-pub use shell::{app, config_error};
+pub use lang::install as install_lang;
+pub use shell::{app, config_error, config_loading};
 pub use text::Msg;
 pub use tokens::of as tokens;

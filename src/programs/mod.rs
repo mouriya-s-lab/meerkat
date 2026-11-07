@@ -14,16 +14,6 @@ pub enum Program {
     Guardians,
 }
 
-impl Program {
-    /// Its name in the UI.
-    pub fn label(self) -> &'static str {
-        match self {
-            Program::Council => "议会",
-            Program::Guardians => "守护",
-        }
-    }
-}
-
 /// `GET /v1/health`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -150,22 +140,6 @@ pub enum QueueState {
     Interrupted,
     Failed,
     Ready,
-}
-
-impl QueueState {
-    /// Its name in the UI.
-    pub fn label(self) -> &'static str {
-        match self {
-            QueueState::Decided => "已定案",
-            QueueState::Superseded => "已取代",
-            QueueState::Blocked => "等前置",
-            QueueState::Held => "被人类议题挂起",
-            QueueState::Deliberating => "在审",
-            QueueState::Interrupted => "中断",
-            QueueState::Failed => "失败",
-            QueueState::Ready => "可召集",
-        }
-    }
 }
 
 /// A panel's progress.

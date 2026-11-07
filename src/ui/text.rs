@@ -1,11 +1,15 @@
-//! Every word the UI shows (#9 「文案」): one variant per message, worded
-//! in Chinese by [`Display`](fmt::Display). Views build a [`Msg`] and turn
-//! it into text; no view spells a word itself.
+//! Every word the UI shows (#9 「文案」, #12): one variant per message,
+//! worded in Chinese and in English side by side. Views build a [`Msg`]
+//! and turn it into text in the UI's [`Lang`]; no view spells a word
+//! itself. Data (issue titles, repository, model and seat names) and the
+//! errors programs, GitHub and the config parser give pass through as
+//! they are.
 
 use std::fmt;
 
 use nsh_core::prelude::SharedString;
 
+use super::lang::Lang::{self, En, Zh};
 use crate::{
     config::Reader,
     dag::{Closed, Fallback, Group},
@@ -49,6 +53,7 @@ pub enum Msg {
     LastHours(u32),
     ConfigError,
     ConfigHint,
+    LoadingConfig,
 
     // -- status words -----------------------------------------------------
     Queue(QueueState),
@@ -129,7 +134,7 @@ pub enum Msg {
     AllIssues,
     CouncilQueue,
     QueueEmpty,
-    /// A duration: 「3 小时」.
+    /// A duration: 「3 小时」, "3 h".
     Span(Ago),
     View,
     Programs,
@@ -330,6 +335,19 @@ pub enum Msg {
     Pulling,
 }
 
+/// The words for `lang`.
+fn pick(lang: Lang, zh: &'static str, en: &'static str) -> &'static str {
+    match lang {
+        Zh => zh,
+        En => en,
+    }
+}
+
+/// `one` for 1, else `many`.
+fn plural(n: usize, one: &'static str, many: &'static str) -> &'static str {
+    if n == 1 { one } else { many }
+}
+
 /// `n` with a comma every three digits.
 fn thousands(n: u64) -> String {
     let digits = n.to_string();
@@ -343,517 +361,858 @@ fn thousands(n: u64) -> String {
     out
 }
 
-/// A duration's words: 「12 秒」, 「3 小时」.
-fn span(f: &mut fmt::Formatter<'_>, ago: Ago) -> fmt::Result {
-    match ago {
-        Ago::Now => f.write_str("不到 5 秒"),
-        Ago::Seconds(n) => write!(f, "{n} 秒"),
-        Ago::Minutes(n) => write!(f, "{n} 分钟"),
-        Ago::Hours(n) => write!(f, "{n} 小时"),
-        Ago::Days(n) => write!(f, "{n} 天"),
+/// A duration's words: 「12 秒」, "12 s"; 「3 小时」, "3 h".
+fn span(f: &mut fmt::Formatter<'_>, ago: Ago, lang: Lang) -> fmt::Result {
+    match lang {
+        Zh => match ago {
+            Ago::Now => f.write_str("不到 5 秒"),
+            Ago::Seconds(n) => write!(f, "{n} 秒"),
+            Ago::Minutes(n) => write!(f, "{n} 分钟"),
+            Ago::Hours(n) => write!(f, "{n} 小时"),
+            Ago::Days(n) => write!(f, "{n} 天"),
+        },
+        En => match ago {
+            Ago::Now => f.write_str("under 5 s"),
+            Ago::Seconds(n) => write!(f, "{n} s"),
+            Ago::Minutes(n) => write!(f, "{n} min"),
+            Ago::Hours(n) => write!(f, "{n} h"),
+            Ago::Days(n) => write!(f, "{n} d"),
+        },
     }
 }
 
-/// How long ago: 「刚刚」, 「3 小时前」.
-fn ago(f: &mut fmt::Formatter<'_>, at: Ago) -> fmt::Result {
-    match at {
-        Ago::Now => f.write_str("刚刚"),
-        other => {
-            span(f, other)?;
+/// How long ago: 「刚刚」, "just now"; 「3 小时前」, "3 h ago".
+fn ago(f: &mut fmt::Formatter<'_>, at: Ago, lang: Lang) -> fmt::Result {
+    match (at, lang) {
+        (Ago::Now, Zh) => f.write_str("刚刚"),
+        (Ago::Now, En) => f.write_str("just now"),
+        (other, Zh) => {
+            span(f, other, lang)?;
             f.write_str("前")
+        }
+        (other, En) => {
+            span(f, other, lang)?;
+            f.write_str(" ago")
         }
     }
 }
 
-fn program(p: Program) -> &'static str {
+fn program(p: Program, lang: Lang) -> &'static str {
     match p {
-        Program::Council => "议会",
-        Program::Guardians => "守护",
+        Program::Council => pick(lang, "议会", "Council"),
+        Program::Guardians => pick(lang, "守护", "Guardians"),
     }
 }
 
-fn reader(r: Reader) -> &'static str {
+fn reader(r: Reader, lang: Lang) -> &'static str {
     match r {
-        Reader::Council => "议会",
-        Reader::Guardians => "守护",
+        Reader::Council => pick(lang, "议会", "Council"),
+        Reader::Guardians => pick(lang, "守护", "Guardians"),
         Reader::Quorum => "Quorum",
         Reader::Dispatch => "dispatch",
     }
 }
 
-fn kind(kind: &str) -> &str {
+/// A session kind's word; kinds the programs add later pass through.
+fn kind(kind: &str, lang: Lang) -> &str {
     match kind {
-        "vote" => "投票",
-        "draft" => "起草",
-        "base" => "预热",
-        "proxy" => "代读",
-        "query" => "询问",
+        "vote" => pick(lang, "投票", "vote"),
+        "draft" => pick(lang, "起草", "draft"),
+        "base" => pick(lang, "预热", "warm-up"),
+        "proxy" => pick(lang, "代读", "proxy read"),
+        "query" => pick(lang, "询问", "query"),
         other => other,
     }
 }
 
-impl fmt::Display for Msg {
+/// A message in one language, for `Display`.
+pub struct InLang<'a>(&'a Msg, Lang);
+
+impl fmt::Display for InLang<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.write(self.1, f)
+    }
+}
+
+impl Msg {
+    /// This message in `lang`.
+    pub fn in_lang(&self, lang: Lang) -> InLang<'_> {
+        InLang(self, lang)
+    }
+
+    fn write(&self, lang: Lang, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let say = |f: &mut fmt::Formatter<'_>, zh: &'static str, en: &'static str| f.write_str(pick(lang, zh, en));
         match self {
             // -- shell
-            Msg::PageOverview => f.write_str("概览"),
-            Msg::PageIssues => f.write_str("议题"),
-            Msg::PageSessions => f.write_str("会话"),
-            Msg::PageRuntime => f.write_str("运行状况"),
-            Msg::PageConfig => f.write_str("配置"),
-            Msg::GroupCouncil => f.write_str("议会"),
-            Msg::GroupRun => f.write_str("运行"),
-            Msg::SearchHint => f.write_str("搜索议题、会话、命令"),
-            Msg::KeyPalette => f.write_str("⌘K"),
-            Msg::Checking => f.write_str("检查中…"),
-            Msg::Program(p) => f.write_str(program(*p)),
-            Msg::Unknown => f.write_str("未知"),
+            Msg::PageOverview => say(f, "概览", "Overview"),
+            Msg::PageIssues => say(f, "议题", "Issues"),
+            Msg::PageSessions => say(f, "会话", "Sessions"),
+            Msg::PageRuntime => say(f, "运行状况", "Runtime"),
+            Msg::PageConfig => say(f, "配置", "Config"),
+            Msg::GroupCouncil => say(f, "议会", "Council"),
+            Msg::GroupRun => say(f, "运行", "Operations"),
+            Msg::SearchHint => say(f, "搜索议题、会话、命令", "Search issues, sessions, commands"),
+            Msg::KeyPalette => say(f, "⌘K", "⌘K"),
+            Msg::Checking => say(f, "检查中…", "Checking…"),
+            Msg::Program(p) => f.write_str(program(*p, lang)),
+            Msg::Unknown => say(f, "未知", "Unknown"),
             Msg::Allowance(remaining, limit) => {
                 write!(f, "{} / {}", thousands(*remaining), thousands(*limit))
             }
-            Msg::Resets(at) => write!(f, "{at} 重置"),
-            Msg::Updated(at) => {
-                ago(f, *at)?;
-                f.write_str("更新")
-            }
-            Msg::Refresh => f.write_str("刷新"),
-            Msg::Back => f.write_str("返回"),
-            Msg::LastHours(h) => write!(f, "最近 {h} 小时"),
-            Msg::ConfigError => f.write_str("配置有误"),
-            Msg::ConfigHint => f.write_str(
+            Msg::Resets(at) => match lang {
+                Zh => write!(f, "{at} 重置"),
+                En => write!(f, "resets {at}"),
+            },
+            Msg::Updated(at) => match lang {
+                Zh => {
+                    ago(f, *at, lang)?;
+                    f.write_str("更新")
+                }
+                En => {
+                    f.write_str("updated ")?;
+                    ago(f, *at, lang)
+                }
+            },
+            Msg::Refresh => say(f, "刷新", "Refresh"),
+            Msg::Back => say(f, "返回", "Back"),
+            Msg::LastHours(h) => match lang {
+                Zh => write!(f, "最近 {h} 小时"),
+                En => write!(f, "Last {h} hours"),
+            },
+            Msg::ConfigError => say(f, "配置有误", "Configuration error"),
+            Msg::ConfigHint => say(
+                f,
                 "配置目录应包含 quorum/quorum.yaml、quorum/theme.json、shared/repos.yaml、shared/project.yaml；修正后重新加载。",
+                "The config directory must hold quorum/quorum.yaml, quorum/theme.json, shared/repos.yaml and shared/project.yaml; fix it and reload.",
             ),
+            Msg::LoadingConfig => say(f, "正在读取配置…", "Loading the configuration…"),
 
-            // -- status words
+            // -- status words (#9 「状态词表」, one English word each)
             Msg::Queue(state) => f.write_str(match state {
-                QueueState::Decided => "已定案",
-                QueueState::Superseded => "已取代",
-                QueueState::Blocked => "等前置",
-                QueueState::Held => "被人类议题挂起",
-                QueueState::Deliberating => "在审",
-                QueueState::Interrupted => "中断",
-                QueueState::Failed => "失败",
-                QueueState::Ready => "可召集",
+                QueueState::Decided => pick(lang, "已定案", "Decided"),
+                QueueState::Superseded => pick(lang, "已取代", "Superseded"),
+                QueueState::Blocked => pick(lang, "等前置", "Blocked"),
+                QueueState::Held => pick(lang, "被人类议题挂起", "Held by a human issue"),
+                QueueState::Deliberating => pick(lang, "在审", "Deliberating"),
+                QueueState::Interrupted => pick(lang, "中断", "Interrupted"),
+                QueueState::Failed => pick(lang, "失败", "Failed"),
+                QueueState::Ready => pick(lang, "可召集", "Ready to convene"),
             }),
             Msg::Session(state) => f.write_str(match state {
-                SessionState::Running => "运行中",
-                SessionState::Done => "完成",
-                SessionState::Failed => "失败",
+                SessionState::Running => pick(lang, "运行中", "Running"),
+                SessionState::Done => pick(lang, "完成", "Done"),
+                SessionState::Failed => pick(lang, "失败", "Failed"),
             }),
             Msg::Base(state) => f.write_str(match state {
-                BaseState::Warming => "预热中",
-                BaseState::Ready => "就绪",
-                BaseState::Failed => "失败",
+                BaseState::Warming => pick(lang, "预热中", "Warming"),
+                BaseState::Ready => pick(lang, "就绪", "Ready"),
+                BaseState::Failed => pick(lang, "失败", "Failed"),
             }),
-            Msg::Stale => f.write_str("过期"),
-            Msg::Online => f.write_str("在线"),
-            Msg::Unreachable => f.write_str("不可达"),
-            Msg::Escalated => f.write_str("已提为议题"),
-            Msg::RateLow => f.write_str("API 余量低"),
-            Msg::StatusUnset(field) => write!(f, "未设 {field}"),
-            Msg::Fallback { word, why } => write!(
-                f,
-                "{word}（{}）",
-                match why {
-                    Fallback::Unreachable => "议会不可达",
-                    Fallback::Unlisted => "议会队列未列出",
+            Msg::Stale => say(f, "过期", "Stale"),
+            Msg::Online => say(f, "在线", "Online"),
+            Msg::Unreachable => say(f, "不可达", "Unreachable"),
+            Msg::Escalated => say(f, "已提为议题", "Escalated"),
+            Msg::RateLow => say(f, "API 余量低", "API allowance low"),
+            Msg::StatusUnset(field) => match lang {
+                Zh => write!(f, "未设 {field}"),
+                En => write!(f, "{field} not set"),
+            },
+            Msg::Fallback { word, why } => {
+                let why = match why {
+                    Fallback::Unreachable => pick(lang, "议会不可达", "council unreachable"),
+                    Fallback::Unlisted => pick(lang, "议会队列未列出", "not in the council queue"),
+                };
+                match lang {
+                    Zh => write!(f, "{word}（{why}）"),
+                    En => write!(f, "{word} ({why})"),
                 }
-            ),
+            }
 
             // -- command bar
-            Msg::GoTo(page) => write!(f, "前往{page}"),
-            Msg::RefreshNow => f.write_str("立即刷新"),
-            Msg::ShowList => f.write_str("显示议题列表"),
-            Msg::ShowGraph => f.write_str("显示依赖图"),
+            Msg::GoTo(page) => match lang {
+                Zh => write!(f, "前往{}", page.in_lang(lang)),
+                En => write!(f, "Go to {}", page.in_lang(lang)),
+            },
+            Msg::RefreshNow => say(f, "立即刷新", "Refresh now"),
+            Msg::ShowList => say(f, "显示议题列表", "Show the issue list"),
+            Msg::ShowGraph => say(f, "显示依赖图", "Show the dependency graph"),
             Msg::KeyPage(n) => write!(f, "⌘{n}"),
-            Msg::KeyRefresh => f.write_str("⌘R"),
-            Msg::GroupIssues => f.write_str("议题"),
-            Msg::GroupSessions => f.write_str("会话"),
-            Msg::GroupCommands => f.write_str("命令"),
-            Msg::NoResults => f.write_str("没有匹配的结果"),
-            Msg::KeyUpDown => f.write_str("↑↓"),
-            Msg::KeyEnter => f.write_str("↵"),
-            Msg::KeyEscape => f.write_str("esc"),
-            Msg::HintMove => f.write_str("选择"),
-            Msg::HintOpen => f.write_str("打开"),
-            Msg::HintClose => f.write_str("关闭"),
-            Msg::PaletteHint => f.write_str("输入议程号、标题、会话 id 或命令"),
+            Msg::KeyRefresh => say(f, "⌘R", "⌘R"),
+            Msg::GroupIssues => say(f, "议题", "Issues"),
+            Msg::GroupSessions => say(f, "会话", "Sessions"),
+            Msg::GroupCommands => say(f, "命令", "Commands"),
+            Msg::NoResults => say(f, "没有匹配的结果", "No matching results"),
+            Msg::KeyUpDown => say(f, "↑↓", "↑↓"),
+            Msg::KeyEnter => say(f, "↵", "↵"),
+            Msg::KeyEscape => say(f, "esc", "esc"),
+            Msg::HintMove => say(f, "选择", "select"),
+            Msg::HintOpen => say(f, "打开", "open"),
+            Msg::HintClose => say(f, "关闭", "close"),
+            Msg::PaletteHint => say(
+                f,
+                "输入议程号、标题、会话 id 或命令",
+                "Type an agenda number, a title, a session id or a command",
+            ),
 
             // -- parts
-            Msg::TokenKey(key) => write!(f, "{key}："),
-            Msg::LastLoaded(Some(at)) => write!(f, "上次成功 {at}"),
-            Msg::LastLoaded(None) => f.write_str("还没有成功读取过"),
-            Msg::Retry => f.write_str("重试"),
-            Msg::FetchingCredential => f.write_str("正在获取 GitHub 凭据"),
+            Msg::TokenKey(key) => match lang {
+                Zh => write!(f, "{key}："),
+                En => write!(f, "{key}: "),
+            },
+            Msg::LastLoaded(Some(at)) => match lang {
+                Zh => write!(f, "上次成功 {at}"),
+                En => write!(f, "last loaded {at}"),
+            },
+            Msg::LastLoaded(None) => say(f, "还没有成功读取过", "never loaded"),
+            Msg::Retry => say(f, "重试", "Retry"),
+            Msg::FetchingCredential => say(f, "正在获取 GitHub 凭据", "Fetching the GitHub credential"),
 
             // -- overview
-            Msg::RunningWell => f.write_str("运行正常"),
+            Msg::RunningWell => say(f, "运行正常", "Running normally"),
             Msg::ProgramsDown { council, guardians } => f.write_str(match (council, guardians) {
-                (false, false) => "议会与守护不可达",
-                (false, true) => "议会不可达",
-                _ => "守护不可达",
+                (false, false) => pick(lang, "议会与守护不可达", "Council and guardians unreachable"),
+                (false, true) => pick(lang, "议会不可达", "Council unreachable"),
+                _ => pick(lang, "守护不可达", "Guardians unreachable"),
             }),
             Msg::ProgramsLine { council, guardians, queue } => {
                 let online = *council && *guardians;
-                f.write_str(if online { "。议会与守护在线" } else { "。" })?;
-                match queue {
-                    Some(motion) => {
-                        if online {
-                            f.write_str("，")?;
+                match lang {
+                    Zh => {
+                        f.write_str(if online { "。议会与守护在线" } else { "。" })?;
+                        match queue {
+                            Some(motion) => {
+                                if online {
+                                    f.write_str("，")?;
+                                }
+                                f.write_str(match motion {
+                                    QueueMotion::Moving => "议会队列在推进；",
+                                    QueueMotion::Idle => "议会队列没有在审的议题；",
+                                })
+                            }
+                            None if online => f.write_str("；"),
+                            None => Ok(()),
                         }
-                        f.write_str(match motion {
-                            QueueMotion::Moving => "议会队列在推进；",
-                            QueueMotion::Idle => "议会队列没有在审的议题；",
+                    }
+                    // A clause after what is unreachable follows a
+                    // semicolon, so it never starts a sentence.
+                    En => {
+                        f.write_str(if online { ". Council and guardians are online; " } else { "; " })?;
+                        f.write_str(match queue {
+                            Some(QueueMotion::Moving) => "the council queue is moving; ",
+                            Some(QueueMotion::Idle) => "no agenda issue is in deliberation; ",
+                            None => "",
                         })
                     }
-                    None if online => f.write_str("；"),
-                    None => Ok(()),
                 }
             }
-            Msg::FailureKinds(n) => write!(f, "{n} 类失败"),
-            Msg::AsksWaiting(n) => write!(f, "{n} 个询问已提为议题"),
-            Msg::StaleBases(n) => write!(f, "{n} 个基座过期"),
-            Msg::NothingNeedsYou => f.write_str("没有需要你处理的事。"),
-            Msg::WithinHours(h) => write!(f, "最近 {h} 小时有 "),
-            Msg::ListSep { last } => f.write_str(if *last { " 和 " } else { "、" }),
-            Msg::WaitForYou => f.write_str(" 等你处理。"),
-            Msg::NeedsYou => f.write_str("需要你处理"),
-            Msg::NothingNeedsYouLine => f.write_str("没有需要你处理的事"),
-            Msg::Expand => f.write_str("展开"),
-            Msg::Ago(at) => ago(f, *at),
+            Msg::FailureKinds(n) => match lang {
+                Zh => write!(f, "{n} 类失败"),
+                En => write!(f, "{n} {}", plural(*n, "kind of failure", "kinds of failure")),
+            },
+            Msg::AsksWaiting(n) => match lang {
+                Zh => write!(f, "{n} 个询问已提为议题"),
+                En => write!(f, "{n} {}", plural(*n, "ask escalated", "asks escalated")),
+            },
+            Msg::StaleBases(n) => match lang {
+                Zh => write!(f, "{n} 个基座过期"),
+                En => write!(f, "{n} {}", plural(*n, "stale base", "stale bases")),
+            },
+            Msg::NothingNeedsYou => say(f, "没有需要你处理的事。", "nothing needs you."),
+            Msg::WithinHours(h) => match lang {
+                Zh => write!(f, "最近 {h} 小时有 "),
+                En => write!(f, "waiting for you from the last {h} hours: "),
+            },
+            Msg::ListSep { last } => f.write_str(match (last, lang) {
+                (true, Zh) => " 和 ",
+                (false, Zh) => "、",
+                (true, En) => " and ",
+                (false, En) => ", ",
+            }),
+            Msg::WaitForYou => say(f, " 等你处理。", "."),
+            Msg::NeedsYou => say(f, "需要你处理", "Needs you"),
+            Msg::NothingNeedsYouLine => say(f, "没有需要你处理的事", "Nothing needs you"),
+            Msg::Expand => say(f, "展开", "Expand"),
+            Msg::Ago(at) => ago(f, *at, lang),
             Msg::IssueTimes(issue, n) => write!(f, "{issue} ×{n}"),
             Msg::Times(n) => write!(f, "×{n}"),
-            Msg::AgendaFailed(agenda) => write!(f, "{agenda} 审议失败"),
-            Msg::ProgramUnreachable(p) => write!(f, "{}程序不可达", program(*p)),
-            Msg::BaseFailedTitle(base) => write!(f, "基座 {base} 预热失败"),
-            Msg::SessionFailedOne { program: p, kind: k, about } => match about {
-                Some(about) => write!(f, "{about} {}会话失败", kind(k)),
-                None => write!(f, "{}{}会话失败", program(*p), kind(k)),
+            Msg::AgendaFailed(agenda) => match lang {
+                Zh => write!(f, "{agenda} 审议失败"),
+                En => write!(f, "{agenda} deliberation failed"),
             },
-            Msg::SessionsFailed { program: p, kind: k } => {
-                write!(f, "{}{}会话失败", program(*p), kind(k))
+            Msg::ProgramUnreachable(p) => match lang {
+                Zh => write!(f, "{}程序不可达", program(*p, lang)),
+                En => write!(f, "{} program unreachable", program(*p, lang)),
+            },
+            Msg::BaseFailedTitle(base) => match lang {
+                Zh => write!(f, "基座 {base} 预热失败"),
+                En => write!(f, "Base {base} failed to warm"),
+            },
+            Msg::SessionFailedOne { program: p, kind: k, about } => match (about, lang) {
+                (Some(about), Zh) => write!(f, "{about} {}会话失败", kind(k, lang)),
+                (Some(about), En) => write!(f, "{about} {} session failed", kind(k, lang)),
+                (None, Zh) => write!(f, "{}{}会话失败", program(*p, lang), kind(k, lang)),
+                (None, En) => write!(f, "{} {} session failed", program(*p, lang), kind(k, lang)),
+            },
+            Msg::SessionsFailed { program: p, kind: k } => match lang {
+                Zh => write!(f, "{}{}会话失败", program(*p, lang), kind(k, lang)),
+                En => write!(f, "{} {} sessions failed", program(*p, lang), kind(k, lang)),
+            },
+            Msg::EscalationTitle(agenda) => match lang {
+                Zh => write!(f, "询问已提为议题 {agenda}，等你确认"),
+                En => write!(f, "Ask escalated to {agenda}, waiting for your confirmation"),
+            },
+            Msg::EscalationFrom(issue, ask) => match lang {
+                Zh => write!(f, "来自 {issue} 的第 {ask} 个询问"),
+                En => write!(f, "Ask {ask} from {issue}"),
+            },
+            Msg::BaseStaleTitle(base) => match lang {
+                Zh => write!(f, "基座 {base} 过期"),
+                En => write!(f, "Base {base} is stale"),
+            },
+            Msg::WarmedAgo(at) => match lang {
+                Zh => {
+                    ago(f, *at, lang)?;
+                    f.write_str("预热")
+                }
+                En => {
+                    f.write_str("warmed ")?;
+                    ago(f, *at, lang)
+                }
+            },
+            Msg::RateLowTitle(api) => match lang {
+                Zh => write!(f, "GitHub {api} 余量低"),
+                En => write!(f, "GitHub {api} allowance low"),
+            },
+            Msg::RateLeft { remaining, limit, reset } => {
+                let (remaining, limit) = (thousands(*remaining), thousands(*limit));
+                match lang {
+                    Zh => write!(f, "剩 {remaining} / {limit} · {reset} 重置"),
+                    En => write!(f, "{remaining} / {limit} left · resets {reset}"),
+                }
             }
-            Msg::EscalationTitle(agenda) => write!(f, "询问已提为议题 {agenda}，等你确认"),
-            Msg::EscalationFrom(issue, ask) => write!(f, "来自 {issue} 的第 {ask} 个询问"),
-            Msg::BaseStaleTitle(base) => write!(f, "基座 {base} 过期"),
-            Msg::WarmedAgo(at) => {
-                ago(f, *at)?;
-                f.write_str("预热")
+            Msg::OpenIssue => say(f, "打开议题", "Open issue"),
+            Msg::ViewSession => say(f, "查看会话", "View session"),
+            Msg::ViewSessions(n) => match lang {
+                Zh => write!(f, "查看 {n} 个会话"),
+                En => write!(f, "View {n} {}", plural(*n, "session", "sessions")),
+            },
+            Msg::OpenAgenda(agenda) => match lang {
+                Zh => write!(f, "打开 {agenda}"),
+                En => write!(f, "Open {agenda}"),
+            },
+            Msg::OpenCount(n) => match lang {
+                Zh => write!(f, "{n} 个未定案"),
+                En => write!(f, "{n} open"),
+            },
+            Msg::AllIssues => say(f, "全部议题", "All issues"),
+            Msg::CouncilQueue => say(f, "议会队列", "Council queue"),
+            Msg::QueueEmpty => say(f, "议会队列里没有未定案的议题", "No open agenda issue in the council queue"),
+            Msg::Span(at) => span(f, *at, lang),
+            Msg::View => say(f, "查看", "View"),
+            Msg::Programs => say(f, "程序", "Programs"),
+            Msg::Deliberating(n) => {
+                say(f, "在审 ", "Deliberating ")?;
+                match n {
+                    Some(n) => write!(f, "{n}"),
+                    None => f.write_str("—"),
+                }
             }
-            Msg::RateLowTitle(api) => write!(f, "GitHub {api} 余量低"),
-            Msg::RateLeft { remaining, limit, reset } => write!(
-                f,
-                "剩 {} / {} · {reset} 重置",
-                thousands(*remaining),
-                thousands(*limit)
-            ),
-            Msg::OpenIssue => f.write_str("打开议题"),
-            Msg::ViewSession => f.write_str("查看会话"),
-            Msg::ViewSessions(n) => write!(f, "查看 {n} 个会话"),
-            Msg::OpenAgenda(agenda) => write!(f, "打开 {agenda}"),
-            Msg::OpenCount(n) => write!(f, "{n} 个未定案"),
-            Msg::AllIssues => f.write_str("全部议题"),
-            Msg::CouncilQueue => f.write_str("议会队列"),
-            Msg::QueueEmpty => f.write_str("议会队列里没有未定案的议题"),
-            Msg::Span(at) => span(f, *at),
-            Msg::View => f.write_str("查看"),
-            Msg::Programs => f.write_str("程序"),
-            Msg::Deliberating(Some(n)) => write!(f, "在审 {n}"),
-            Msg::Deliberating(None) => f.write_str("在审 —"),
-            Msg::AsksRunning(Some(n)) => write!(f, "询问进行中 {n}"),
-            Msg::AsksRunning(None) => f.write_str("询问进行中 —"),
+            Msg::AsksRunning(n) => {
+                say(f, "询问进行中 ", "Asks running ")?;
+                match n {
+                    Some(n) => write!(f, "{n}"),
+                    None => f.write_str("—"),
+                }
+            }
             Msg::ProgramLine { online, up, work } => {
                 if !online {
-                    return f.write_str("不可达");
+                    return say(f, "不可达", "Unreachable");
                 }
-                f.write_str("在线")?;
+                say(f, "在线", "Online")?;
                 if let Some(up) = up {
-                    f.write_str(" · 运行 ")?;
-                    span(f, *up)?;
+                    say(f, " · 运行 ", " · up ")?;
+                    span(f, *up, lang)?;
                 }
-                write!(f, " · {work}")
+                write!(f, " · {}", work.in_lang(lang))
             }
-            Msg::Hours(h) => write!(f, "{h} 小时"),
-            Msg::Total => f.write_str("总数"),
+            Msg::Hours(h) => match lang {
+                Zh => write!(f, "{h} 小时"),
+                En => write!(f, "{h} hours"),
+            },
+            Msg::Total => say(f, "总数", "Total"),
             Msg::BasesNote { ready, total, stale } => {
-                write!(f, "{ready}/{total} 就绪")?;
+                match lang {
+                    Zh => write!(f, "{ready}/{total} 就绪")?,
+                    En => write!(f, "{ready}/{total} ready")?,
+                }
                 if *stale > 0 {
-                    write!(f, " · {stale} 过期")?;
+                    match lang {
+                        Zh => write!(f, " · {stale} 过期")?,
+                        En => write!(f, " · {stale} stale")?,
+                    }
                 }
                 Ok(())
             }
-            Msg::Bases => f.write_str("守护基座"),
-            Msg::NoBases => f.write_str("守护程序没有基座"),
+            Msg::Bases => say(f, "守护基座", "Guardian bases"),
+            Msg::NoBases => say(f, "守护程序没有基座", "The guardians have no bases"),
             Msg::ModelNote { model, stale } => {
                 f.write_str(model)?;
                 if *stale {
-                    f.write_str(" · 过期")?;
+                    say(f, " · 过期", " · stale")?;
                 }
                 Ok(())
             }
-            Msg::SessionErrors => f.write_str("会话错误"),
-            Msg::ErrorsNote { hours, sessions } => write!(f, "{hours} 小时 · {sessions} 个会话"),
-            Msg::NoErrors => f.write_str("这段时间没有会话出错"),
+            Msg::SessionErrors => say(f, "会话错误", "Session errors"),
+            Msg::ErrorsNote { hours, sessions } => match lang {
+                Zh => write!(f, "{hours} 小时 · {sessions} 个会话"),
+                En => write!(f, "{hours} h · {sessions} {}", plural(*sessions, "session", "sessions")),
+            },
+            Msg::NoErrors => say(f, "这段时间没有会话出错", "No session failed in this period"),
 
             // -- runtime
-            Msg::RewarmSending => f.write_str("正在请求重新预热…"),
-            Msg::RewarmStarted => f.write_str("已开始重新预热"),
-            Msg::RewarmBusy => f.write_str("该基座已在预热，请等它完成"),
-            Msg::RewarmUnknown => f.write_str("守护程序没有这个基座"),
-            Msg::RewarmFailed(error) => write!(f, "请求失败：{error}"),
-            Msg::Rewarm => f.write_str("重新预热"),
-            Msg::RewarmConfirm => f.write_str("重新预热基座？"),
-            Msg::RewarmDetail { guardian, repo, model } => write!(
-                f,
-                "守护者：{guardian}\n仓库：{repo}\n模型：{model}\n\n会清空该基座的缓存前缀，后续分叉首轮要重新读入。"
-            ),
-            Msg::Cancel => f.write_str("取消"),
+            Msg::RewarmSending => say(f, "正在请求重新预热…", "Asking for a rewarm…"),
+            Msg::RewarmStarted => say(f, "已开始重新预热", "Rewarm started"),
+            Msg::RewarmBusy => say(f, "该基座已在预热，请等它完成", "This base is warming already; wait for it to finish"),
+            Msg::RewarmUnknown => say(f, "守护程序没有这个基座", "The guardians have no such base"),
+            Msg::RewarmFailed(error) => match lang {
+                Zh => write!(f, "请求失败：{error}"),
+                En => write!(f, "Request failed: {error}"),
+            },
+            Msg::Rewarm => say(f, "重新预热", "Rewarm"),
+            Msg::RewarmConfirm => say(f, "重新预热基座？", "Rewarm the base?"),
+            Msg::RewarmDetail { guardian, repo, model } => match lang {
+                Zh => write!(
+                    f,
+                    "守护者：{guardian}\n仓库：{repo}\n模型：{model}\n\n会清空该基座的缓存前缀，后续分叉首轮要重新读入。"
+                ),
+                En => write!(
+                    f,
+                    "Guardian: {guardian}\nRepository: {repo}\nModel: {model}\n\nThis clears the base's cached prefix; the next forks read it in again on their first turn."
+                ),
+            },
+            Msg::Cancel => say(f, "取消", "Cancel"),
             Msg::Fraction(a, b) => write!(f, "{a}/{b}"),
-            Msg::OldestWarm => f.write_str("最久未预热"),
-            Msg::ForksInHours(h) => write!(f, "最近 {h} 小时的分叉会话"),
-            Msg::Model => f.write_str("模型"),
-            Msg::State => f.write_str("状态"),
-            Msg::WarmedAt => f.write_str("预热于"),
-            Msg::ForksShort(h) => write!(f, "分叉 {h}h"),
-            Msg::StateAndStale(state) => write!(f, "{} · 过期", Msg::Base(*state)),
-            Msg::SelectBase => f.write_str("选中一个基座，查看它的状态与分叉会话"),
+            Msg::OldestWarm => say(f, "最久未预热", "Longest since warmed"),
+            Msg::ForksInHours(h) => match lang {
+                Zh => write!(f, "最近 {h} 小时的分叉会话"),
+                En => write!(f, "Forked sessions, last {h} hours"),
+            },
+            Msg::Model => say(f, "模型", "Model"),
+            Msg::State => say(f, "状态", "State"),
+            Msg::WarmedAt => say(f, "预热于", "Warmed"),
+            Msg::ForksShort(h) => match lang {
+                Zh => write!(f, "分叉 {h}h"),
+                En => write!(f, "Forks {h}h"),
+            },
+            Msg::StateAndStale(state) => {
+                write!(f, "{}", Msg::Base(*state).in_lang(lang))?;
+                say(f, " · 过期", " · stale")
+            }
+            Msg::SelectBase => say(
+                f,
+                "选中一个基座，查看它的状态与分叉会话",
+                "Select a base to see its state and its forked sessions",
+            ),
             Msg::AtAndAgo(at, since) => {
                 f.write_str(at)?;
                 if let Some(since) = since {
                     f.write_str(" · ")?;
-                    ago(f, *since)?;
+                    ago(f, *since, lang)?;
                 }
                 Ok(())
             }
-            Msg::No => f.write_str("否"),
-            Msg::Error => f.write_str("错误"),
-            Msg::BaseId => f.write_str("基座"),
-            Msg::SessionId => f.write_str("基座会话"),
-            Msg::RewarmNote => f.write_str(
+            Msg::No => say(f, "否", "No"),
+            Msg::Error => say(f, "错误", "Error"),
+            Msg::BaseId => say(f, "基座", "Base"),
+            Msg::SessionId => say(f, "基座会话", "Base session"),
+            Msg::RewarmNote => say(
+                f,
                 "基座只在首次启动时预热，之后只在你按「重新预热」时重来；过期表示仓库在预热之后有了新提交。",
+                "A base warms when the guardians first start, and again only when you press Rewarm; stale means the repository has new commits since it warmed.",
             ),
             Msg::ForksNote { forks, failed } => {
-                write!(f, "{forks} 个")?;
+                match lang {
+                    Zh => write!(f, "{forks} 个")?,
+                    En => write!(f, "{forks}")?,
+                }
                 if *failed > 0 {
-                    write!(f, " · {failed} 失败")?;
+                    match lang {
+                        Zh => write!(f, " · {failed} 失败")?,
+                        En => write!(f, " · {failed} failed")?,
+                    }
                 }
                 Ok(())
             }
-            Msg::AllForks(n) => write!(f, "在会话页查看全部 {n} 个"),
+            Msg::AllForks(n) => match lang {
+                Zh => write!(f, "在会话页查看全部 {n} 个"),
+                En => write!(f, "View all {n} on the Sessions page"),
+            },
             Msg::Running(at) => {
-                f.write_str("运行 ")?;
-                span(f, *at)
+                say(f, "运行 ", "up ")?;
+                span(f, *at, lang)
             }
-            Msg::QueueWork { open, deliberating } => {
-                write!(f, "队列 {open} · 在审 {deliberating}")
-            }
+            Msg::QueueWork { open, deliberating } => match lang {
+                Zh => write!(f, "队列 {open} · 在审 {deliberating}"),
+                En => write!(f, "queue {open} · deliberating {deliberating}"),
+            },
             Msg::WorkAndChecked(work, checked) => {
                 if let Some(work) = work {
-                    write!(f, "{work}")?;
+                    write!(f, "{}", work.in_lang(lang))?;
                 }
                 if let Some(checked) = checked {
                     if work.is_some() {
                         f.write_str(" · ")?;
                     }
-                    ago(f, *checked)?;
-                    f.write_str("检查")?;
+                    match lang {
+                        Zh => {
+                            ago(f, *checked, lang)?;
+                            f.write_str("检查")?;
+                        }
+                        En => {
+                            f.write_str("checked ")?;
+                            ago(f, *checked, lang)?;
+                        }
+                    }
                 }
                 Ok(())
             }
-            Msg::Limits => f.write_str("限额"),
-            Msg::LimitedSessions { hours, sessions } => {
-                write!(f, "{hours} 小时 {sessions} 个会话")
-            }
-            Msg::LimitedNote => f.write_str("会话错误里含 429 的会话数；模型供应商不公开余量"),
+            Msg::Limits => say(f, "限额", "Limits"),
+            Msg::LimitedSessions { hours, sessions } => match lang {
+                Zh => write!(f, "{hours} 小时 {sessions} 个会话"),
+                En => write!(f, "{sessions} {} in {hours} h", plural(*sessions, "session", "sessions")),
+            },
+            Msg::LimitedNote => say(
+                f,
+                "会话错误里含 429 的会话数；模型供应商不公开余量",
+                "Sessions whose errors contain 429; model providers do not publish their allowance",
+            ),
 
             // -- sessions
-            Msg::Kind(k) => f.write_str(kind(k)),
-            Msg::Now => f.write_str("现在"),
-            Msg::All => f.write_str("全部"),
-            Msg::FilterProgram => f.write_str("程序"),
-            Msg::FilterKind => f.write_str("种类"),
-            Msg::SessionsFilterHint => f.write_str("筛选议题、模型、错误文本"),
-            Msg::Started => f.write_str("开始"),
-            Msg::SessionColumn => f.write_str("会话"),
-            Msg::Duration => f.write_str("时长"),
-            Msg::NoSessions => f.write_str("没有符合筛选的会话"),
-            Msg::ParseStopped(error) => write!(f, "解析中断：{error}"),
-            Msg::SelectSession => f.write_str("选中一个会话，查看它的决策日志"),
-            Msg::RecordFailed(error) => write!(f, "取记录失败：{error}"),
-            Msg::Parsing => f.write_str("取记录并解析中…"),
-            Msg::NotListed => f.write_str("这个会话不在最近的会话列表里"),
-            Msg::ProgramKind(k, p) => write!(f, "{} · {}", program(*p), kind(k)),
-            Msg::Ended => f.write_str("结束"),
-            Msg::ForkedFrom => f.write_str("分叉自"),
-            Msg::SessionEnded => f.write_str("会话结束"),
-            Msg::DecisionLog => f.write_str("决策日志"),
-            Msg::LogCounts { entries, lines } => write!(f, "{entries} 条 · 原始 {lines} 行"),
-            Msg::OnlyErrors => f.write_str("仅异常"),
-            Msg::Compact => f.write_str("精简"),
-            Msg::Json => f.write_str("JSON"),
-            Msg::Truncated { total, kept } => write!(
-                f,
-                "记录共 {total} 字节，超过 digest.maxBytes：只解析了末尾 {kept} 字节，之前的步骤未显示。"
-            ),
-            Msg::Unreadable(n) => write!(f, "{n} 行不是完整的 JSON，已跳过。"),
-            Msg::NothingAbnormal => f.write_str("没有异常步骤"),
-            Msg::RetryAttempt(attempt, error) if error.is_empty() => write!(f, "第 {attempt} 次尝试"),
-            Msg::RetryAttempt(attempt, error) => write!(f, "第 {attempt} 次尝试：{error}"),
-            Msg::Retries(n) => write!(f, "自动重试 ×{n}"),
-            Msg::Opening => f.write_str("开场消息"),
-            Msg::Lines(n) => write!(f, "{n} 行"),
-            Msg::ProgramPrompt => f.write_str("程序提示"),
-            Msg::Continuation => f.write_str("继续提示"),
-            Msg::Assistant => f.write_str("助手"),
-            Msg::NoResult => f.write_str("没有结果"),
-            Msg::Arguments => f.write_str("参数"),
-            Msg::ToolFailed => f.write_str("结果（工具报错）"),
-            Msg::Result => f.write_str("结果"),
+            Msg::Kind(k) => f.write_str(kind(k, lang)),
+            Msg::Now => say(f, "现在", "Now"),
+            Msg::All => say(f, "全部", "All"),
+            Msg::FilterProgram => say(f, "程序", "Program"),
+            Msg::FilterKind => say(f, "种类", "Kind"),
+            Msg::SessionsFilterHint => say(f, "筛选议题、模型、错误文本", "Filter by issue, model, error text"),
+            Msg::Started => say(f, "开始", "Started"),
+            Msg::SessionColumn => say(f, "会话", "Session"),
+            Msg::Duration => say(f, "时长", "Duration"),
+            Msg::NoSessions => say(f, "没有符合筛选的会话", "No session matches the filters"),
+            Msg::ParseStopped(error) => match lang {
+                Zh => write!(f, "解析中断：{error}"),
+                En => write!(f, "Parsing stopped: {error}"),
+            },
+            Msg::SelectSession => say(f, "选中一个会话，查看它的决策日志", "Select a session to see its decision log"),
+            Msg::RecordFailed(error) => match lang {
+                Zh => write!(f, "取记录失败：{error}"),
+                En => write!(f, "Could not fetch the record: {error}"),
+            },
+            Msg::Parsing => say(f, "取记录并解析中…", "Fetching and parsing the record…"),
+            Msg::NotListed => say(f, "这个会话不在最近的会话列表里", "This session is not in the recent sessions"),
+            Msg::ProgramKind(k, p) => write!(f, "{} · {}", program(*p, lang), kind(k, lang)),
+            Msg::Ended => say(f, "结束", "Ended"),
+            Msg::ForkedFrom => say(f, "分叉自", "Forked from"),
+            Msg::SessionEnded => say(f, "会话结束", "Session ended"),
+            Msg::DecisionLog => say(f, "决策日志", "Decision log"),
+            Msg::LogCounts { entries, lines } => match lang {
+                Zh => write!(f, "{entries} 条 · 原始 {lines} 行"),
+                En => write!(
+                    f,
+                    "{entries} {} · {lines} raw {}",
+                    plural(*entries, "entry", "entries"),
+                    plural(*lines, "line", "lines")
+                ),
+            },
+            Msg::OnlyErrors => say(f, "仅异常", "Abnormal only"),
+            Msg::Compact => say(f, "精简", "Compact"),
+            Msg::Json => say(f, "JSON", "JSON"),
+            Msg::Truncated { total, kept } => match lang {
+                Zh => write!(
+                    f,
+                    "记录共 {total} 字节，超过 digest.maxBytes：只解析了末尾 {kept} 字节，之前的步骤未显示。"
+                ),
+                En => write!(
+                    f,
+                    "The record has {total} bytes, more than digest.maxBytes: only its last {kept} bytes were parsed, and the steps before them are not shown."
+                ),
+            },
+            Msg::Unreadable(n) => match lang {
+                Zh => write!(f, "{n} 行不是完整的 JSON，已跳过。"),
+                En => write!(
+                    f,
+                    "{n} {}",
+                    plural(*n, "line is not complete JSON and was skipped.", "lines are not complete JSON and were skipped.")
+                ),
+            },
+            Msg::NothingAbnormal => say(f, "没有异常步骤", "No abnormal steps"),
+            Msg::RetryAttempt(attempt, error) => {
+                match lang {
+                    Zh => write!(f, "第 {attempt} 次尝试")?,
+                    En => write!(f, "Attempt {attempt}")?,
+                }
+                if !error.is_empty() {
+                    match lang {
+                        Zh => write!(f, "：{error}")?,
+                        En => write!(f, ": {error}")?,
+                    }
+                }
+                Ok(())
+            }
+            Msg::Retries(n) => match lang {
+                Zh => write!(f, "自动重试 ×{n}"),
+                En => write!(f, "Automatic retries ×{n}"),
+            },
+            Msg::Opening => say(f, "开场消息", "Opening message"),
+            Msg::Lines(n) => match lang {
+                Zh => write!(f, "{n} 行"),
+                En => write!(f, "{n} {}", plural(*n, "line", "lines")),
+            },
+            Msg::ProgramPrompt => say(f, "程序提示", "Program prompt"),
+            Msg::Continuation => say(f, "继续提示", "Continuation prompt"),
+            Msg::Assistant => say(f, "助手", "Assistant"),
+            Msg::NoResult => say(f, "没有结果", "No result"),
+            Msg::Arguments => say(f, "参数", "Arguments"),
+            Msg::ToolFailed => say(f, "结果（工具报错）", "Result (tool error)"),
+            Msg::Result => say(f, "结果", "Result"),
             Msg::Folded(tool, n) => write!(f, "{tool} ×{n}"),
-            Msg::NotRetried => f.write_str("没有重试"),
-            Msg::Items(n) => write!(f, "{n} 项"),
+            Msg::NotRetried => say(f, "没有重试", "Not retried"),
+            Msg::Items(n) => match lang {
+                Zh => write!(f, "{n} 项"),
+                En => write!(f, "{n} {}", plural(*n, "item", "items")),
+            },
 
             // -- issues
-            Msg::Human => f.write_str("人类"),
-            Msg::RoundVoted { round, voted, seats } => {
-                write!(f, "第 {round} 轮 · 已投 {voted}/{seats}")
-            }
-            Msg::Implemented(done, total) => write!(f, "实现 {done}/{total}"),
+            Msg::Human => say(f, "人类", "Human"),
+            Msg::RoundVoted { round, voted, seats } => match lang {
+                Zh => write!(f, "第 {round} 轮 · 已投 {voted}/{seats}"),
+                En => write!(f, "Round {round} · voted {voted}/{seats}"),
+            },
+            Msg::Implemented(done, total) => match lang {
+                Zh => write!(f, "实现 {done}/{total}"),
+                En => write!(f, "Implemented {done}/{total}"),
+            },
             Msg::WaitsFor(issues) => write!(f, "← {issues}"),
             Msg::Blocks(issues) => write!(f, "→ {issues}"),
-            Msg::WaitsDecided(agenda) => write!(f, "等 {agenda} 定案"),
-            Msg::ViewList => f.write_str("列表"),
-            Msg::ViewGraph => f.write_str("依赖图"),
-            Msg::FilterState => f.write_str("状态"),
+            Msg::WaitsDecided(agenda) => match lang {
+                Zh => write!(f, "等 {agenda} 定案"),
+                En => write!(f, "Waits for {agenda} to be decided"),
+            },
+            Msg::ViewList => say(f, "列表", "List"),
+            Msg::ViewGraph => say(f, "依赖图", "Graph"),
+            Msg::FilterState => say(f, "状态", "State"),
             Msg::GroupName(group) => f.write_str(match group {
-                Group::Attention => "需要处理",
-                Group::Deliberating => "在审",
-                Group::Ready => "可召集",
-                Group::Waiting => "等待",
-                Group::Closed => "已定案",
+                Group::Attention => pick(lang, "需要处理", "Needs action"),
+                Group::Deliberating => pick(lang, "在审", "Deliberating"),
+                Group::Ready => pick(lang, "可召集", "Ready to convene"),
+                Group::Waiting => pick(lang, "等待", "Waiting"),
+                Group::Closed => pick(lang, "已定案", "Decided"),
             }),
-            Msg::FilterClosed => f.write_str("已定案"),
+            Msg::FilterClosed => say(f, "已定案", "Decided"),
             Msg::ClosedMode(closed) => f.write_str(match closed {
-                Closed::Fold => "折叠",
-                Closed::Show => "显示",
-                Closed::Hide => "隐藏",
+                Closed::Fold => pick(lang, "折叠", "Fold"),
+                Closed::Show => pick(lang, "显示", "Show"),
+                Closed::Hide => pick(lang, "隐藏", "Hide"),
             }),
-            Msg::FilterHuman => f.write_str("仅人类议题"),
-            Msg::OnOff(on) => f.write_str(if *on { "开" } else { "关" }),
-            Msg::OpenOfTotal { open, total } => write!(f, "{open} 个未定案 · 共 {total}"),
-            Msg::IssuesFilterHint => f.write_str("筛选议程号或标题"),
-            Msg::Agenda => f.write_str("议程"),
-            Msg::Title => f.write_str("标题"),
-            Msg::Progress => f.write_str("进度"),
-            Msg::Deps => f.write_str("依赖"),
-            Msg::UpdatedColumn => f.write_str("更新"),
-            Msg::NoIssues => f.write_str("没有符合筛选的议题"),
+            Msg::FilterHuman => say(f, "仅人类议题", "Human issues only"),
+            Msg::OnOff(on) => f.write_str(if *on { pick(lang, "开", "On") } else { pick(lang, "关", "Off") }),
+            Msg::OpenOfTotal { open, total } => match lang {
+                Zh => write!(f, "{open} 个未定案 · 共 {total}"),
+                En => write!(f, "{open} open · {total} in all"),
+            },
+            Msg::IssuesFilterHint => say(f, "筛选议程号或标题", "Filter by agenda number or title"),
+            Msg::Agenda => say(f, "议程", "Agenda"),
+            Msg::Title => say(f, "标题", "Title"),
+            Msg::Progress => say(f, "进度", "Progress"),
+            Msg::Deps => say(f, "依赖", "Dependencies"),
+            Msg::UpdatedColumn => say(f, "更新", "Updated"),
+            Msg::NoIssues => say(f, "没有符合筛选的议题", "No issue matches the filters"),
             Msg::MoreClosed { decided, superseded } => {
-                write!(f, "还有 {decided} 个已定案")?;
+                match lang {
+                    Zh => write!(f, "还有 {decided} 个已定案")?,
+                    En => write!(f, "{decided} more decided")?,
+                }
                 if *superseded > 0 {
-                    write!(f, "（其中 {superseded} 个已取代）")?;
+                    match lang {
+                        Zh => write!(f, "（其中 {superseded} 个已取代）")?,
+                        En => write!(f, " ({superseded} superseded)")?,
+                    }
                 }
                 Ok(())
             }
-            Msg::ZoomOut => f.write_str("缩小"),
-            Msg::ZoomIn => f.write_str("放大"),
-            Msg::Fit => f.write_str("适应"),
-            Msg::WaitingForData => f.write_str("等待 Project 与议会队列…"),
-            Msg::CanMove(n) => write!(f, "可推进 · {n}"),
-            Msg::WaitsColumn(n) => write!(f, "等前置 · {n}"),
+            Msg::ZoomOut => say(f, "缩小", "Zoom out"),
+            Msg::ZoomIn => say(f, "放大", "Zoom in"),
+            Msg::Fit => say(f, "适应", "Fit"),
+            Msg::WaitingForData => say(f, "等待 Project 与议会队列…", "Waiting for the Project and the council queue…"),
+            Msg::CanMove(n) => match lang {
+                Zh => write!(f, "可推进 · {n}"),
+                En => write!(f, "Can proceed · {n}"),
+            },
+            Msg::WaitsColumn(n) => match lang {
+                Zh => write!(f, "等前置 · {n}"),
+                En => write!(f, "Blocked · {n}"),
+            },
             Msg::FoldedClosed { closed, chains } => {
-                write!(f, "{closed} 个已定案议题已折叠")?;
+                match lang {
+                    Zh => write!(f, "{closed} 个已定案议题已折叠")?,
+                    En => write!(f, "{closed} decided {} folded", plural(*closed, "issue", "issues"))?,
+                }
                 if !chains.is_empty() {
-                    write!(f, "：{}", chains.join("、"))?;
+                    match lang {
+                        Zh => write!(f, "：{}", chains.join("、"))?,
+                        En => write!(f, ": {}", chains.join(", "))?,
+                    }
                 }
                 Ok(())
             }
-            Msg::SelectIssue => f.write_str("选中一个议题，查看它的状态与依赖"),
-            Msg::ThisRound => f.write_str("本轮"),
+            Msg::SelectIssue => say(
+                f,
+                "选中一个议题，查看它的状态与依赖",
+                "Select an issue to see its state and dependencies",
+            ),
+            Msg::ThisRound => say(f, "本轮", "This round"),
             Msg::RoundSummary { round, version, voted, seats } => {
-                write!(f, "第 {round} 轮")?;
-                if let Some(version) = version {
-                    write!(f, " · 草案 v{version}")?;
+                match lang {
+                    Zh => write!(f, "第 {round} 轮")?,
+                    En => write!(f, "Round {round}")?,
                 }
-                write!(f, " · 已投 {voted}/{seats}")
+                if let Some(version) = version {
+                    match lang {
+                        Zh => write!(f, " · 草案 v{version}")?,
+                        En => write!(f, " · draft v{version}")?,
+                    }
+                }
+                match lang {
+                    Zh => write!(f, " · 已投 {voted}/{seats}"),
+                    En => write!(f, " · voted {voted}/{seats}"),
+                }
             }
-            Msg::Voted => f.write_str("已投"),
-            Msg::Pending => f.write_str("待投"),
-            Msg::WaitsNothingOpen => f.write_str("前置都已了结，等议会下一轮召集。"),
-            Msg::WaitsOn(agenda, state) => write!(f, "等 {agenda} 定案（{agenda} {state}）。"),
-            Msg::WhyNotStarted => f.write_str("为什么还没开始"),
-            Msg::None => f.write_str("无"),
-            Msg::Prerequisites => f.write_str("前置"),
-            Msg::Blocking => f.write_str("阻塞"),
-            Msg::IgnoredBlockers => f.write_str("不计入的 Blocked by"),
-            Msg::NotCounted => f.write_str("议会不计入"),
-            Msg::CouncilNotes => f.write_str("议会备注"),
-            Msg::OpenOnGitHub => f.write_str("在 GitHub 打开"),
+            Msg::Voted => say(f, "已投", "Voted"),
+            Msg::Pending => say(f, "待投", "Pending"),
+            Msg::WaitsNothingOpen => say(
+                f,
+                "前置都已了结，等议会下一轮召集。",
+                "Every prerequisite is settled; waiting for the council's next round.",
+            ),
+            Msg::WaitsOn(agenda, state) => match lang {
+                Zh => write!(f, "等 {agenda} 定案（{agenda} {state}）。"),
+                En => write!(f, "Waits for {agenda} to be decided ({agenda}: {state})."),
+            },
+            Msg::WhyNotStarted => say(f, "为什么还没开始", "Why it has not started"),
+            Msg::None => say(f, "无", "None"),
+            Msg::Prerequisites => say(f, "前置", "Prerequisites"),
+            Msg::Blocking => say(f, "阻塞", "Blocks"),
+            Msg::IgnoredBlockers => say(f, "不计入的 Blocked by", "Blocked by, not counted"),
+            Msg::NotCounted => say(f, "议会不计入", "not counted by the council"),
+            Msg::CouncilNotes => say(f, "议会备注", "Council notes"),
+            Msg::OpenOnGitHub => say(f, "在 GitHub 打开", "Open on GitHub"),
             Msg::IssueMeta { human, proposer, updated } => {
-                f.write_str(if *human { "人类议题" } else { "议程议题" })?;
+                f.write_str(if *human {
+                    pick(lang, "人类议题", "Human issue")
+                } else {
+                    pick(lang, "议程议题", "Agenda issue")
+                })?;
                 if let Some(proposer) = proposer {
-                    write!(f, " · 提出者 {proposer}")?;
+                    match lang {
+                        Zh => write!(f, " · 提出者 {proposer}")?,
+                        En => write!(f, " · proposed by {proposer}")?,
+                    }
                 }
                 if let Some(updated) = updated {
                     f.write_str(" · ")?;
-                    ago(f, *updated)?;
-                    f.write_str("更新")?;
+                    write!(f, "{}", Msg::Updated(*updated).in_lang(lang))?;
                 }
                 Ok(())
             }
-            Msg::OpenDetail => f.write_str("打开详情"),
+            Msg::OpenDetail => say(f, "打开详情", "Open details"),
 
             // -- config
-            Msg::FilterFiles => f.write_str("筛选文件"),
-            Msg::TopFiles => f.write_str("（仓库根）"),
-            Msg::Reader(r) => f.write_str(reader(*r)),
+            Msg::FilterFiles => say(f, "筛选文件", "Filter files"),
+            Msg::TopFiles => say(f, "（仓库根）", "(repository root)"),
+            Msg::Reader(r) => f.write_str(reader(*r, lang)),
             Msg::Readers(rs) => {
-                let names: Vec<&str> = rs.iter().map(|r| reader(*r)).collect();
-                f.write_str(&names.join("、"))
+                let names: Vec<&str> = rs.iter().map(|r| reader(*r, lang)).collect();
+                f.write_str(&names.join(pick(lang, "、", ", ")))
             }
-            Msg::NoReaders => f.write_str("没有程序读取"),
-            Msg::ReadersLabel => f.write_str("读取方"),
-            Msg::OlderMark => f.write_str("有读取方在运行旧版"),
-            Msg::EditedMark => f.write_str("有未保存的改动"),
-            Msg::ModePreview => f.write_str("预览"),
-            Msg::ModeYaml => f.write_str("YAML"),
-            Msg::ModeChanges => f.write_str("改动"),
-            Msg::OpenedFrom { branch, sha } => write!(f, "打开时读取 {branch} · blob {sha}"),
-            Msg::SectionLines(n) => write!(f, "{n} 行"),
-            Msg::SameAsBranch => f.write_str("与分支上的文件相同"),
+            Msg::NoReaders => say(f, "没有程序读取", "Read by no program"),
+            Msg::ReadersLabel => say(f, "读取方", "Readers"),
+            Msg::OlderMark => say(f, "有读取方在运行旧版", "A reader runs an older version"),
+            Msg::EditedMark => say(f, "有未保存的改动", "Unsaved changes"),
+            Msg::ModePreview => say(f, "预览", "Preview"),
+            Msg::ModeYaml => say(f, "YAML", "YAML"),
+            Msg::ModeChanges => say(f, "改动", "Changes"),
+            Msg::OpenedFrom { branch, sha } => match lang {
+                Zh => write!(f, "打开时读取 {branch} · blob {sha}"),
+                En => write!(f, "Opened from {branch} · blob {sha}"),
+            },
+            Msg::SectionLines(n) => match lang {
+                Zh => write!(f, "{n} 行"),
+                En => write!(f, "{n} {}", plural(*n, "line", "lines")),
+            },
+            Msg::SameAsBranch => say(f, "与分支上的文件相同", "Same as the file on the branch"),
             Msg::ChangedLines { added, removed } => {
                 if added.is_empty() {
-                    return write!(f, "删除 {removed} 行");
+                    return match lang {
+                        Zh => write!(f, "删除 {removed} 行"),
+                        En => write!(f, "{removed} {} removed", plural(*removed, "line", "lines")),
+                    };
                 }
                 let shown: Vec<String> = added.iter().take(6).map(|n| n.to_string()).collect();
-                let more = if added.len() > shown.len() { " 等" } else { "" };
-                write!(f, "改动第 {}{more} 行", shown.join("、"))?;
-                match removed.saturating_sub(added.len()) {
-                    0 => Ok(()),
-                    extra => write!(f, "，另删除 {extra} 行"),
+                let more = added.len() > shown.len();
+                match lang {
+                    Zh => write!(f, "改动第 {}{} 行", shown.join("、"), if more { " 等" } else { "" })?,
+                    En => write!(
+                        f,
+                        "Changed {} {}{}",
+                        plural(added.len(), "line", "lines"),
+                        shown.join(", "),
+                        if more { " and more" } else { "" }
+                    )?,
+                }
+                match (removed.saturating_sub(added.len()), lang) {
+                    (0, _) => Ok(()),
+                    (extra, Zh) => write!(f, "，另删除 {extra} 行"),
+                    (extra, En) => write!(f, ", {extra} more {} removed", plural(extra, "line", "lines")),
                 }
             }
-            Msg::GateChecking => f.write_str("读取方校验中…"),
-            Msg::GatePass => f.write_str("全部读取方通过"),
-            Msg::GateBlocked => f.write_str("全部读取方通过后才能保存"),
-            Msg::Discard => f.write_str("放弃改动"),
-            Msg::Saving => f.write_str("正在提交…"),
-            Msg::SaveTo(branch) => write!(f, "保存到 {branch}"),
-            Msg::SaveFailed(error) => write!(f, "提交失败：{error}"),
-            Msg::Committed(sha) => write!(f, "已提交 {sha}"),
-            Msg::OpenCommit => f.write_str("查看提交"),
-            Msg::Conflict(branch) => write!(
-                f,
-                "{branch} 上的这个文件已被别处改动：没有覆盖，已重新载入分支上的内容"
-            ),
-            Msg::ChecksTitle => f.write_str("保存前校验"),
-            Msg::ReaderCount(n) => write!(f, "{n} 个读取方"),
-            Msg::Unchanged => f.write_str("未改动"),
-            Msg::CheckRunning => f.write_str("校验中…"),
-            Msg::Passed => f.write_str("通过"),
-            Msg::Errors(n) => write!(f, "{n} 个错误"),
-            Msg::NoInput => f.write_str("取不到分支上的文件"),
-            Msg::VersionsTitle => f.write_str("正在用的版本"),
+            Msg::GateChecking => say(f, "读取方校验中…", "Readers checking…"),
+            Msg::GatePass => say(f, "全部读取方通过", "Every reader passes"),
+            Msg::GateBlocked => say(f, "全部读取方通过后才能保存", "Saving waits for every reader to pass"),
+            Msg::Discard => say(f, "放弃改动", "Discard changes"),
+            Msg::Saving => say(f, "正在提交…", "Committing…"),
+            Msg::SaveTo(branch) => match lang {
+                Zh => write!(f, "保存到 {branch}"),
+                En => write!(f, "Save to {branch}"),
+            },
+            Msg::SaveFailed(error) => match lang {
+                Zh => write!(f, "提交失败：{error}"),
+                En => write!(f, "Commit failed: {error}"),
+            },
+            Msg::Committed(sha) => match lang {
+                Zh => write!(f, "已提交 {sha}"),
+                En => write!(f, "Committed {sha}"),
+            },
+            Msg::OpenCommit => say(f, "查看提交", "View the commit"),
+            Msg::Conflict(branch) => match lang {
+                Zh => write!(f, "{branch} 上的这个文件已被别处改动：没有覆盖，已重新载入分支上的内容"),
+                En => write!(
+                    f,
+                    "This file was changed elsewhere on {branch}: nothing was overwritten, and the branch's content is reloaded"
+                ),
+            },
+            Msg::ChecksTitle => say(f, "保存前校验", "Checks before saving"),
+            Msg::ReaderCount(n) => match lang {
+                Zh => write!(f, "{n} 个读取方"),
+                En => write!(f, "{n} {}", plural(*n, "reader", "readers")),
+            },
+            Msg::Unchanged => say(f, "未改动", "Unchanged"),
+            Msg::CheckRunning => say(f, "校验中…", "Checking…"),
+            Msg::Passed => say(f, "通过", "Passed"),
+            Msg::Errors(n) => match lang {
+                Zh => write!(f, "{n} 个错误"),
+                En => write!(f, "{n} {}", plural(*n, "error", "errors")),
+            },
+            Msg::NoInput => say(f, "取不到分支上的文件", "The file on the branch cannot be read"),
+            Msg::VersionsTitle => say(f, "正在用的版本", "Versions in use"),
             Msg::BranchAt { branch, head } => match head {
                 Some(head) => write!(f, "{branch} @ {head}"),
                 None => f.write_str(branch),
@@ -862,14 +1221,33 @@ impl fmt::Display for Msg {
             Msg::QuorumHere => f.write_str("Quorum web"),
             #[cfg(not(target_arch = "wasm32"))]
             Msg::QuorumHere => f.write_str("Quorum macOS"),
-            Msg::SameAs(branch) => write!(f, "与 {branch} 一致"),
-            Msg::RunningOld(files) => write!(f, "运行旧版（{}），待重新部署", files.join("、")),
-            Msg::Checkout => f.write_str("本机检出"),
-            Msg::UpToDate(branch) => write!(f, "与 origin/{branch} 一致"),
-            Msg::Behind { branch, commits } => write!(f, "落后 origin/{branch} {commits} 个提交"),
-            Msg::Pull => f.write_str("拉取"),
-            Msg::Pulling => f.write_str("拉取中…"),
+            Msg::SameAs(branch) => match lang {
+                Zh => write!(f, "与 {branch} 一致"),
+                En => write!(f, "Same as {branch}"),
+            },
+            Msg::RunningOld(files) => match lang {
+                Zh => write!(f, "运行旧版（{}），待重新部署", files.join("、")),
+                En => write!(f, "Runs an older version ({}), awaiting redeploy", files.join(", ")),
+            },
+            Msg::Checkout => say(f, "本机检出", "Local checkout"),
+            Msg::UpToDate(branch) => match lang {
+                Zh => write!(f, "与 origin/{branch} 一致"),
+                En => write!(f, "Up to date with origin/{branch}"),
+            },
+            Msg::Behind { branch, commits } => match lang {
+                Zh => write!(f, "落后 origin/{branch} {commits} 个提交"),
+                En => write!(f, "{commits} {} behind origin/{branch}", plural(*commits as usize, "commit", "commits")),
+            },
+            Msg::Pull => say(f, "拉取", "Pull"),
+            Msg::Pulling => say(f, "拉取中…", "Pulling…"),
         }
+    }
+}
+
+/// In the UI's language now (reading it subscribes where the app runs).
+impl fmt::Display for Msg {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.write(Lang::current(), f)
     }
 }
 
@@ -885,6 +1263,14 @@ nsh_core::static_reactive!(SharedString: Msg);
 mod tests {
     use super::*;
 
+    fn zh(msg: Msg) -> String {
+        msg.in_lang(Zh).to_string()
+    }
+
+    fn en(msg: Msg) -> String {
+        msg.in_lang(En).to_string()
+    }
+
     #[test]
     fn thousands_separate_every_three_digits() {
         assert_eq!(thousands(0), "0");
@@ -895,16 +1281,35 @@ mod tests {
 
     #[test]
     fn ago_and_span_word_the_unit() {
-        assert_eq!(Msg::Ago(Ago::Now).to_string(), "刚刚");
-        assert_eq!(Msg::Ago(Ago::Hours(3)).to_string(), "3 小时前");
-        assert_eq!(Msg::Span(Ago::Minutes(12)).to_string(), "12 分钟");
-        assert_eq!(Msg::Updated(Ago::Seconds(21)).to_string(), "21 秒前更新");
+        assert_eq!(zh(Msg::Ago(Ago::Now)), "刚刚");
+        assert_eq!(zh(Msg::Ago(Ago::Hours(3))), "3 小时前");
+        assert_eq!(zh(Msg::Span(Ago::Minutes(12))), "12 分钟");
+        assert_eq!(zh(Msg::Updated(Ago::Seconds(21))), "21 秒前更新");
+        assert_eq!(en(Msg::Ago(Ago::Now)), "just now");
+        assert_eq!(en(Msg::Ago(Ago::Minutes(3))), "3 min ago");
+        assert_eq!(en(Msg::Span(Ago::Minutes(12))), "12 min");
+        assert_eq!(en(Msg::Updated(Ago::Seconds(21))), "updated 21 s ago");
     }
 
     #[test]
     fn kinds_have_names_and_unknown_kinds_pass_through() {
-        assert_eq!(Msg::Kind("proxy".into()).to_string(), "代读");
-        assert_eq!(Msg::Kind("other".into()).to_string(), "other");
+        assert_eq!(zh(Msg::Kind("proxy".into())), "代读");
+        assert_eq!(en(Msg::Kind("proxy".into())), "proxy read");
+        assert_eq!(en(Msg::Kind("other".into())), "other");
+    }
+
+    #[test]
+    fn nested_messages_keep_the_language() {
+        assert_eq!(zh(Msg::GoTo(Box::new(Msg::PageIssues))), "前往议题");
+        assert_eq!(en(Msg::GoTo(Box::new(Msg::PageIssues))), "Go to Issues");
+        assert_eq!(en(Msg::StateAndStale(BaseState::Ready)), "Ready · stale");
+    }
+
+    #[test]
+    fn counts_agree_in_english() {
+        assert_eq!(en(Msg::ViewSessions(1)), "View 1 session");
+        assert_eq!(en(Msg::ViewSessions(8)), "View 8 sessions");
+        assert_eq!(en(Msg::FailureKinds(2)), "2 kinds of failure");
     }
 
     #[test]

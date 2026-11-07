@@ -16,6 +16,7 @@ use super::{
     config::{self, ConfigState},
     icons::{Icon, icon},
     issues::{self, IssuesState, Settings},
+    lang::localized,
     overview,
     parts::{Look, action, hint, icon_button, kbd, meter, nothing, small},
     runtime::{self, Rewarms},
@@ -288,34 +289,41 @@ fn shell(config: &AppConfig) -> View {
         });
     }
     let palette = Palette::new();
+    // What the shell keeps (sources, navigation, the pages' state, the
+    // shortcuts) is made above; the views are made again in a new language.
     view()
         .flex_1()
         .bg(color(Background))
         .text_color(color(Foreground))
         .font_family(font(FontToken::Sans))
-        .child(
-            when(wide, {
-                let context = context.clone();
-                move || {
-                    view()
-                        .flex_1()
-                        .flex_row()
-                        .child(sidebar(sources, context.clone(), nav))
-                        .child(main(sources, context.clone(), nav))
-                }
-            })
-            .otherwise({
-                let context = context.clone();
-                move || {
-                    view()
-                        .flex_1()
-                        .child(top_bar(sources, context.clone(), nav))
-                        .child(main(sources, context.clone(), nav))
-                }
-            }),
-        )
-        .child(when(move || nav.palette.get(), move || {
-            command::bar(sources, context.clone(), nav, palette)
+        .child(localized(move || {
+            let context = context.clone();
+            [
+                when(wide, {
+                    let context = context.clone();
+                    move || {
+                        view()
+                            .flex_1()
+                            .flex_row()
+                            .child(sidebar(sources, context.clone(), nav))
+                            .child(main(sources, context.clone(), nav))
+                    }
+                })
+                .otherwise({
+                    let context = context.clone();
+                    move || {
+                        view()
+                            .flex_1()
+                            .child(top_bar(sources, context.clone(), nav))
+                            .child(main(sources, context.clone(), nav))
+                    }
+                })
+                .into_element(),
+                when(move || nav.palette.get(), move || {
+                    command::bar(sources, context.clone(), nav, palette)
+                })
+                .into_element(),
+            ]
         }))
 }
 
@@ -746,37 +754,52 @@ fn top_bar(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
         .child(icon_button(Icon::Search, Msg::SearchHint, move || nav.palette.set(true)))
 }
 
-/// The config could not be read: which file, which key and why. Drawn
-/// before the theme is known, with NSH's own theme.
+/// The config could not be read: which file, which key and why (the
+/// parser's words, as they are). Drawn before the theme is known, with
+/// NSH's own theme.
 pub fn config_error(error: &ConfigError) -> AnyElement {
     log::error!("config: {error}");
-    view()
-        .flex_1()
-        .items_center()
-        .justify_center()
-        .p_6()
-        .child(
-            view()
-                .max_w(px(WIDE * 0.7))
-                .gap_3()
-                .p_6()
-                .rounded(move || theme().radius)
-                .border_1()
-                .border_color(move || theme().destructive)
-                .bg(move || theme().card)
-                .child(
-                    text(SharedString::from(Msg::ConfigError))
-                        .font_weight(FontWeight::SEMIBOLD)
-                        .text_color(move || theme().destructive),
-                )
-                .child(text(error.to_string()).text_sm().selectable(true))
-                .child(
-                    text(SharedString::from(Msg::ConfigHint))
-                        .text_xs()
-                        .text_color(move || theme().muted_foreground),
-                ),
+    let detail = error.to_string();
+    localized(move || {
+        view()
+            .flex_1()
+            .items_center()
+            .justify_center()
+            .p_6()
+            .child(
+                view()
+                    .max_w(px(WIDE * 0.7))
+                    .gap_3()
+                    .p_6()
+                    .rounded(move || theme().radius)
+                    .border_1()
+                    .border_color(move || theme().destructive)
+                    .bg(move || theme().card)
+                    .child(
+                        text(SharedString::from(Msg::ConfigError))
+                            .font_weight(FontWeight::SEMIBOLD)
+                            .text_color(move || theme().destructive),
+                    )
+                    .child(text(detail.clone()).text_sm().selectable(true))
+                    .child(
+                        text(SharedString::from(Msg::ConfigHint))
+                            .text_xs()
+                            .text_color(move || theme().muted_foreground),
+                    ),
+            )
+    })
+}
+
+/// What shows while the config loads, before its theme is known: NSH's
+/// own theme, since every page reads the config's tokens.
+pub fn config_loading() -> AnyElement {
+    localized(|| {
+        view().flex_1().items_center().justify_center().p_6().child(
+            text(SharedString::from(Msg::LoadingConfig))
+                .text_sm()
+                .text_color(move || theme().muted_foreground),
         )
-        .into_element()
+    })
 }
 
 pub(super) fn keys_when_typing() -> KeyOptions {
