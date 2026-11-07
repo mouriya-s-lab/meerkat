@@ -15,6 +15,7 @@ use crate::{
         project::{self, ProjectItem},
         rate::{self, RateLimit},
     },
+    pmconfig::{self, ConfigRepoClient, Listing, Running},
     programs::{Base, Health, Program, ProgramClient, QueueEntry, Session},
     time,
 };
@@ -37,6 +38,8 @@ pub struct ProgramSources {
     pub program: Program,
     pub health: Source<Health>,
     pub sessions: Source<Vec<Session>>,
+    /// The config files it loaded at startup (`GET /v1/config`).
+    pub config: Source<Running>,
 }
 
 /// Every source of the overview, and when the last refresh began.
@@ -49,6 +52,8 @@ pub struct Sources {
     pub queue: Source<Vec<QueueEntry>>,
     pub guardians: ProgramSources,
     pub bases: Source<Vec<Base>>,
+    /// The config repository's branch: its head and files.
+    pub config_files: Source<Listing>,
     pub last_refresh: Signal<f64>,
 }
 
@@ -74,7 +79,7 @@ where
 
 impl Sources {
     /// Starts every source (the caller's owner keeps them).
-    pub fn new(config: &AppConfig, credential: Credential) -> Self {
+    pub fn new(config: &AppConfig, credential: Credential, config_repo: Rc<ConfigRepoClient>) -> Self {
         let github = Rc::new(GitHub::new(config.endpoints.github_api.clone(), credential));
         let project_ref = Rc::new(config.repos.pm.project.clone());
         let fields = Rc::new(config.fields.clone());
@@ -136,6 +141,13 @@ impl Sources {
                     async move { client.sessions().await }
                 }
             }),
+            config: source({
+                let client = client.clone();
+                move || {
+                    let client = client.clone();
+                    async move { pmconfig::running(&client.base).await }
+                }
+            }),
         };
         let queue = source({
             let council = council.clone();
@@ -151,6 +163,10 @@ impl Sources {
                 async move { guardians.bases().await }
             }
         });
+        let config_files = source(move || {
+            let config_repo = config_repo.clone();
+            async move { config_repo.listing().await }
+        });
         Sources {
             project,
             rate,
@@ -159,6 +175,7 @@ impl Sources {
             queue,
             guardians: program(&guardians),
             bases,
+            config_files,
             last_refresh: signal(time::now_ms()),
         }
     }
@@ -171,10 +188,13 @@ impl Sources {
             self.rate.refetch();
             self.council.health.refetch();
             self.council.sessions.refetch();
+            self.council.config.refetch();
             self.queue.refetch();
             self.guardians.health.refetch();
             self.guardians.sessions.refetch();
+            self.guardians.config.refetch();
             self.bases.refetch();
+            self.config_files.refetch();
         });
     }
 
@@ -186,10 +206,13 @@ impl Sources {
             self.escalations.error().is_some(),
             self.council.health.error().is_some(),
             self.council.sessions.error().is_some(),
+            self.council.config.error().is_some(),
             self.queue.error().is_some(),
             self.guardians.health.error().is_some(),
             self.guardians.sessions.error().is_some(),
+            self.guardians.config.error().is_some(),
             self.bases.error().is_some(),
+            self.config_files.error().is_some(),
         ]
         .into_iter()
         .filter(|failed| *failed)
@@ -197,5 +220,5 @@ impl Sources {
     }
 
     /// How many sources there are.
-    pub const COUNT: usize = 9;
+    pub const COUNT: usize = 12;
 }

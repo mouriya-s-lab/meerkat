@@ -9,6 +9,7 @@ pub mod digest;
 pub mod dag;
 pub mod gh;
 mod http;
+pub mod pmconfig;
 pub mod programs;
 pub mod sources;
 pub mod time;

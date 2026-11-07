@@ -2,6 +2,7 @@
 //! own component library.
 
 mod command;
+mod config;
 mod icons;
 mod issues;
 mod overview;

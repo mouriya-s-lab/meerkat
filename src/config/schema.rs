@@ -89,6 +89,8 @@ fn parse_file<T: DeserializeOwned>(file: &str, text: &str) -> Result<T, ConfigEr
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Quorum {
+    /// The PM config repository the config page shows and saves to.
+    pub config: ConfigRepo,
     pub targets: Targets,
     /// Seconds between two refreshes of every source.
     pub refresh_seconds: NonZeroU32,
@@ -115,13 +117,16 @@ pub struct Targets {
     pub web: Endpoints,
 }
 
-/// Where the GitHub API, the council and the guardians answer.
+/// Where the GitHub API, the council, the guardians and dispatch's
+/// launcher check answer.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Endpoints {
     pub github_api: BaseUrl,
     pub council: BaseUrl,
     pub guardians: BaseUrl,
+    /// The omp-dispatch launcher's PM config check listener.
+    pub dispatch: BaseUrl,
 }
 
 /// What makes the overview ask for a person.
@@ -240,6 +245,84 @@ pub struct Filters {
     pub hide_decided: bool,
     /// Show only human issues and the issues they block, transitively.
     pub human_only: bool,
+}
+
+/// `config`: the PM config repository, the branch the page reads, compares
+/// with and commits to, and which programs read the files under each
+/// directory.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ConfigRepo {
+    pub repo: RepoName,
+    pub branch: Name,
+    pub readers: Readers,
+}
+
+/// A program that reads PM config files and checks candidates of them.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Reader {
+    Council,
+    Guardians,
+    Quorum,
+    Dispatch,
+}
+
+impl Reader {
+    pub const ALL: [Reader; 4] = [Reader::Council, Reader::Guardians, Reader::Quorum, Reader::Dispatch];
+}
+
+/// Directory prefixes (`council/`) and the readers of the files under
+/// each, in the file's order.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(try_from = "serde_yaml_ng::Mapping")]
+pub struct Readers(Vec<(String, Vec<Reader>)>);
+
+impl Readers {
+    /// The readers of the file at `path`: those of every prefix it starts
+    /// with, each once, in [`Reader::ALL`]'s order.
+    pub fn of(&self, path: &str) -> Vec<Reader> {
+        let mut found: Vec<Reader> = self
+            .0
+            .iter()
+            .filter(|(prefix, _)| path.starts_with(prefix.as_str()))
+            .flat_map(|(_, readers)| readers.iter().copied())
+            .collect();
+        found.sort();
+        found.dedup();
+        found
+    }
+}
+
+impl TryFrom<serde_yaml_ng::Mapping> for Readers {
+    type Error = String;
+
+    fn try_from(map: serde_yaml_ng::Mapping) -> Result<Self, String> {
+        map.into_iter()
+            .map(|(prefix, readers)| {
+                let prefix = match prefix {
+                    serde_yaml_ng::Value::String(prefix) => prefix,
+                    other => return Err(format!("{other:?} is not a directory prefix")),
+                };
+                if prefix.is_empty() || prefix.starts_with('/') || !prefix.ends_with('/') {
+                    return Err(format!("{prefix:?} is not a directory prefix like `council/`"));
+                }
+                let readers: Vec<Reader> = serde_yaml_ng::from_value(readers)
+                    .map_err(|error| format!("{prefix}: {error}"))?;
+                if readers.is_empty() {
+                    return Err(format!("{prefix}: no reader"));
+                }
+                let mut unique = readers.clone();
+                unique.sort();
+                unique.dedup();
+                if unique.len() != readers.len() {
+                    return Err(format!("{prefix}: a reader is named twice"));
+                }
+                Ok((prefix, readers))
+            })
+            .collect::<Result<_, _>>()
+            .map(Self)
+    }
 }
 
 // ---------------------------------------------------------------------------

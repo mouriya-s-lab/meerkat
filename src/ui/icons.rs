@@ -18,6 +18,7 @@ pub enum Icon {
     List,
     Sessions,
     Runtime,
+    Config,
     Refresh,
     Search,
     Tool,
@@ -56,6 +57,10 @@ impl Icon {
             Icon::Runtime => {
                 "M13.5 4c0 1.1-2.5 2-5.5 2s-5.5-.9-5.5-2s2.5-2 5.5-2s5.5.9 5.5 2z\
                  M2.5 4v8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2V4M2.5 8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2"
+            }
+            Icon::Config => {
+                "M13.5 3.5h-4.5M6.5 3.5h-4M13.5 8h-6M5 8H2.5M13.5 12.5h-3M8 12.5H2.5\
+                 M9 2v3M5 6.5v3M10.5 11v3"
             }
             Icon::Refresh => "M13 8a5 5 0 1 1-1.5-3.6M13 2.5v3h-3",
             Icon::Search => "M1.5 7a5.5 5.5 0 1 0 11 0a5.5 5.5 0 1 0-11 0zM14.5 14.5l-3.6-3.6",

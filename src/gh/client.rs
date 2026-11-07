@@ -2,7 +2,7 @@
 //! a token and sends it; the web build holds none: its root is the
 //! same-origin proxy, which adds the credential (`deploy/Caddyfile`).
 
-use nsh_core::prelude::HttpRequest;
+use nsh_core::prelude::{HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 use crate::{config::BaseUrl, http};
@@ -84,6 +84,30 @@ impl GitHub {
     /// `GET path` (from the API root, with its query), parsed as `T`.
     pub async fn get<T: DeserializeOwned>(&self, path: &str) -> Result<T, String> {
         http::json(self.request("GET", path)?).await
+    }
+
+    /// `GET path` as GitHub has it now, parsed as `T`: for what changes
+    /// (a branch, a file on a branch). GitHub marks such answers fresh for a
+    /// minute (`max-age=60`); `Cache-Control: no-cache` sends the request
+    /// past the HTTP cache in front of it (the browser's, `NSURLCache`).
+    pub async fn get_current<T: DeserializeOwned>(&self, path: &str) -> Result<T, String> {
+        http::json(self.request("GET", path)?.header("Cache-Control", "no-cache")).await
+    }
+
+    /// `PUT path` with `body` as JSON: the response whatever its status, so
+    /// the caller tells a conflict from a failure.
+    pub async fn put<B: Serialize>(&self, path: &str, body: &B) -> Result<HttpResponse, String> {
+        let body = serde_json::to_vec(body).map_err(|error| error.to_string())?;
+        let request = self
+            .request("PUT", path)?
+            .header("Content-Type", "application/json")
+            .body(body);
+        http::send(request).await
+    }
+
+    /// The URL of `path` under the API root (for an error's text).
+    pub fn url(&self, path: &str) -> String {
+        self.api.join(path)
     }
 
     /// The GraphQL `query` with `variables`: its `data` as `T`, or the
