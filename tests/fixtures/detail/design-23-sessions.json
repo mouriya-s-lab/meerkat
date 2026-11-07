@@ -1,0 +1,22 @@
+// 补写（oh-my-omp/quorum#4 验收第 3 行）：议会 GET /v1/sessions?limit=200 应答里 ref 为 oh-my-omp/pm-e2e-design#23
+// （议程 G25）的会话，新的在前。G25 的评论是手写的 Q4 夹具，本机议会 http://127.0.0.1:7741 没有它的会话，整份为补写。
+// 形状取自 tests/fixtures/responses/council-sessions.json 中 design#19 的真实会话（种类 draft、vote、revise、arbitrate，
+// label 为「<kind> <seat> <ref>」，model 同 design#19），时刻对齐 tests/fixtures/detail/design-23-comments.json：
+// 第 1 轮（pm:panel started 13:22:10Z）：draft Coordination 起草 v1（pm:draft 13:22:14Z），四席投 v1（pm:vote 13:22:18–29Z）；
+// 第 2 轮（pm:panel started 13:22:33Z）：revise Coordination 起草 v2（pm:draft 13:22:37Z），四席投 v2（pm:vote 13:22:41–52Z），
+// arbitrate LeadMentor 裁决 G25-01（pm:ruling 13:22:55Z）。每个会话在它的评论之前结束。
+// 第 1 轮 Coordination 投票会话 01a1b625-d001-7000-8000-000000000002 的日志见 design-23-vote-log.jsonl。
+// 读取时去掉以 // 开头的行。
+[
+  {"id":"01a1b625-d001-7000-8000-000000000011","kind":"arbitrate","label":"arbitrate LeadMentor oh-my-omp/pm-e2e-design#23","model":"futureppo-pool/minimax-m3.1-flash","startedAt":"2026-11-07T13:22:52.500Z","endedAt":"2026-11-07T13:22:54.900Z","state":"done","error":null,"ref":"oh-my-omp/pm-e2e-design#23","parent":null},
+  {"id":"01a1b625-d001-7000-8000-000000000010","kind":"vote","label":"vote LeadMentor oh-my-omp/pm-e2e-design#23","model":"futureppo-pool/minimax-m3.1-flash","startedAt":"2026-11-07T13:22:37.503Z","endedAt":"2026-11-07T13:22:51.900Z","state":"done","error":null,"ref":"oh-my-omp/pm-e2e-design#23","parent":null},
+  {"id":"01a1b625-d001-7000-8000-000000000009","kind":"vote","label":"vote Argon oh-my-omp/pm-e2e-design#23","model":"futureppo-pool/minimax-m3.1-flash","startedAt":"2026-11-07T13:22:37.502Z","endedAt":"2026-11-07T13:22:47.900Z","state":"done","error":null,"ref":"oh-my-omp/pm-e2e-design#23","parent":null},
+  {"id":"01a1b625-d001-7000-8000-000000000008","kind":"vote","label":"vote ClaudeHigh oh-my-omp/pm-e2e-design#23","model":"futureppo-pool/minimax-m3.1-flash","startedAt":"2026-11-07T13:22:37.501Z","endedAt":"2026-11-07T13:22:44.900Z","state":"done","error":null,"ref":"oh-my-omp/pm-e2e-design#23","parent":null},
+  {"id":"01a1b625-d001-7000-8000-000000000007","kind":"vote","label":"vote Coordination oh-my-omp/pm-e2e-design#23","model":"futureppo-pool/minimax-m3.1-flash","startedAt":"2026-11-07T13:22:37.500Z","endedAt":"2026-11-07T13:22:40.900Z","state":"done","error":null,"ref":"oh-my-omp/pm-e2e-design#23","parent":null},
+  {"id":"01a1b625-d001-7000-8000-000000000006","kind":"revise","label":"revise Coordination oh-my-omp/pm-e2e-design#23","model":"futureppo-pool/minimax-m3.1-flash","startedAt":"2026-11-07T13:22:33.500Z","endedAt":"2026-11-07T13:22:36.900Z","state":"done","error":null,"ref":"oh-my-omp/pm-e2e-design#23","parent":null},
+  {"id":"01a1b625-d001-7000-8000-000000000005","kind":"vote","label":"vote LeadMentor oh-my-omp/pm-e2e-design#23","model":"futureppo-pool/minimax-m3.1-flash","startedAt":"2026-11-07T13:22:14.503Z","endedAt":"2026-11-07T13:22:28.900Z","state":"done","error":null,"ref":"oh-my-omp/pm-e2e-design#23","parent":null},
+  {"id":"01a1b625-d001-7000-8000-000000000004","kind":"vote","label":"vote Argon oh-my-omp/pm-e2e-design#23","model":"futureppo-pool/minimax-m3.1-flash","startedAt":"2026-11-07T13:22:14.502Z","endedAt":"2026-11-07T13:22:24.900Z","state":"done","error":null,"ref":"oh-my-omp/pm-e2e-design#23","parent":null},
+  {"id":"01a1b625-d001-7000-8000-000000000003","kind":"vote","label":"vote ClaudeHigh oh-my-omp/pm-e2e-design#23","model":"futureppo-pool/minimax-m3.1-flash","startedAt":"2026-11-07T13:22:14.501Z","endedAt":"2026-11-07T13:22:20.900Z","state":"done","error":null,"ref":"oh-my-omp/pm-e2e-design#23","parent":null},
+  {"id":"01a1b625-d001-7000-8000-000000000002","kind":"vote","label":"vote Coordination oh-my-omp/pm-e2e-design#23","model":"futureppo-pool/minimax-m3.1-flash","startedAt":"2026-11-07T13:22:14.500Z","endedAt":"2026-11-07T13:22:17.900Z","state":"done","error":null,"ref":"oh-my-omp/pm-e2e-design#23","parent":null},
+  {"id":"01a1b625-d001-7000-8000-000000000001","kind":"draft","label":"draft Coordination oh-my-omp/pm-e2e-design#23","model":"futureppo-pool/minimax-m3.1-flash","startedAt":"2026-11-07T13:22:10.500Z","endedAt":"2026-11-07T13:22:13.900Z","state":"done","error":null,"ref":"oh-my-omp/pm-e2e-design#23","parent":null}
+]

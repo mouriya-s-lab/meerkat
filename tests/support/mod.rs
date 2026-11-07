@@ -8,8 +8,13 @@
 //! `targets` pointing at the stub network's hosts), handed to the app through
 //! `PM_CONFIG_DIR`. A test that answers some requests itself passes its own
 //! routes to [`Fixture::start_with`]; they come before the recorded ones.
+//! The detail pages' recordings, and what was written by hand where the
+//! records lack a case, are under `tests/fixtures/detail/`; each hand-written
+//! file says in its leading `//` lines what it supplements and from what,
+//! and [`detail`] reads a file without them.
 
-// Each test crate (`credential`, `i18n`) uses a part of the fixture.
+// Each test crate (`credential`, `i18n`, `queue_state`, `detail`) uses a
+// part of the fixture.
 #![allow(dead_code)]
 
 use std::{
@@ -31,7 +36,7 @@ use quorum::{Lang, Msg};
 /// `tests/fixtures/config/quorum/quorum.yaml`.
 pub const GITHUB: &str = "http://github.test";
 /// The stub network's council host.
-const COUNCIL: &str = "http://council.test";
+pub const COUNCIL: &str = "http://council.test";
 /// The stub network's guardians host.
 const GUARDIANS: &str = "http://guardians.test";
 /// The agenda repository the fixture config names (`repos.pm.repo`).
@@ -175,6 +180,16 @@ impl Fixture {
         self.app.screen().shows(text)
     }
 
+    /// How many views `selector` names on screen now.
+    pub fn count(&self, selector: &str) -> Result<usize, String> {
+        self.app.screen().count(selector)
+    }
+
+    /// Whether the one view `selector` names is selected.
+    pub fn selected(&self, selector: &str) -> Result<bool, String> {
+        self.app.screen().selected(selector)
+    }
+
     /// Waits for the window to show `text`, `timeout` at most.
     pub fn wait_for(&mut self, text: &str, timeout: Duration) -> Result<(), String> {
         self.app
@@ -208,6 +223,18 @@ impl Fixture {
     /// `regex` syntax).
     pub fn wait_for_matching(&mut self, pattern: &str, timeout: Duration) -> Result<(), String> {
         self.app.wait_for_within(&format!("text:/{pattern}/"), timeout)
+    }
+
+    /// Waits for a view `selector` names (`label:…`, `… >> text:…`).
+    pub fn wait_for_view(&mut self, selector: &str, timeout: Duration) -> Result<(), String> {
+        self.app.wait_for_within(selector, timeout)
+    }
+
+    /// Waits for the one view `selector` names to be selected.
+    pub fn wait_for_selected(&mut self, selector: &str, timeout: Duration) -> Result<(), String> {
+        self.app.wait_until(&format!("`{selector}` selected"), timeout, |screen| {
+            screen.selected(selector) == Ok(true)
+        })
     }
 
     /// Waits until `done` holds of the texts the window shows, in tree
@@ -379,6 +406,148 @@ pub fn clear_github_token() {
 /// `config.example/`, its endpoints pointing at the stub network's hosts.
 pub fn config_dir() -> PathBuf {
     fixtures_dir().join("config")
+}
+
+/// A file under `tests/fixtures/detail/` without its `//` lines, which say
+/// what in it was written by hand and from what.
+pub fn detail(name: &str) -> String {
+    let path = fixtures_dir().join("detail").join(name);
+    let text = std::fs::read_to_string(&path).unwrap_or_else(|error| panic!("{}: {error}", path.display()));
+    text.lines().filter(|line| !line.starts_with("//")).collect::<Vec<_>>().join("\n")
+}
+
+/// The council's recorded `/v1/sessions` answer with the sessions of the
+/// JSON array `newer` ahead of them.
+pub fn sessions_with(newer: &str) -> String {
+    let mut sessions: Vec<serde_json::Value> = serde_json::from_str(newer).expect("the sessions are a JSON array");
+    let recorded: Vec<serde_json::Value> =
+        serde_json::from_str(COUNCIL_SESSIONS).expect("the recorded sessions are a JSON array");
+    sessions.extend(recorded);
+    serde_json::Value::Array(sessions).to_string()
+}
+
+/// The route of the comments of `issue` (`owner/repo#n`), as Quorum asks
+/// GitHub for them.
+pub fn comments_route(issue: &str) -> String {
+    let (repo, number) = issue.split_once('#').expect("an issue is owner/repo#n");
+    format!("GET {GITHUB}/repos/{repo}/issues/{number}/comments?per_page=100&page=1")
+}
+
+/// The council session whose log `tests/fixtures/detail/` recorded: the
+/// round 1 Coordination vote on G25 (`design-23-vote-log.jsonl`).
+pub const VOTE_LOG_SESSION: &str = "01a1b625-d001-7000-8000-000000000002";
+
+/// The Project the detail tests read: the recording with the three
+/// implementation issues still open (`github-project-open-implementations.json`).
+pub fn detail_project() -> String {
+    detail("github-project-open-implementations.json")
+}
+
+/// The recorded comments of `issue` (`owner/repo#n`) the detail tests
+/// answer with, if any were recorded: under `detail/`, else the earlier
+/// recordings under `tests/fixtures/`.
+pub fn recorded_comments(issue: &str) -> Option<String> {
+    let (repo, number) = issue.split_once('#').expect("an issue is owner/repo#n");
+    let prefix = match repo {
+        "oh-my-omp/pm-e2e-design" => "design",
+        "oh-my-omp/pm-e2e-code" => "code",
+        "oh-my-omp/pm-e2e-agenda" => "agenda",
+        _ => return None,
+    };
+    let name = format!("{prefix}-{number}-comments.json");
+    if fixtures_dir().join("detail").join(&name).is_file() {
+        return Some(detail(&name));
+    }
+    std::fs::read_to_string(fixtures_dir().join(&name)).ok()
+}
+
+/// The issues whose comments [`recorded_comments`] holds.
+pub fn recorded_issues() -> Vec<String> {
+    let mut issues = Vec::new();
+    for dir in [fixtures_dir().join("detail"), fixtures_dir()] {
+        for entry in std::fs::read_dir(&dir).expect("a fixture directory") {
+            let name = entry.expect("a directory entry").file_name().to_string_lossy().into_owned();
+            let Some((prefix, number)) = name.strip_suffix("-comments.json").and_then(|stem| stem.split_once('-')) else {
+                continue;
+            };
+            if number.parse::<u64>().is_err() {
+                continue;
+            }
+            let repo = match prefix {
+                "design" => "oh-my-omp/pm-e2e-design",
+                "code" => "oh-my-omp/pm-e2e-code",
+                "agenda" => "oh-my-omp/pm-e2e-agenda",
+                _ => continue,
+            };
+            let issue = format!("{repo}#{number}");
+            if !issues.contains(&issue) {
+                issues.push(issue);
+            }
+        }
+    }
+    issues
+}
+
+/// What the detail pages read beyond the overview's recordings: the
+/// Project with open implementation issues, the council's sessions with
+/// G25's ahead of them, the recorded vote log, and every recorded issue's
+/// comments.
+pub fn detail_routes() -> Vec<(String, StubRoute)> {
+    let mut routes = vec![
+        (format!("POST {GITHUB}/graphql"), detail_project()),
+        (
+            format!("GET {COUNCIL}/v1/sessions?limit=200"),
+            sessions_with(&detail("design-23-sessions.json")),
+        ),
+        (
+            format!("GET {COUNCIL}/v1/sessions/{VOTE_LOG_SESSION}/log"),
+            detail("design-23-vote-log.jsonl"),
+        ),
+    ];
+    for issue in recorded_issues() {
+        let json = recorded_comments(&issue).expect("a recorded issue's comments");
+        routes.push((comments_route(&issue), json));
+    }
+    routes
+        .into_iter()
+        .map(|(route, body)| (route, StubRoute::Response(answer(200, &body))))
+        .collect()
+}
+
+/// A copy of the fixture config in `sandbox` whose PM repository is
+/// `repo`.
+pub fn config_with_pm(sandbox: &Sandbox, repo: &str) -> PathBuf {
+    let dir = sandbox.dir().join("config");
+    copy_dir(&config_dir(), &dir);
+    let repos = dir.join("shared/repos.yaml");
+    let text = std::fs::read_to_string(&repos).expect("repos.yaml");
+    let pm = format!("pm:\n  repo: {PM}\n");
+    assert!(text.contains(&pm), "the fixture's repos.yaml names another PM repository");
+    std::fs::write(&repos, text.replace(&pm, &format!("pm:\n  repo: {repo}\n"))).expect("repos.yaml written");
+    dir
+}
+
+fn copy_dir(from: &Path, to: &Path) {
+    std::fs::create_dir_all(to).expect("a directory");
+    for entry in std::fs::read_dir(from).expect("a fixture directory") {
+        let path = entry.expect("an entry").path();
+        let target = to.join(path.file_name().expect("a name"));
+        if path.is_dir() {
+            copy_dir(&path, &target);
+        } else {
+            std::fs::copy(&path, &target).expect("a copied file");
+        }
+    }
+}
+
+/// Quorum in `lang` on a copy of the fixture config whose PM repository is
+/// `repo`, answered from the detail recordings, `routes` ahead of them.
+pub fn start_detail(sandbox: &Sandbox, repo: &str, lang: Lang, routes: Vec<(String, StubRoute)>) -> Fixture {
+    set_github_token("gho_q4_detail_token");
+    let dir = config_with_pm(sandbox, repo);
+    let mut routes = routes;
+    routes.extend(detail_routes());
+    Fixture::start_in(lang, &dir, routes)
 }
 
 /// `tests/fixtures/`.

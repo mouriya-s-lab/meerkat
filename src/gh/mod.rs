@@ -1,10 +1,11 @@
 //! The GitHub reader (C4 `ghReader`): the Project's items, issue comments
-//! and their PM markers, and the API's rate limit. Every request goes
-//! through [`GitHub`], over NSH's `fetch`.
+//! and their PM markers, the implementation issues under way, and the
+//! API's rate limit. Every request goes through [`GitHub`], over NSH's
+//! `fetch`.
 
 mod client;
 pub mod comments;
-pub mod escalations;
+pub mod implementations;
 pub mod markers;
 pub mod project;
 pub mod rate;

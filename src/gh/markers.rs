@@ -31,7 +31,7 @@ pub enum Marker {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Impl {
     pub host: String,
-    pub pid: u32,
+    pub pid: u64,
     pub agenda: String,
     pub session: String,
     pub file: String,
@@ -261,18 +261,31 @@ fn nullable<'de, D: Deserializer<'de>, T: Deserialize<'de>>(
     Option::deserialize(deserializer)
 }
 
-/// The marker on the last line of `body`, if it has a valid one.
+/// The marker on the last line of `body`, if it has a valid one; an
+/// invalid one is logged.
 pub fn parse(body: &str) -> Option<Marker> {
-    let line = body.lines().map(str::trim).rfind(|line| !line.is_empty())?;
-    let inner = line.strip_prefix("<!-- pm:")?.strip_suffix("-->")?.trim();
-    let (kind, json) = inner.split_once(char::is_whitespace)?;
-    match decode(kind, json.trim()) {
+    match read(body)? {
         Ok(marker) => Some(marker),
-        Err(error) => {
-            log::error!("ignoring pm:{kind} marker: {error}");
+        Err(reason) => {
+            log::error!("ignoring marker: {reason}");
             None
         }
     }
+}
+
+/// What the last line of `body` holds: `None` without a marker line, the
+/// marker, or why a line that starts as a marker (`<!-- pm:`) is not one.
+pub fn read(body: &str) -> Option<Result<Marker, String>> {
+    let line = body.lines().map(str::trim).rfind(|line| !line.is_empty())?;
+    let rest = line.strip_prefix("<!-- pm:")?;
+    let malformed = || Err("marker line is not <!-- pm:<kind> <JSON> -->".to_owned());
+    let Some(inner) = rest.strip_suffix("-->") else {
+        return Some(malformed());
+    };
+    let Some((kind, json)) = inner.trim().split_once(char::is_whitespace) else {
+        return Some(malformed());
+    };
+    Some(decode(kind, json.trim()).map_err(|error| format!("pm:{kind}: {error}")))
 }
 
 fn decode(kind: &str, json: &str) -> Result<Marker, String> {
@@ -323,7 +336,10 @@ mod tests {
 
     #[test]
     fn a_marker_not_last_is_none() {
-        assert_eq!(parse("<!-- pm:reply {\"v\":1,\"ask\":1,\"decision\":null} -->\nmore"), None);
+        assert_eq!(
+            parse("<!-- pm:reply {\"v\":1,\"ask\":1,\"decision\":null} -->\nmore"),
+            None
+        );
     }
 
     #[test]
@@ -334,7 +350,28 @@ mod tests {
 
     #[test]
     fn wrong_version_or_type_is_none() {
-        assert_eq!(parse("<!-- pm:reply {\"v\":2,\"ask\":1,\"decision\":null} -->"), None);
-        assert_eq!(parse("<!-- pm:reply {\"v\":1,\"ask\":\"1\",\"decision\":null} -->"), None);
+        assert_eq!(
+            parse("<!-- pm:reply {\"v\":2,\"ask\":1,\"decision\":null} -->"),
+            None
+        );
+        assert_eq!(
+            parse("<!-- pm:reply {\"v\":1,\"ask\":\"1\",\"decision\":null} -->"),
+            None
+        );
+    }
+
+    #[test]
+    fn read_says_why_a_marker_line_is_invalid() {
+        assert_eq!(read("plain text\n<!-- a plain html comment -->"), None);
+        let reason = |body: &str| read(body).unwrap().unwrap_err();
+        assert_eq!(
+            reason("<!-- pm:ask tier=simple"),
+            "marker line is not <!-- pm:<kind> <JSON> -->"
+        );
+        assert!(reason("<!-- pm:nudge {\"v\":1} -->").starts_with("pm:nudge: unknown kind"));
+        assert!(
+            reason("<!-- pm:reply {\"v\":1,\"ask\":\"1\",\"decision\":null} -->")
+                .starts_with("pm:reply: ")
+        );
     }
 }

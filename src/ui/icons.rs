@@ -34,6 +34,12 @@ pub enum Icon {
     Plus,
     Minus,
     Fit,
+    /// An implementation, a worker.
+    Code,
+    /// The council's decision.
+    Gavel,
+    /// A wait.
+    Clock,
 }
 
 impl Icon {
@@ -84,6 +90,9 @@ impl Icon {
             Icon::Plus => "M8 3v10M3 8h10",
             Icon::Minus => "M3 8h10",
             Icon::Fit => "M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10",
+            Icon::Code => "M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5",
+            Icon::Gavel => "M9 2.5l4.5 4.5M7.5 4l4.5 4.5M10.5 5.5L4 12M2.5 13.5h6",
+            Icon::Clock => "M8 1.5a6.5 6.5 0 1 0 0 13a6.5 6.5 0 1 0 0-13zM8 4.5V8l2.5 1.5",
         }
     }
 }

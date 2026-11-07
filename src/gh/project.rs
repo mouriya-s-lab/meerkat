@@ -16,6 +16,10 @@ pub struct ProjectItem {
     pub issue: IssueRef,
     pub title: String,
     pub url: String,
+    /// The issue's body, as written (Markdown).
+    pub body: String,
+    /// When the issue was opened (RFC 3339).
+    pub created_at: String,
     /// When the issue last changed (GitHub's `updatedAt`, RFC 3339).
     pub updated_at: String,
     pub state: IssueState,
@@ -26,6 +30,37 @@ pub struct ProjectItem {
     pub parent: Option<IssueRef>,
     pub blocked_by: Vec<IssueRef>,
     pub sub_issues: SubIssues,
+    /// The pull requests that close the issue when they merge.
+    pub pulls: Vec<PullRef>,
+}
+
+/// A pull request that closes an issue.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PullRef {
+    pub repo: RepoName,
+    pub number: u64,
+    pub url: String,
+    pub state: PullState,
+}
+
+/// Where a pull request is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum PullState {
+    Open,
+    Closed,
+    Merged,
+}
+
+impl ProjectItem {
+    /// The issue's own text, as the derivations read it.
+    pub fn text(&self) -> crate::detail::IssueText<'_> {
+        crate::detail::IssueText {
+            url: &self.url,
+            body: &self.body,
+            created_at: &self.created_at,
+        }
+    }
 }
 
 /// Whether an issue is open.
@@ -97,12 +132,17 @@ query($owner: String!, $number: Int!, $after: String) {
                 number
                 title
                 url
+                body
+                createdAt
                 updatedAt
                 state
                 repository { nameWithOwner }
                 parent { number repository { nameWithOwner } }
                 blockedBy(first: 100) { nodes { number repository { nameWithOwner } } }
                 subIssuesSummary { total completed }
+                closedByPullRequestsReferences(first: 10, includeClosedPrs: true) {
+                  nodes { number url state repository { nameWithOwner } }
+                }
               }
             }
           }
@@ -181,7 +221,7 @@ struct FieldNode {
 #[derive(Deserialize)]
 #[serde(tag = "__typename")]
 enum Content {
-    Issue(IssueNode),
+    Issue(Box<IssueNode>),
     #[serde(other)]
     Other,
 }
@@ -192,12 +232,35 @@ struct IssueNode {
     number: u64,
     title: String,
     url: String,
+    #[serde(default)]
+    body: String,
+    created_at: String,
     updated_at: String,
     state: String,
     repository: RepositoryNode,
     parent: Option<IssueRefNode>,
     blocked_by: Nodes<IssueRefNode>,
     sub_issues_summary: SubIssues,
+    closed_by_pull_requests_references: Nodes<PullNode>,
+}
+
+#[derive(Deserialize)]
+struct PullNode {
+    number: u64,
+    url: String,
+    state: PullState,
+    repository: RepositoryNode,
+}
+
+impl From<PullNode> for PullRef {
+    fn from(node: PullNode) -> Self {
+        PullRef {
+            repo: node.repository.name_with_owner,
+            number: node.number,
+            url: node.url,
+            state: node.state,
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -255,7 +318,10 @@ pub async fn items(
                 .flatten()
                 .filter_map(|node| item(node, fields)),
         );
-        match (connection.page_info.has_next_page, connection.page_info.end_cursor) {
+        match (
+            connection.page_info.has_next_page,
+            connection.page_info.end_cursor,
+        ) {
             (true, Some(cursor)) => after = Some(cursor),
             _ => return Ok(items),
         }
@@ -267,6 +333,7 @@ fn item(node: ItemNode, fields: &Fields) -> Option<ProjectItem> {
     let Some(Content::Issue(issue)) = node.content else {
         return None;
     };
+    let issue = *issue;
     let mut item = ProjectItem {
         issue: IssueRef {
             repo: issue.repository.name_with_owner,
@@ -274,6 +341,8 @@ fn item(node: ItemNode, fields: &Fields) -> Option<ProjectItem> {
         },
         title: issue.title,
         url: issue.url,
+        body: issue.body,
+        created_at: issue.created_at,
         updated_at: issue.updated_at,
         state: if issue.state == "OPEN" {
             IssueState::Open
@@ -293,6 +362,13 @@ fn item(node: ItemNode, fields: &Fields) -> Option<ProjectItem> {
             .map(IssueRef::from)
             .collect(),
         sub_issues: issue.sub_issues_summary,
+        pulls: issue
+            .closed_by_pull_requests_references
+            .nodes
+            .into_iter()
+            .flatten()
+            .map(PullRef::from)
+            .collect(),
     };
     for value in node.field_values.nodes.into_iter().flatten() {
         let Some(field) = value.field.and_then(|field| field.name) else {

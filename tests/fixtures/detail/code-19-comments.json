@@ -1,0 +1,49 @@
+[
+  {
+    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6707311206",
+    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/19#issuecomment-6707311206",
+    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/19",
+    "id": 6707311206,
+    "node_id": "IC_kwDOVloFec8AAAABj8lyZg",
+    "user": {
+      "login": "Mouriya-Emma",
+      "id": 85676458,
+      "node_id": "MDQ6VXNlcjg1Njc2NDU4",
+      "avatar_url": "https://avatars.githubusercontent.com/u/85676458?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/Mouriya-Emma",
+      "html_url": "https://github.com/Mouriya-Emma",
+      "followers_url": "https://api.github.com/users/Mouriya-Emma/followers",
+      "following_url": "https://api.github.com/users/Mouriya-Emma/following{/other_user}",
+      "gists_url": "https://api.github.com/users/Mouriya-Emma/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/Mouriya-Emma/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/Mouriya-Emma/subscriptions",
+      "organizations_url": "https://api.github.com/users/Mouriya-Emma/orgs",
+      "repos_url": "https://api.github.com/users/Mouriya-Emma/repos",
+      "events_url": "https://api.github.com/users/Mouriya-Emma/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/Mouriya-Emma/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "created_at": "2026-11-07T13:04:51Z",
+    "updated_at": "2026-11-07T13:04:51Z",
+    "body": "前几阶段遗留的夹具，按 oh-my-omp/pm-config#1 结果 6 以 not planned 关闭。",
+    "author_association": "MEMBER",
+    "pin": null,
+    "reactions": {
+      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6707311206/reactions",
+      "total_count": 0,
+      "+1": 0,
+      "-1": 0,
+      "laugh": 0,
+      "hooray": 0,
+      "confused": 0,
+      "heart": 0,
+      "rocket": 0,
+      "eyes": 0
+    },
+    "performed_via_github_app": null,
+    "minimized": null
+  }
+]

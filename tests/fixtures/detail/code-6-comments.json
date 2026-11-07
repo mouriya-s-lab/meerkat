@@ -1,0 +1,49 @@
+[
+  {
+    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6697586753",
+    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/6#issuecomment-6697586753",
+    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/6",
+    "id": 6697586753,
+    "node_id": "IC_kwDOVloFec8AAAABjzUQQQ",
+    "user": {
+      "login": "RiriAgent",
+      "id": 39219425,
+      "node_id": "MDQ6VXNlcjM5MjE5NDI1",
+      "avatar_url": "https://avatars.githubusercontent.com/u/39219425?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/RiriAgent",
+      "html_url": "https://github.com/RiriAgent",
+      "followers_url": "https://api.github.com/users/RiriAgent/followers",
+      "following_url": "https://api.github.com/users/RiriAgent/following{/other_user}",
+      "gists_url": "https://api.github.com/users/RiriAgent/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/RiriAgent/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/RiriAgent/subscriptions",
+      "organizations_url": "https://api.github.com/users/RiriAgent/orgs",
+      "repos_url": "https://api.github.com/users/RiriAgent/repos",
+      "events_url": "https://api.github.com/users/RiriAgent/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/RiriAgent/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "created_at": "2026-11-06T22:38:54Z",
+    "updated_at": "2026-11-06T22:38:54Z",
+    "body": "工人会话 01a1b303-cf3b-7097-8b3f-607565816112 开始实现本 issue。\n\n<!-- pm:impl {\"v\":1,\"host\":\"MouriyadeMac-mini.local\",\"pid\":85759,\"agenda\":\"2cab37c3-4c88-4df8-8b73-e7e159af416d\",\"session\":\"01a1b303-cf3b-7097-8b3f-607565816112\",\"file\":\"/Users/mouriya/Ext/work/dispatch-ev-204/sessions/2cab37c3-4c88-4df8-8b73-e7e159af416d/2026-11-06T22-38-53-755Z_01a1b303-cf3b-7097-8b3f-607565816112.jsonl\"} -->",
+    "author_association": "MEMBER",
+    "pin": null,
+    "reactions": {
+      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6697586753/reactions",
+      "total_count": 0,
+      "+1": 0,
+      "-1": 0,
+      "laugh": 0,
+      "hooray": 0,
+      "confused": 0,
+      "heart": 0,
+      "rocket": 0,
+      "eyes": 0
+    },
+    "performed_via_github_app": null,
+    "minimized": null
+  }
+]

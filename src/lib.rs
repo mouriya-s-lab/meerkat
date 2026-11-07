@@ -5,8 +5,9 @@
 
 pub mod attention;
 pub mod config;
-pub mod digest;
 pub mod dag;
+pub mod detail;
+pub mod digest;
 pub mod failure;
 pub mod gh;
 mod http;
@@ -16,7 +17,7 @@ pub mod sources;
 pub mod time;
 mod ui;
 
-pub use ui::{Lang, Msg, QueueMotion};
+pub use ui::{DraftField, Lang, Msg, QueueMotion};
 
 use nsh_base::theme;
 use nsh_core::prelude::*;

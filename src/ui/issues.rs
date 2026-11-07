@@ -10,6 +10,7 @@ use nsh_base::{ButtonElement, button};
 use nsh_core::{element::TransformOrigin, prelude::*};
 
 use super::{
+    agenda,
     icons::Icon,
     parts::{
         Choice, Look, action, empty, github_bar, head_row, icon_button, kv, mono, nothing, press,
@@ -23,7 +24,7 @@ use super::{
 };
 use crate::{
     config::{ColorToken::*, Fields, Filters, LengthToken::*, RepoName},
-    dag::{self, Closed, EdgeKind, Graph, Group, Layout, Node, NodeKind, NodeState, LATEST_CLOSED},
+    dag::{self, Closed, EdgeKind, Graph, Group, LATEST_CLOSED, Layout, Node, NodeKind, NodeState},
     gh::IssueRef,
     programs::QueueState,
     sources::Sources,
@@ -139,7 +140,10 @@ impl IssuesState {
         self.group.get().is_none_or(|g| node.state.group() == Some(g))
             && (query.is_empty()
                 || node.title.to_lowercase().contains(&query)
-                || node.agenda.as_deref().is_some_and(|a| a.to_lowercase().contains(&query))
+                || node
+                    .agenda
+                    .as_deref()
+                    .is_some_and(|a| a.to_lowercase().contains(&query))
                 || node.issue.number.to_string() == query)
     }
 
@@ -167,12 +171,19 @@ pub fn agenda_of(context: &Context, issue: &IssueRef) -> String {
     context
         .all_issues
         .get_untracked()
-        .and_then(|g| g.nodes.iter().find(|n| n.issue == *issue).and_then(|n| n.agenda.clone()))
+        .and_then(|g| {
+            g.nodes
+                .iter()
+                .find(|n| n.issue == *issue)
+                .and_then(|n| n.agenda.clone())
+        })
         .unwrap_or_else(|| format!("#{}", issue.number))
 }
 
 fn agenda(node: &Node) -> String {
-    node.agenda.clone().unwrap_or_else(|| format!("#{}", node.issue.number))
+    node.agenda
+        .clone()
+        .unwrap_or_else(|| format!("#{}", node.issue.number))
 }
 
 /// 「人类」 on a human issue only.
@@ -200,13 +211,15 @@ pub fn progress(graph: &Graph, at: usize) -> AnyElement {
                 .child(small(Msg::Implemented(sub.completed, sub.total).to_string()).text_color(color(Ink2)).flex_shrink_0())
                 .into_element()
         }
-        (NodeState::Queue(QueueState::Failed | QueueState::Interrupted), _) => match node.notes.first() {
-            Some(note) => small(crate::attention::first_line(note).to_owned())
-                .text_color(color(Ink2))
-                .number_of_lines(1)
-                .into_element(),
-            None => nothing(),
-        },
+        (NodeState::Queue(QueueState::Failed | QueueState::Interrupted), _) => {
+            match node.notes.first() {
+                Some(note) => small(crate::attention::first_line(note).to_owned())
+                    .text_color(color(Ink2))
+                    .number_of_lines(1)
+                    .into_element(),
+                None => nothing(),
+            }
+        }
         _ => nothing(),
     }
 }
@@ -214,14 +227,29 @@ pub fn progress(graph: &Graph, at: usize) -> AnyElement {
 /// The list's dependency cell: what it waits for (`← D34`), else what it
 /// blocks (`→ D35`).
 pub fn deps(graph: &Graph, at: usize) -> AnyElement {
-    let names = |nodes: Vec<usize>| nodes.into_iter().map(|i| agenda(&graph.nodes[i])).collect::<Vec<_>>().join(" ");
+    let names = |nodes: Vec<usize>| {
+        nodes
+            .into_iter()
+            .map(|i| agenda(&graph.nodes[i]))
+            .collect::<Vec<_>>()
+            .join(" ")
+    };
     let waits = graph.open_prerequisites(at);
     if !waits.is_empty() {
-        return small(Msg::WaitsFor(names(waits)).to_string()).text_color(color(Ink2)).number_of_lines(1).into_element();
+        return small(Msg::WaitsFor(names(waits)).to_string())
+            .text_color(color(Ink2))
+            .number_of_lines(1)
+            .into_element();
     }
-    let blocks: Vec<usize> = graph.out_of(at).map(|e| e.to).filter(|&to| !graph.nodes[to].state.closed()).collect();
+    let blocks: Vec<usize> = graph
+        .out_of(at)
+        .map(|e| e.to)
+        .filter(|&to| !graph.nodes[to].state.closed())
+        .collect();
     if !blocks.is_empty() {
-        return small(Msg::Blocks(names(blocks)).to_string()).number_of_lines(1).into_element();
+        return small(Msg::Blocks(names(blocks)).to_string())
+            .number_of_lines(1)
+            .into_element();
     }
     nothing()
 }
@@ -238,21 +266,35 @@ fn node_detail(graph: &Graph, at: usize, fields: &Fields) -> String {
         }
         .to_string(),
         _ if !waits.is_empty() => Msg::WaitsDecided(agenda(&graph.nodes[waits[0]])).to_string(),
-        (NodeState::Queue(QueueState::Failed | QueueState::Interrupted), _) if !node.notes.is_empty() => {
+        (NodeState::Queue(QueueState::Failed | QueueState::Interrupted), _)
+            if !node.notes.is_empty() =>
+        {
             crate::attention::first_line(&node.notes[0]).to_owned()
         }
-        _ if node.sub_issues.total > 0 => Msg::Implemented(node.sub_issues.completed, node.sub_issues.total).to_string(),
+        _ if node.sub_issues.total > 0 => {
+            Msg::Implemented(node.sub_issues.completed, node.sub_issues.total).to_string()
+        }
         _ => status::node(&node.state, fields).word.to_string(),
     }
 }
 
-/// The page.
-pub fn page(sources: Sources, context: Rc<Context>, _nav: Nav) -> impl IntoElement {
+/// The page: the list or the graph beside the inspector, or the detail of
+/// the agenda issue opened from them (#4).
+pub fn page(sources: Sources, context: Rc<Context>, nav: Nav) -> impl IntoElement {
     let state = context.issues;
     let pm = context.issues_settings.pm.clone();
     let graph = computed(move || graph_of(sources, &pm, state.human_only.get()));
+    // The selected issue's comments: the inspector's matrix and the
+    // detail opened on it (opening a detail selects its issue).
+    let comments = agenda::comments_of(sources, context.github, move || {
+        state.selected.get()
+    });
     // J / K move the selection through the list's rows.
+    let in_detail = context.clone();
     let step = move |by: isize| {
+        if in_detail.agenda.opened_untracked().is_some() {
+            return;
+        }
         let Some(graph) = graph.get_untracked() else {
             return;
         };
@@ -260,18 +302,55 @@ pub fn page(sources: Sources, context: Rc<Context>, _nav: Nav) -> impl IntoEleme
         if order.is_empty() {
             return;
         }
-        let at = state
-            .selected
-            .with_untracked(|s| s.as_ref().and_then(|s| order.iter().position(|&i| graph.nodes[i].issue == *s)));
+        let at = state.selected.with_untracked(|s| {
+            s.as_ref()
+                .and_then(|s| order.iter().position(|&i| graph.nodes[i].issue == *s))
+        });
         let next = match at {
             Some(at) => (at as isize + by).clamp(0, order.len() as isize - 1) as usize,
             None => 0,
         };
-        state.selected.set(Some(graph.nodes[order[next]].issue.clone()));
+        state
+            .selected
+            .set(Some(graph.nodes[order[next]].issue.clone()));
     };
-    on_key("j", move |_| step(1));
+    let step_down = step.clone();
+    on_key("j", move |_| step_down(1));
     on_key("k", move |_| step(-1));
-    let settings = context.issues_settings.clone();
+    view().flex_1().min_h(Points::ZERO).child(dynamic(move || {
+        let context = context.clone();
+        match context.agenda.opened() {
+            Some(issue) => {
+                untracked(|| agenda::page(sources, context, nav, issue, comments).into_element())
+            }
+            None => untracked(|| {
+                list_page(
+                    sources,
+                    graph,
+                    Opens {
+                        context,
+                        nav,
+                        comments,
+                    },
+                )
+                .into_element()
+            }),
+        }
+    }))
+}
+
+/// What the inspector opens with: the detail, and the selection's
+/// comments for its matrix.
+#[derive(Clone)]
+struct Opens {
+    context: Rc<Context>,
+    nav: Nav,
+    comments: agenda::Comments,
+}
+
+fn list_page(sources: Sources, graph: Memo<Option<Rc<Graph>>>, opens: Opens) -> View {
+    let state = opens.context.issues;
+    let settings = opens.context.issues_settings.clone();
     let list = {
         let settings = settings.clone();
         move || {
@@ -288,7 +367,9 @@ pub fn page(sources: Sources, context: Rc<Context>, _nav: Nav) -> impl IntoEleme
     };
     let split_parts = Split {
         list: Rc::new(list),
-        inspector: Rc::new(move || inspector(graph, settings.clone(), state).into_element()),
+        inspector: Rc::new(move || {
+            inspector(graph, settings.clone(), state, opens.clone()).into_element()
+        }),
         open: Rc::new(move || state.selected.get().is_some()),
         back: Rc::new(move || state.selected.set(None)),
     };
@@ -311,7 +392,12 @@ pub fn page(sources: Sources, context: Rc<Context>, _nav: Nav) -> impl IntoEleme
 
 fn filter_bar(graph: Memo<Option<Rc<Graph>>>, state: IssuesState) -> View {
     let view_choice = |label: Msg, lead: Icon, want: Shown| {
-        Choice::new(label, move || state.shown.get() == want, move || state.shown.set(want)).lead(lead)
+        Choice::new(
+            label,
+            move || state.shown.get() == want,
+            move || state.shown.set(want),
+        )
+        .lead(lead)
     };
     view()
         .flex_row()
@@ -335,7 +421,11 @@ fn filter_bar(graph: Memo<Option<Rc<Graph>>>, state: IssuesState) -> View {
                 state.group.update(|g| {
                     *g = match g {
                         None => Some(Group::ALL[0]),
-                        Some(g) => Group::ALL.iter().position(|x| x == g).and_then(|i| Group::ALL.get(i + 1)).copied(),
+                        Some(g) => Group::ALL
+                            .iter()
+                            .position(|x| x == g)
+                            .and_then(|i| Group::ALL.get(i + 1))
+                            .copied(),
                     }
                 })
             },
@@ -417,9 +507,16 @@ fn list_view(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: Issu
             view().w(glyph).flex_shrink_0().into_element(),
             th(Msg::Agenda).w(agenda_w).flex_shrink_0().into_element(),
             th(Msg::Title).flex_1().min_w(Points::ZERO).into_element(),
-            th(Msg::Progress).w(progress_w).flex_shrink_0().into_element(),
+            th(Msg::Progress)
+                .w(progress_w)
+                .flex_shrink_0()
+                .into_element(),
             th(Msg::Deps).w(deps_w).flex_shrink_0().into_element(),
-            th(Msg::UpdatedColumn).w(updated_w).flex_shrink_0().text_right().into_element(),
+            th(Msg::UpdatedColumn)
+                .w(updated_w)
+                .flex_shrink_0()
+                .text_right()
+                .into_element(),
         ]))
         .child(dynamic(move || {
             let Some(graph) = graph.get() else {
@@ -443,11 +540,19 @@ fn list_view(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: Issu
                     }
                     let (g, role) = group_glyph(group);
                     children.push(
-                        super::parts::group_header(status::glyph(g, role).into_element(), SharedString::from(Msg::GroupName(group)), rows.len())
-                            .into_element(),
+                        super::parts::group_header(
+                            status::glyph(g, role).into_element(),
+                            SharedString::from(Msg::GroupName(group)),
+                            rows.len(),
+                        )
+                        .into_element(),
                     );
                     let folded = group == Group::Closed && closed == Closed::Fold;
-                    let shown = if folded { &rows[..rows.len().min(LATEST_CLOSED)] } else { &rows[..] };
+                    let shown = if folded {
+                        &rows[..rows.len().min(LATEST_CLOSED)]
+                    } else {
+                        &rows[..]
+                    };
                     for &i in shown {
                         children.push(list_row(&graph, i, &settings, state).into_element());
                     }
@@ -504,7 +609,11 @@ fn list_row(graph: &Rc<Graph>, i: usize, settings: &Settings, state: IssuesState
     let updated = time::parse_ms(&node.updated_at);
     let title = text(node.title.clone())
         .ty(Type::Body)
-        .text_color(if closed { color(Ink3) } else { color(Foreground) })
+        .text_color(if closed {
+            color(Ink3)
+        } else {
+            color(Foreground)
+        })
         .flex_shrink(1.0)
         .number_of_lines(1);
     let title = if node.state.superseded() { title.line_through() } else { title };
@@ -577,10 +686,18 @@ fn selected_or_first(graph: &Graph, layout: &Layout, state: IssuesState) -> Opti
 /// The drawn issues next to `selected` by counted edges: itself, its
 /// prerequisites and what it blocks. `None` when nothing is selected or
 /// no drawn issue is next to it: then nothing dims.
-fn neighbours(graph: &Graph, boxes: &[Option<dag::Rect>], selected: Option<usize>) -> Option<HashSet<usize>> {
+fn neighbours(
+    graph: &Graph,
+    boxes: &[Option<dag::Rect>],
+    selected: Option<usize>,
+) -> Option<HashSet<usize>> {
     let at = selected?;
     let mut near: HashSet<usize> = HashSet::from([at]);
-    for edge in graph.edges.iter().filter(|e| e.kind == EdgeKind::Prerequisite) {
+    for edge in graph
+        .edges
+        .iter()
+        .filter(|e| e.kind == EdgeKind::Prerequisite)
+    {
         let other = if edge.from == at {
             edge.to
         } else if edge.to == at {
@@ -595,7 +712,11 @@ fn neighbours(graph: &Graph, boxes: &[Option<dag::Rect>], selected: Option<usize
     (near.len() > 1).then_some(near)
 }
 
-fn canvas_panel(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: IssuesState) -> View {
+fn canvas_panel(
+    graph: Memo<Option<Rc<Graph>>>,
+    settings: Rc<Settings>,
+    state: IssuesState,
+) -> View {
     let fit = move || {
         let Some(graph) = graph.get_untracked() else {
             return;
@@ -606,7 +727,9 @@ fn canvas_panel(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: I
         if w <= 0.0 || h <= 0.0 || layout.columns.is_empty() {
             return;
         }
-        let scale = (w / geometry.width).min(h / geometry.height).clamp(Camera::MIN, 1.0);
+        let scale = (w / geometry.width)
+            .min(h / geometry.height)
+            .clamp(Camera::MIN, 1.0);
         state.camera.set(Camera {
             x: ((w - geometry.width * scale) / 2.0).max(0.0),
             y: 0.0,
@@ -633,22 +756,35 @@ fn canvas_panel(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: I
         .border_1()
         .border_color(color(Border))
         .bg(color(Background))
-        .child(icon_button(Icon::Minus, Msg::ZoomOut, move || zoom_by(1.0 / ZOOM_STEP)))
+        .child(icon_button(Icon::Minus, Msg::ZoomOut, move || {
+            zoom_by(1.0 / ZOOM_STEP)
+        }))
         .child(
             small(move || SharedString::from(format!("{:.0}%", state.camera.get().scale * 100.0)))
                 .text_color(color(Ink2))
                 .w(len(Space8) + len(Space2))
                 .text_center(),
         )
-        .child(icon_button(Icon::Plus, Msg::ZoomIn, move || zoom_by(ZOOM_STEP)))
-        .child(view().h(len(Space5)).border_l_1().border_l_color(color(Border)))
+        .child(icon_button(Icon::Plus, Msg::ZoomIn, move || {
+            zoom_by(ZOOM_STEP)
+        }))
+        .child(
+            view()
+                .h(len(Space5))
+                .border_l_1()
+                .border_l_color(color(Border)),
+        )
         .child(action(Msg::Fit, Some(Icon::Fit), Look::Link, || false, fit));
     view()
         .flex_1()
         .min_w(Points::ZERO)
         .overflow_hidden()
         .bg(color(Background))
-        .on_layout(move |bounds: &Bounds<Points>| state.viewport.set((bounds.size.width.0, bounds.size.height.0)))
+        .on_layout(move |bounds: &Bounds<Points>| {
+            state
+                .viewport
+                .set((bounds.size.width.0, bounds.size.height.0))
+        })
         .pan_values(Some(&state.pan_x), Some(&state.pan_y))
         .pinch_value(&state.zoom)
         .on_pan_end(move |_: &PanEvent| state.settle())
@@ -656,7 +792,9 @@ fn canvas_panel(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: I
         .child(dots(state))
         .child(dynamic(move || {
             let Some(graph) = graph.get() else {
-                return small(SharedString::from(Msg::WaitingForData)).p(len(Space4)).into_element();
+                return small(SharedString::from(Msg::WaitingForData))
+                    .p(len(Space4))
+                    .into_element();
             };
             let layout = layout_of(&graph, state);
             let selected = selected_or_first(&graph, &layout, state);
@@ -664,14 +802,18 @@ fn canvas_panel(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: I
             let settings = settings.clone();
             untracked(move || {
                 if layout.columns.is_empty() && layout.folded.is_empty() {
-                    return small(SharedString::from(Msg::NoIssues)).p(len(Space4)).into_element();
+                    return small(SharedString::from(Msg::NoIssues))
+                        .p(len(Space4))
+                        .into_element();
                 }
                 view()
                     .absolute()
                     .left(Points::ZERO)
                     .top(Points::ZERO)
                     .size_full()
-                    .child(drawing(&graph, &layout, &settings, state, camera, viewport, selected))
+                    .child(drawing(
+                        &graph, &layout, &settings, state, camera, viewport, selected,
+                    ))
                     .child(fold_chip(&graph, &layout, state))
                     .into_element()
             })
@@ -718,7 +860,11 @@ fn drawing(
     selected: Option<usize>,
 ) -> View {
     let geometry = dag::geometry(graph, layout, sizes());
-    let boxes: Vec<Option<dag::Rect>> = geometry.boxes.iter().map(|b| b.map(|b| camera.place(b))).collect();
+    let boxes: Vec<Option<dag::Rect>> = geometry
+        .boxes
+        .iter()
+        .map(|b| b.map(|b| camera.place(b)))
+        .collect();
     let near = neighbours(graph, &boxes, selected);
     let lit = near.is_some();
     let origin = TransformOrigin {
@@ -753,13 +899,21 @@ fn drawing(
         };
         let dim = near.as_ref().is_some_and(|near| !near.contains(&i));
         cards.push(
-            node_card(graph, i, settings, state, camera.scale, dim, selected == Some(i))
-                .absolute()
-                .left(px(rect.x))
-                .top(px(rect.y))
-                .w(px(rect.w))
-                .h(px(rect.h))
-                .into_element(),
+            node_card(
+                graph,
+                i,
+                settings,
+                state,
+                camera.scale,
+                dim,
+                selected == Some(i),
+            )
+            .absolute()
+            .left(px(rect.x))
+            .top(px(rect.y))
+            .w(px(rect.w))
+            .h(px(rect.h))
+            .into_element(),
         );
     }
     view()
@@ -773,7 +927,14 @@ fn drawing(
         .bind_translate_y(&state.pan_y)
         .bind_scale(&state.zoom)
         .children(labels)
-        .child(edges.absolute().left(Points::ZERO).top(Points::ZERO).w(px(size.0)).h(px(size.1)))
+        .child(
+            edges
+                .absolute()
+                .left(Points::ZERO)
+                .top(Points::ZERO)
+                .w(px(size.0))
+                .h(px(size.1)),
+        )
         .children(cards)
 }
 
@@ -781,14 +942,24 @@ fn drawing(
 /// arrowhead at the issue blocked; the selected node's in `selection`
 /// over the others, the rest dimmed while the selected node has `lit`
 /// edges.
-fn edges(graph: &Graph, boxes: &[Option<dag::Rect>], selected: Option<usize>, lit: bool, scale: f32) -> Painter {
+fn edges(
+    graph: &Graph,
+    boxes: &[Option<dag::Rect>],
+    selected: Option<usize>,
+    lit: bool,
+    scale: f32,
+) -> Painter {
     let pick = super::parts::pick;
     let (plain, hot) = (pick(color(BorderStrong)), pick(color(Selection)));
     let head = len(Space2).0 * scale;
     let width = mark().0 * scale;
     let mut painter = Painter::new();
     for hot_pass in [false, true] {
-        for edge in graph.edges.iter().filter(|e| e.kind == EdgeKind::Prerequisite) {
+        for edge in graph
+            .edges
+            .iter()
+            .filter(|e| e.kind == EdgeKind::Prerequisite)
+        {
             let (Some(from), Some(to)) = (boxes[edge.from], boxes[edge.to]) else {
                 continue;
             };
@@ -849,8 +1020,16 @@ fn node_card(
         .rounded(scaled(RadiusControl))
         .border_1()
         .border_l(mark() * scale)
-        .border_color(if selected { color(Selection) } else { color(BorderStrong) })
-        .bg(if selected { color(Selected) } else { color(Background) })
+        .border_color(if selected {
+            color(Selection)
+        } else {
+            color(BorderStrong)
+        })
+        .bg(if selected {
+            color(Selected)
+        } else {
+            color(Background)
+        })
         .opacity(if dim { DIM } else { 1.0 })
         .hover(|s| s.border_color(color(Selection)))
         .cursor_pointer()
@@ -870,7 +1049,11 @@ fn node_card(
                     text(node.title.clone())
                         .text_size(scaled(TextBody))
                         .font_weight(FontWeight::MEDIUM)
-                        .text_color(if closed { color(Ink3) } else { color(Foreground) })
+                        .text_color(if closed {
+                            color(Ink3)
+                        } else {
+                            color(Foreground)
+                        })
                         .flex_1()
                         .min_w(Points::ZERO)
                         .number_of_lines(1),
@@ -893,7 +1076,13 @@ fn fold_chip(graph: &Graph, layout: &Layout, state: IssuesState) -> AnyElement {
     let chains: Vec<String> = layout
         .chains
         .iter()
-        .map(|chain| chain.iter().map(|&i| agenda(&graph.nodes[i])).collect::<Vec<_>>().join(" → "))
+        .map(|chain| {
+            chain
+                .iter()
+                .map(|&i| agenda(&graph.nodes[i]))
+                .collect::<Vec<_>>()
+                .join(" → ")
+        })
         .collect();
     view()
         .absolute()
@@ -911,19 +1100,32 @@ fn fold_chip(graph: &Graph, layout: &Layout, state: IssuesState) -> AnyElement {
         .bg(color(Background))
         .child(status::glyph(Glyph::Check, Role::Done))
         .child(
-            small(Msg::FoldedClosed { closed: layout.folded.len(), chains }.to_string())
-                .text_color(color(Ink2))
-                .flex_shrink(1.0)
-                .number_of_lines(1),
+            small(
+                Msg::FoldedClosed {
+                    closed: layout.folded.len(),
+                    chains,
+                }
+                .to_string(),
+            )
+            .text_color(color(Ink2))
+            .flex_shrink(1.0)
+            .number_of_lines(1),
         )
-        .child(press(Msg::Expand, Look::Link, move || state.closed.set(Closed::Show)))
+        .child(press(Msg::Expand, Look::Link, move || {
+            state.closed.set(Closed::Show)
+        }))
         .into_element()
 }
 
 // ---------------------------------------------------------------------------
 // The inspector
 
-fn inspector(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: IssuesState) -> View {
+fn inspector(
+    graph: Memo<Option<Rc<Graph>>>,
+    settings: Rc<Settings>,
+    state: IssuesState,
+    opens: Opens,
+) -> View {
     view()
         .flex_1()
         .min_h(Points::ZERO)
@@ -941,16 +1143,22 @@ fn inspector(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: Issu
                     .get()
                     .and_then(|s| graph.nodes.iter().position(|n| n.issue == s)),
             };
-            let settings = settings.clone();
+            let (settings, opens) = (settings.clone(), opens.clone());
             untracked(move || match at {
-                Some(at) => facts(&graph, at, &settings, state).into_element(),
+                Some(at) => facts(&graph, at, &settings, state, &opens).into_element(),
                 None => empty(Msg::SelectIssue).into_element(),
             })
         })))
 }
 
 /// One issue in a line: glyph, agenda, title; a press selects it.
-fn issue_line(graph: &Graph, at: usize, settings: &Settings, state: IssuesState, note: Option<String>) -> impl IntoElement {
+fn issue_line(
+    graph: &Graph,
+    at: usize,
+    settings: &Settings,
+    state: IssuesState,
+    note: Option<String>,
+) -> impl IntoElement {
     let node = &graph.nodes[at];
     let st = status::node(&node.state, &settings.fields);
     let issue = node.issue.clone();
@@ -966,7 +1174,13 @@ fn issue_line(graph: &Graph, at: usize, settings: &Settings, state: IssuesState,
         .cursor_pointer()
         .child(status::glyph(st.glyph, st.role))
         .child(small(agenda(node)))
-        .child(text(node.title.clone()).ty(Type::Body).flex_1().min_w(Points::ZERO).number_of_lines(1))
+        .child(
+            text(node.title.clone())
+                .ty(Type::Body)
+                .flex_1()
+                .min_w(Points::ZERO)
+                .number_of_lines(1),
+        )
         .children(note.map(small))
 }
 
@@ -979,7 +1193,13 @@ fn section(title: Msg) -> View {
         .child(small(SharedString::from(title)))
 }
 
-fn facts(graph: &Rc<Graph>, at: usize, settings: &Settings, state: IssuesState) -> View {
+fn facts(
+    graph: &Rc<Graph>,
+    at: usize,
+    settings: &Settings,
+    state: IssuesState,
+    opens: &Opens,
+) -> View {
     let node = &graph.nodes[at];
     let st = status::node(&node.state, &settings.fields);
     let url = node.url.clone();
@@ -988,7 +1208,11 @@ fn facts(graph: &Rc<Graph>, at: usize, settings: &Settings, state: IssuesState) 
         move || drop(open_url(url.clone()))
     };
     let updated = time::parse_ms(&node.updated_at);
-    let ups: Vec<usize> = graph.into_node(at).filter(|e| e.kind == EdgeKind::Prerequisite).map(|e| e.from).collect();
+    let ups: Vec<usize> = graph
+        .into_node(at)
+        .filter(|e| e.kind == EdgeKind::Prerequisite)
+        .map(|e| e.from)
+        .collect();
     let downs: Vec<usize> = graph.out_of(at).map(|e| e.to).collect();
     let ignored: Vec<(usize, Vec<String>)> = graph
         .into_node(at)
@@ -998,7 +1222,10 @@ fn facts(graph: &Rc<Graph>, at: usize, settings: &Settings, state: IssuesState) 
         })
         .collect();
     let waits = graph.open_prerequisites(at);
-    let waiting = matches!(node.state, NodeState::Queue(QueueState::Blocked | QueueState::Held));
+    let waiting = matches!(
+        node.state,
+        NodeState::Queue(QueueState::Blocked | QueueState::Held)
+    );
     let mut parts: Vec<AnyElement> = Vec::new();
     // The round.
     if let Some(panel) = &node.panel {
@@ -1011,10 +1238,38 @@ fn facts(graph: &Rc<Graph>, at: usize, settings: &Settings, state: IssuesState) 
                         .items_center()
                         .gap(len(Space2))
                         .child(votes_bar(panel.votes.len(), total))
-                        .child(text(Msg::RoundSummary { round: panel.round, version: panel.version, voted: panel.votes.len(), seats: total }.to_string()).ty(Type::Body)),
+                        .child(
+                            text(
+                                Msg::RoundSummary {
+                                    round: panel.round,
+                                    version: panel.version,
+                                    voted: panel.votes.len(),
+                                    seats: total,
+                                }
+                                .to_string(),
+                            )
+                            .ty(Type::Body),
+                        ),
                 )
                 .child(kv(Msg::Voted, text(Msg::Names(panel.votes.clone()).to_string()).ty(Type::Body)))
                 .child(kv(Msg::Pending, text(Msg::Names(panel.pending.clone()).to_string()).ty(Type::Body)))
+                .into_element(),
+        );
+    }
+    // The votes on the latest version, seat by row (#4).
+    {
+        let (comments, issue) = (opens.comments, node.issue.clone());
+        parts.push(
+            view()
+                .child(dynamic(move || {
+                    let read = agenda::comments_for(comments, &issue);
+                    untracked(move || {
+                        match read.as_deref().and_then(|read| agenda::mini_matrix(read)) {
+                            Some(matrix) => section(Msg::Votes).child(matrix).into_element(),
+                            None => nothing(),
+                        }
+                    })
+                }))
                 .into_element(),
         );
     }
@@ -1027,7 +1282,11 @@ fn facts(graph: &Rc<Graph>, at: usize, settings: &Settings, state: IssuesState) 
                 .iter()
                 .map(|&w| {
                     let n = &graph.nodes[w];
-                    Msg::WaitsOn(agenda(n), status::node(&n.state, &settings.fields).word.to_string()).to_string()
+                    Msg::WaitsOn(
+                        agenda(n),
+                        status::node(&n.state, &settings.fields).word.to_string(),
+                    )
+                    .to_string()
                 })
                 .collect::<Vec<_>>()
                 .join(" ")
@@ -1053,10 +1312,17 @@ fn facts(graph: &Rc<Graph>, at: usize, settings: &Settings, state: IssuesState) 
         if nodes.is_empty() {
             vec![small(SharedString::from(Msg::None)).into_element()]
         } else {
-            nodes.iter().map(|&i| issue_line(graph, i, settings, state, None).into_element()).collect()
+            nodes
+                .iter()
+                .map(|&i| issue_line(graph, i, settings, state, None).into_element())
+                .collect()
         }
     };
-    parts.push(section(Msg::Prerequisites).children(list(&ups)).into_element());
+    parts.push(
+        section(Msg::Prerequisites)
+            .children(list(&ups))
+            .into_element(),
+    );
     parts.push(section(Msg::Blocking).children(list(&downs)).into_element());
     if !ignored.is_empty() {
         parts.push(
@@ -1064,7 +1330,13 @@ fn facts(graph: &Rc<Graph>, at: usize, settings: &Settings, state: IssuesState) 
                 .children(ignored.iter().map(|(from, notes)| {
                     view()
                         .gap(len(Space1))
-                        .child(issue_line(graph, *from, settings, state, Some(Msg::NotCounted.to_string())))
+                        .child(issue_line(
+                            graph,
+                            *from,
+                            settings,
+                            state,
+                            Some(Msg::NotCounted.to_string()),
+                        ))
                         .children(notes.iter().map(|n| mono(n.clone()).selectable(true)))
                         .into_element()
                 }))
@@ -1074,7 +1346,11 @@ fn facts(graph: &Rc<Graph>, at: usize, settings: &Settings, state: IssuesState) 
     if !node.notes.is_empty() && ignored.iter().all(|(_, n)| n.is_empty()) {
         parts.push(
             section(Msg::CouncilNotes)
-                .children(node.notes.iter().map(|n| mono(n.clone()).selectable(true).into_element()))
+                .children(
+                    node.notes
+                        .iter()
+                        .map(|n| mono(n.clone()).selectable(true).into_element()),
+                )
                 .into_element(),
         );
     }
@@ -1091,13 +1367,24 @@ fn facts(graph: &Rc<Graph>, at: usize, settings: &Settings, state: IssuesState) 
                 .child(status::label(&st, Type::Body))
                 .child(small(agenda(node)))
                 .child(view().flex_1())
-                .child(icon_button(Icon::External, Msg::OpenOnGitHub, open_github.clone())),
+                .child(icon_button(
+                    Icon::External,
+                    Msg::OpenOnGitHub,
+                    open_github.clone(),
+                )),
         )
-        .child(if node.state.superseded() { title.line_through() } else { title })
+        .child(if node.state.superseded() {
+            title.line_through()
+        } else {
+            title
+        })
         .child(small(
             Msg::IssueMeta {
                 human: node.kind == NodeKind::Human,
-                proposer: node.proposer.as_ref().map(|p| proposer(p, &settings.fields)),
+                proposer: node
+                    .proposer
+                    .as_ref()
+                    .map(|p| proposer(p, &settings.fields)),
                 updated: updated.map(|at| time::ago(at, time::now_ms())),
             }
             .to_string(),
@@ -1108,13 +1395,23 @@ fn facts(graph: &Rc<Graph>, at: usize, settings: &Settings, state: IssuesState) 
                 .flex_row()
                 .gap(len(Space2))
                 .pt(len(Space3))
-                .child(action(Msg::OpenDetail, None, Look::Primary, || false, open_github.clone()))
-                .child(action(Msg::OpenOnGitHub, Some(Icon::External), Look::Plain, || false, open_github)),
+                .child(action(Msg::OpenDetail, None, Look::Primary, || false, {
+                    let (context, nav, issue) =
+                        (opens.context.clone(), opens.nav, node.issue.clone());
+                    move || context.open_detail(nav, issue.clone())
+                }))
+                .child(action(
+                    Msg::OpenOnGitHub,
+                    Some(Icon::External),
+                    Look::Plain,
+                    || false,
+                    open_github,
+                )),
         )
 }
 
 /// A proposer's name as the Project calls it.
-fn proposer(proposer: &crate::gh::project::Proposer, fields: &Fields) -> String {
+pub(super) fn proposer(proposer: &crate::gh::project::Proposer, fields: &Fields) -> String {
     use crate::gh::project::Proposer;
     let options = &fields.proposer.options;
     match proposer {

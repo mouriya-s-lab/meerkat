@@ -9,6 +9,11 @@ pub fn now_ms() -> f64 {
     nsh_core::time::unix_ms()
 }
 
+/// The instant `ms` milliseconds after the Unix epoch.
+pub fn instant(ms: f64) -> Timestamp {
+    Timestamp::from_millisecond(ms as i64).unwrap_or(Timestamp::UNIX_EPOCH)
+}
+
 /// An RFC 3339 timestamp (`2026-11-06T22:05:21.335Z`).
 pub fn parse(text: &str) -> Option<Timestamp> {
     text.parse().ok()
@@ -22,7 +27,11 @@ pub fn parse_ms(text: &str) -> Option<f64> {
 /// `HH:MM:SS` of a time in Unix milliseconds.
 pub fn clock(ms: f64) -> String {
     Timestamp::from_millisecond(ms as i64)
-        .map(|at| at.to_zoned(TimeZone::system()).strftime("%H:%M:%S").to_string())
+        .map(|at| {
+            at.to_zoned(TimeZone::system())
+                .strftime("%H:%M:%S")
+                .to_string()
+        })
         .unwrap_or_default()
 }
 
@@ -63,7 +72,11 @@ pub fn ago(at: f64, now: f64) -> Ago {
 /// `HH:MM` of a time in Unix milliseconds.
 pub fn hm(ms: f64) -> String {
     Timestamp::from_millisecond(ms as i64)
-        .map(|at| at.to_zoned(TimeZone::system()).strftime("%H:%M").to_string())
+        .map(|at| {
+            at.to_zoned(TimeZone::system())
+                .strftime("%H:%M")
+                .to_string()
+        })
         .unwrap_or_default()
 }
 
