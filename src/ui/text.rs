@@ -453,7 +453,7 @@ impl Msg {
             Msg::PageConfig => say(f, "配置", "Config"),
             Msg::GroupCouncil => say(f, "议会", "Council"),
             Msg::GroupRun => say(f, "运行", "Operations"),
-            Msg::SearchHint => say(f, "搜索议题、会话、命令", "Search issues, sessions, commands"),
+            Msg::SearchHint => say(f, "搜索", "Search"),
             Msg::KeyPalette => say(f, "⌘K", "⌘K"),
             Msg::Checking => say(f, "检查中…", "Checking…"),
             Msg::Program(p) => f.write_str(program(*p, lang)),

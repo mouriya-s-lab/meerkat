@@ -248,8 +248,12 @@ fn summary(sources: Sources, context: Rc<Context>) -> View {
                         .child(text(value).ty(Type::Num).text_color(role.map_or(color(Foreground), Role::text)))
                         .child(small(SharedString::from(label)))
                 };
+                // Figures that do not fit the row go on to the next line.
                 view()
                     .flex_row()
+                    .flex_wrap()
+                    .flex_1()
+                    .min_w(Points::ZERO)
                     .gap(len(Space8))
                     .child(figure(Msg::Fraction(ready, bases.len()).to_string(), Msg::Base(BaseState::Ready), None))
                     .child(figure(stale.to_string(), Msg::Stale, (stale > 0).then_some(Role::Warn)))

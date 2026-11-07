@@ -17,6 +17,7 @@ use super::{
     },
     shell::{Context, Nav, Split, graph_of, side, split},
     status::{self, Glyph, Role},
+    lang::Lang,
     text::Msg,
     tokens::{DIM, Type, Typeset, color, len, mark},
 };
@@ -180,21 +181,23 @@ pub fn human_tag(node: &Node) -> Option<View> {
 }
 
 /// The list's progress cell: the panel's votes, the implementation's
-/// share, a failure's first note; else nothing.
+/// share, a failure's first note; else nothing. The words keep their
+/// width; a narrow cell narrows the bar.
 pub fn progress(graph: &Graph, at: usize) -> AnyElement {
     let node = &graph.nodes[at];
     let line = view().flex_row().items_center().gap(len(Space2)).min_w(Points::ZERO);
+    let bar = || view().flex_shrink(1.0).min_w(Points::ZERO).overflow_hidden();
     match (&node.state, &node.panel) {
         (NodeState::Queue(QueueState::Deliberating), Some(panel)) => {
             let total = panel.votes.len() + panel.pending.len();
-            line.child(view().flex_shrink_0().child(votes_bar(panel.votes.len(), total)))
-                .child(small(Msg::RoundVoted { round: panel.round, voted: panel.votes.len(), seats: total }.to_string()).text_color(color(Ink2)).flex_shrink(1.0).number_of_lines(1))
+            line.child(bar().child(votes_bar(panel.votes.len(), total)))
+                .child(small(Msg::RoundVoted { round: panel.round, voted: panel.votes.len(), seats: total }.to_string()).text_color(color(Ink2)).flex_shrink_0())
                 .into_element()
         }
         _ if node.sub_issues.total > 0 => {
             let sub = node.sub_issues;
-            line.child(view().w(len(Space8) + len(Space4)).flex_shrink_0().child(meter(sub.completed as f32 / sub.total as f32, Role::Ok.ink())))
-                .child(small(Msg::Implemented(sub.completed, sub.total).to_string()).text_color(color(Ink2)).flex_shrink(1.0).number_of_lines(1))
+            line.child(bar().w(len(Space8) + len(Space4)).child(meter(sub.completed as f32 / sub.total as f32, Role::Ok.ink())))
+                .child(small(Msg::Implemented(sub.completed, sub.total).to_string()).text_color(color(Ink2)).flex_shrink_0())
                 .into_element()
         }
         (NodeState::Queue(QueueState::Failed | QueueState::Interrupted), _) => match node.notes.first() {
@@ -384,9 +387,16 @@ fn visible_rows(graph: &Graph, state: IssuesState) -> Vec<usize> {
 }
 
 /// The list's column widths: glyph, agenda, (title), progress, deps,
-/// updated.
-fn widths() -> [Points; 5] {
-    [len(Space4), len(Space8) + len(Space4), len(Space8) * 4.0, len(Space8) * 2.0, len(Space8) * 2.0]
+/// updated. The progress column fits 「第 N 轮 · 已投 a/b」 with two-digit
+/// counts beside a panel's usual seat bar (more seats narrow the bar, not
+/// the words); the dependency column fits its head. Both are wider in
+/// English, whose words run longer.
+pub fn widths() -> [Points; 5] {
+    let (progress, deps) = match Lang::current() {
+        Lang::Zh => (len(Space8) * 5.0 + len(Space4), len(Space8) * 2.0),
+        Lang::En => (len(Space8) * 6.0, len(Space8) * 3.0),
+    };
+    [len(Space4), len(Space8) + len(Space4), progress, deps, len(Space8) * 2.0]
 }
 
 /// A group's glyph in its header.

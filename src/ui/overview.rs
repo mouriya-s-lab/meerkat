@@ -263,11 +263,14 @@ fn need_row(need: Need, sources: Sources, context: Rc<Context>, nav: Nav) -> Any
                 .overflow_hidden()
                 .gap(len(Space1) / 2.0)
                 .child(
+                    // A title longer than the row wraps rather than being cut.
                     view()
                         .flex_row()
+                        .flex_wrap()
                         .items_center()
                         .gap(len(Space2))
-                        .child(text(line.title.clone()).ty(Type::BodyStrong).number_of_lines(1))
+                        .min_w(Points::ZERO)
+                        .child(text(line.title.clone()).ty(Type::BodyStrong).flex_shrink(1.0).min_w(Points::ZERO))
                         .children(line.count.map(|n| badge(n, Role::Fail))),
                 )
                 .child(
@@ -289,7 +292,7 @@ fn need_row(need: Need, sources: Sources, context: Rc<Context>, nav: Nav) -> Any
             line.at
                 .map(|at| SharedString::from(Msg::Ago(time::ago(at, now.get()))))
                 .unwrap_or_default()
-        }).w(len(Space8) + len(Space6)).text_right())
+        }).min_w(len(Space8) + len(Space6)).flex_shrink_0().text_right())
         .child(action);
     view()
         .border_b_1()
@@ -586,6 +589,9 @@ fn queue_section(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
                         if open.is_empty() {
                             return super::parts::empty(Msg::QueueEmpty).into_element();
                         }
+                        // The list's progress width; the queue has no
+                        // column heads, so its dependency cells keep theirs.
+                        let progress_w = issues::widths()[2];
                         view()
                             .children(open.into_iter().map(|i| {
                                 let node = graph.nodes[i].clone();
@@ -612,7 +618,7 @@ fn queue_section(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
                                         .child(text(node.title.clone()).ty(Type::Body).flex_shrink(1.0).number_of_lines(1))
                                         .children(issues::human_tag(&node)),
                                 )
-                                .child(view().w(len(Space8) * 4.0).flex_shrink_0().overflow_hidden().child(progress(&graph, i)))
+                                .child(view().w(progress_w).flex_shrink_0().overflow_hidden().child(progress(&graph, i)))
                                 .child(view().w(len(Space8) * 2.0).flex_shrink_0().overflow_hidden().child(deps(&graph, i)))
                                 .child(small(move || {
                                     updated
@@ -646,7 +652,8 @@ fn programs_panel(sources: Sources, context: Rc<Context>) -> View {
 }
 
 /// A program: its state, how long it runs, its work, its short version
-/// (the full one is its tooltip).
+/// (the full one is its tooltip). The words keep their width; a narrow
+/// panel cuts the version.
 fn program_row(sources: Sources, program: ProgramSources, context: Rc<Context>) -> View {
     let now = context.now;
     view()
@@ -678,10 +685,12 @@ fn program_row(sources: Sources, program: ProgramSources, context: Rc<Context>) 
                 up,
                 work: Box::new(work),
             })
-        }).flex_1().min_w(Points::ZERO).number_of_lines(1))
+        }).flex_shrink_0())
         .child(dynamic(move || {
             match program.health.with(|l| l.map(|l| (l.data.short_version().to_owned(), l.data.version.clone()))) {
-                Some((short, full)) => small(short).truncate().tooltip(hint(full)).into_element(),
+                Some((short, full)) => {
+                    small(short).flex_1().min_w(Points::ZERO).text_right().truncate().tooltip(hint(full)).into_element()
+                }
                 None => nothing(),
             }
         }))
