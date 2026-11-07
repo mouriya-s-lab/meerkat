@@ -1,12 +1,14 @@
 //! The four credential scenarios of #23, run against the real app on the
 //! headless engine (see `tests/support/`): `gh` is a script the test writes
 //! into a temporary directory and puts on `PATH`, and the council, guardians
-//! and GitHub answers are the recorded ones.
+//! and GitHub answers are the recorded ones. The app speaks Chinese
+//! (`OMOMP_LANG=zh`): `gh_missing` reads the credential's reason, which
+//! Quorum writes in Chinese.
 //!
-//! Each test rewrites this process's `PATH` and `GH_TOKEN`, which no two tests
-//! may do at once: they take [`serial`]'s lock, so `cargo test`'s parallel
-//! threads still run them one at a time (the issue's commands add
-//! `--test-threads=1`).
+//! Each test rewrites this process's `PATH`, `GH_TOKEN` and `OMOMP_LANG`,
+//! which no two tests may do at once: they take [`serial`]'s lock, so
+//! `cargo test`'s parallel threads still run them one at a time (the issue's
+//! commands add `--test-threads=1`).
 
 mod support;
 
@@ -14,8 +16,11 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
 
 use nsh_testing::{StubHandler, StubRoute};
-use quorum::Msg;
+use quorum::{Lang, Msg};
 use support::{Fixture, GITHUB, Sandbox};
+
+/// The language the credential tests run Quorum in.
+const LANG: Lang = Lang::Zh;
 
 /// How long the window may take to show what a recorded answer holds.
 const SHOWN: Duration = Duration::from_secs(5);
@@ -43,9 +48,9 @@ fn project_url() -> String {
 /// queue's and the bases' panels with their recorded rows.
 fn programs_and_bases() -> Vec<String> {
     let mut texts = vec![
-        Msg::CouncilQueue.to_string(),
-        Msg::Bases.to_string(),
-        support::bases_note().to_string(),
+        Msg::CouncilQueue.in_lang(LANG).to_string(),
+        Msg::Bases.in_lang(LANG).to_string(),
+        support::bases_note().in_lang(LANG).to_string(),
     ];
     texts.extend(support::base_repos());
     texts.extend(support::health_versions());
@@ -61,11 +66,11 @@ fn gh_hangs() -> Result<(), String> {
     support::path_with(sandbox.dir());
     support::clear_github_token();
 
-    let mut quorum = Fixture::start();
+    let mut quorum = Fixture::start(LANG);
     quorum.wait_for_all(&programs_and_bases(), SHOWN)?;
     // The GitHub panels say the credential is being fetched, while the
     // recorded council and guardians data above stays on screen.
-    quorum.wait_for(&Msg::FetchingCredential.to_string(), SHOWN)?;
+    quorum.wait_for(&quorum.say(&Msg::FetchingCredential), SHOWN)?;
     Ok(())
 }
 
@@ -91,8 +96,10 @@ fn gh_answers() -> Result<(), String> {
             support::answer(401, r#"{"message":"Bad credentials"}"#)
         });
     });
-    let mut quorum =
-        Fixture::start_with(vec![(format!("POST {}", project_url()), StubRoute::Handler(github))]);
+    let mut quorum = Fixture::start_with(
+        LANG,
+        vec![(format!("POST {}", project_url()), StubRoute::Handler(github))],
+    );
 
     quorum.open(Msg::PageIssues)?;
     quorum.wait_for_any(&support::project_titles(), SHOWN)?;
@@ -113,7 +120,7 @@ fn gh_missing() -> Result<(), String> {
     support::path_without_gh(sandbox.dir());
     support::clear_github_token();
 
-    let mut quorum = Fixture::start();
+    let mut quorum = Fixture::start(LANG);
     // `Credential::Missing`'s reason, as the GitHub panels write it.
     quorum.wait_for_matching("无法执行 `gh auth token`", SHOWN)?;
     // The council and guardians are unaffected: their recorded data is on
@@ -139,7 +146,7 @@ fn gh_token_env() -> Result<(), String> {
     support::path_with(sandbox.dir());
     support::set_github_token("gho_q23_env_token");
 
-    let mut quorum = Fixture::start();
+    let mut quorum = Fixture::start(LANG);
     quorum.open(Msg::PageIssues)?;
     quorum.wait_for_any(&support::project_titles(), SHOWN)?;
     assert!(

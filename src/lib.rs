@@ -15,7 +15,7 @@ pub mod sources;
 pub mod time;
 mod ui;
 
-pub use ui::Msg;
+pub use ui::{Lang, Msg, QueueMotion};
 
 use nsh_base::theme;
 use nsh_core::prelude::*;
