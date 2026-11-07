@@ -210,6 +210,21 @@ fn columns(
     beside: bool,
 ) -> View {
     let state = context.agenda;
+    // Each refresh loads the Project and the council's sessions again, with
+    // a new load time: the columns read them through memos that compare
+    // what they hold, so a column is made again only when its data changed,
+    // not every `refreshSeconds` — a press on a view made again meanwhile
+    // would land on one no longer there.
+    let item = {
+        let issue = issue.clone();
+        computed(move || item_of(sources, &issue))
+    };
+    let council = computed(move || {
+        sources
+            .council
+            .sessions
+            .with(|loaded| loaded.map(|loaded| Rc::<[Session]>::from(loaded.data.as_slice())))
+    });
     let left = {
         let (context, issue) = (context.clone(), issue.clone());
         view()
@@ -220,8 +235,8 @@ fn columns(
                 let read = comments_for(comments, &issue);
                 let error = comments.error();
                 let graph = context.all_issues.get();
-                let item = item_of(sources, &issue);
-                let council = sources.council.sessions.get().map(|loaded| loaded.data);
+                let item = item.get();
+                let council = council.get();
                 let step = state.step.get();
                 let (context, issue) = (context.clone(), issue.clone());
                 untracked(move || {
@@ -248,7 +263,7 @@ fn columns(
         view().gap(len(Space4)).child(dynamic(move || {
             let read = comments_for(comments, &issue);
             let graph = context.all_issues.get();
-            let council = sources.council.sessions.get().map(|loaded| loaded.data);
+            let council = council.get();
             let (context, issue) = (context.clone(), issue.clone());
             untracked(move || {
                 right_column(

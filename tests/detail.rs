@@ -78,12 +78,13 @@ fn agenda_with_revision_and_ruling() -> Result<(), String> {
     assert_eq!(steps.len(), 3, "G25's track: draft v1, revision v1 → v2, draft v2");
     let mut saw = (false, false);
     for (title, shown) in &steps {
+        // A press's re-render may come after the press has settled: the
+        // step is chosen once the track, matrix and results show it.
         let step = format!("label:{}", quorum.say(title));
         quorum.press(&step)?;
+        quorum.wait_for_selected(&step, SHOWN)?;
         let version = versions.iter().find(|v| v.number == *shown).expect("the step's version");
         let cells = cells(version);
-        quorum.wait_for_view(&cells[0].selector(&quorum), SHOWN)?;
-        assert!(quorum.selected(&step)?, "{step} is not chosen after its press");
         for cell in &cells {
             let label = cell.label(&quorum);
             assert_eq!(quorum.count(&format!("label:{label}"))?, 1, "the matrix has no cell {label}");
@@ -145,7 +146,9 @@ fn agenda_with_revision_and_ruling() -> Result<(), String> {
         .iter()
         .find(|(title, _)| matches!(title, Msg::StepDraft { version: v, .. } if *v == version.number))
         .expect("the veto's version's step");
-    quorum.press(&format!("label:{}", quorum.say(&draft.0)))?;
+    let step = format!("label:{}", quorum.say(&draft.0));
+    quorum.press(&step)?;
+    quorum.wait_for_selected(&step, SHOWN)?;
     let cell = Cell {
         seat: vote.seat.clone(),
         row: row["row"].as_str().expect("a row").to_owned(),
@@ -187,7 +190,9 @@ fn agenda_with_revision_and_ruling() -> Result<(), String> {
         .iter()
         .find(|(title, _)| matches!(title, Msg::StepDraft { version: v, .. } if *v == version.number))
         .expect("the counterexample's version's step");
-    quorum.press(&format!("label:{}", quorum.say(&draft.0)))?;
+    let step = format!("label:{}", quorum.say(&draft.0));
+    quorum.press(&step)?;
+    quorum.wait_for_selected(&step, SHOWN)?;
     let cell = Cell {
         seat: vote.seat.clone(),
         row: row["row"].as_str().expect("a row").to_owned(),

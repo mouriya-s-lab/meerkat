@@ -230,6 +230,13 @@ impl Fixture {
         self.app.wait_for_within(selector, timeout)
     }
 
+    /// Waits for the one view `selector` names to be selected.
+    pub fn wait_for_selected(&mut self, selector: &str, timeout: Duration) -> Result<(), String> {
+        self.app.wait_until(&format!("`{selector}` selected"), timeout, |screen| {
+            screen.selected(selector) == Ok(true)
+        })
+    }
+
     /// Waits until `done` holds of the texts the window shows, in tree
     /// order; `what` names the wait in its error.
     pub fn wait_until(
