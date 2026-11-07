@@ -13,6 +13,8 @@ pub struct ProjectItem {
     pub issue: IssueRef,
     pub title: String,
     pub url: String,
+    /// When the issue last changed (GitHub's `updatedAt`, RFC 3339).
+    pub updated_at: String,
     pub state: IssueState,
     pub status: Option<Status>,
     pub kind: Option<Kind>,
@@ -92,6 +94,7 @@ query($owner: String!, $number: Int!, $after: String) {
                 number
                 title
                 url
+                updatedAt
                 state
                 repository { nameWithOwner }
                 parent { number repository { nameWithOwner } }
@@ -186,6 +189,7 @@ struct IssueNode {
     number: u64,
     title: String,
     url: String,
+    updated_at: String,
     state: String,
     repository: RepositoryNode,
     parent: Option<IssueRefNode>,
@@ -270,6 +274,7 @@ fn item(node: ItemNode, fields: &Fields) -> Option<ProjectItem> {
         },
         title: issue.title,
         url: issue.url,
+        updated_at: issue.updated_at,
         state: if issue.state == "OPEN" {
             IssueState::Open
         } else {

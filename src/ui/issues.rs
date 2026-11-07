@@ -1,49 +1,45 @@
-//! The 「议题」 page (C4 `issueDag`): the agenda issues as a graph of their
-//! "Blocked by" relations, or as a table grouped by state, under shared
-//! filters. The graph runs left to right in layers, with the issues that
-//! have no "Blocked by" either way in a grid under it; selecting a node
-//! highlights its prerequisites and what it blocks, dims the rest, and
-//! shows the issue in the inspector beside the graph. The table groups the
-//! issues by state, failures first; pressing a row opens the issue on
-//! GitHub. Columns and the filters' defaults come from `dashboard.yaml`'s
-//! `list` and `filters`, every visual value from the theme.
+//! 「议题」(C4 `issueDag`, #9 「议题列表」「依赖图的布局」): the agenda
+//! issues as a list grouped by what they wait for, or as a DAG of the
+//! prerequisites the council counts, under shared filters, beside an
+//! inspector of the selected issue. Every visual value comes from the
+//! theme.
 
 use std::{collections::HashSet, rc::Rc};
 
 use nsh_base::{ButtonElement, button};
-use nsh_core::{canvas::LineCap, element::TransformOrigin, prelude::*};
+use nsh_core::{element::TransformOrigin, prelude::*};
 
 use super::{
+    icons::Icon,
     parts::{
-        Look, Span, card, chip, group_row, head_row, meta, nothing, press, segmented,
-        source_trouble, tag, th, toggle,
+        Choice, Look, action, empty, head_row, icon_button, kv, mono, nothing, press,
+        row, search_field, segmented, small, source_bar, tag, th, token, votes_bar, meter,
     },
-    shell::{critical, plain, strong},
-    status::{self, Role},
-    tokens::{DIM, MARK, Type, Typeset, color, len},
+    shell::{Context, Nav, graph_of},
+    status::{self, Glyph, Role},
+    text::Msg,
+    tokens::{DIM, Type, Typeset, color, len, mark},
 };
 use crate::{
-    config::{
-        ColorToken::*, Fields, Filters, LengthToken::*, List, ListColumn, ListSort, RepoName,
-    },
-    dag::{self, Council, EdgeKind, Fallback, Graph, Node, NodeKind, NodeState, Place},
-    gh::{IssueRef, project::Proposer},
+    config::{ColorToken::*, Fields, Filters, LengthToken::*, RepoName},
+    dag::{self, Closed, EdgeKind, Graph, Group, Layout, Node, NodeKind, NodeState, LATEST_CLOSED},
+    gh::IssueRef,
     programs::QueueState,
     sources::Sources,
+    time,
 };
 
 /// What the page reads from the config.
 pub struct Settings {
-    pub list: List,
     pub pm: RepoName,
     pub fields: Fields,
 }
 
 /// Which view of the issues shows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Shown {
-    Graph,
+pub enum Shown {
     List,
+    Graph,
 }
 
 /// Where the graph shows in its viewport: a point (x, y) of the drawing
@@ -82,12 +78,16 @@ impl Camera {
     }
 }
 
+/// The zoom a button press multiplies or divides by.
+const ZOOM_STEP: f32 = 1.25;
+
 /// What the user set on the page; it outlives the page between visits.
 #[derive(Clone, Copy)]
 pub struct IssuesState {
-    filters: Signal<Filters>,
-    sort: Signal<Option<ListSort>>,
-    /// The issue last pressed.
+    closed: Signal<Closed>,
+    human_only: Signal<bool>,
+    group: Signal<Option<Group>>,
+    query: Signal<String>,
     selected: Signal<Option<IssueRef>>,
     shown: Signal<Shown>,
     /// Where the graph shows. The views are laid out where it puts them:
@@ -103,12 +103,14 @@ pub struct IssuesState {
 }
 
 impl IssuesState {
-    pub fn new(settings: &Settings, filters: Filters) -> Self {
+    pub fn new(filters: Filters) -> Self {
         Self {
-            filters: signal(filters),
-            sort: signal(Some(settings.list.default_sort)),
+            closed: signal(Closed::from_hide_decided(filters.hide_decided)),
+            human_only: signal(filters.human_only),
+            group: signal(None),
+            query: signal(String::new()),
             selected: signal(None),
-            shown: signal(Shown::Graph),
+            shown: signal(Shown::List),
             camera: signal(Camera {
                 x: 0.0,
                 y: 0.0,
@@ -121,6 +123,24 @@ impl IssuesState {
         }
     }
 
+    pub fn select(&self, issue: Option<IssueRef>) {
+        self.selected.set(issue);
+    }
+
+    pub fn show(&self, shown: Shown) {
+        self.shown.set(shown);
+    }
+
+    /// Whether the status and text filters keep `node` (tracked).
+    fn keeps(&self, node: &Node) -> bool {
+        let query = self.query.get().trim().trim_start_matches('#').to_lowercase();
+        self.group.get().is_none_or(|g| g == node.state.group())
+            && (query.is_empty()
+                || node.title.to_lowercase().contains(&query)
+                || node.agenda.as_deref().is_some_and(|a| a.to_lowercase().contains(&query))
+                || node.issue.number.to_string() == query)
+    }
+
     /// Puts the gesture's offset and zoom into the camera.
     fn settle(self) {
         spawn(async move {
@@ -130,7 +150,6 @@ impl IssuesState {
                 self.zoom.value().await,
             );
             batch(|| {
-                // The gesture scaled about the viewport's top left, then moved.
                 self.camera
                     .update(|camera| *camera = camera.zoomed(factor, (0.0, 0.0), dx, dy));
                 self.pan_x.set(0.0);
@@ -141,190 +160,361 @@ impl IssuesState {
     }
 }
 
-/// The graph of the filtered issues, once the Project and the queue (or
-/// its failure) are in.
-fn graph_of(sources: Sources, settings: &Settings, filters: Filters) -> Option<Rc<Graph>> {
-    let unreachable = sources.queue.with_error(|e| e.is_some());
-    sources.project.with(|project| {
-        let items = &project?.data;
-        sources.queue.with(|queue| {
-            let council = match (unreachable, queue) {
-                (true, _) => Council::Unreachable,
-                (false, Some(queue)) => Council::Queue(&queue.data),
-                // The queue's first answer is still on its way.
-                (false, None) => return None,
-            };
-            Some(Rc::new(dag::build(items, council, &settings.pm, filters)))
-        })
-    })
+/// The issue's agenda number, else `#n`.
+pub fn agenda_of(context: &Context, issue: &IssueRef) -> String {
+    context
+        .all_issues
+        .get_untracked()
+        .and_then(|g| g.nodes.iter().find(|n| n.issue == *issue).and_then(|n| n.agenda.clone()))
+        .unwrap_or_else(|| format!("#{}", issue.number))
 }
 
-/// The page's sentence: the queue's size and its live states, or that the
-/// council is unreachable; the selection.
-pub fn summary(sources: Sources, state: IssuesState) -> Vec<Span> {
-    let mut spans = if sources.queue.with_error(|e| e.is_some()) {
-        vec![
-            critical("议会不可达"),
-            plain("：状态退回 Project 的 Status。"),
-        ]
-    } else {
-        match sources.queue.get().map(|l| l.data) {
-            Some(queue) => {
-                let n = |s: QueueState| queue.iter().filter(|e| e.state == s).count();
-                let mut spans = vec![
-                    plain(format!("议会队列 {} 项：", queue.len())),
-                    strong(n(QueueState::Deliberating)),
-                    plain(" 在审、"),
-                    strong(n(QueueState::Ready)),
-                    plain(" 可召集、"),
-                ];
-                let failed = n(QueueState::Failed);
-                spans.push(if failed > 0 {
-                    critical(format!("{failed} 失败"))
-                } else {
-                    plain("0 失败")
-                });
-                spans.push(plain("。"));
-                spans
-            }
-            None => vec![plain("正在读取议会队列…")],
+fn agenda(node: &Node) -> String {
+    node.agenda.clone().unwrap_or_else(|| format!("#{}", node.issue.number))
+}
+
+/// 「人类」 on a human issue only.
+pub fn human_tag(node: &Node) -> Option<View> {
+    (node.kind == NodeKind::Human).then(|| tag(Msg::Human, Role::Human))
+}
+
+/// The list's progress cell: the panel's votes, the implementation's
+/// share, a failure's first note; else nothing.
+pub fn progress(graph: &Graph, at: usize) -> AnyElement {
+    let node = &graph.nodes[at];
+    let line = view().flex_row().items_center().gap(len(Space2)).min_w(Points::ZERO);
+    match (&node.state, &node.panel) {
+        (NodeState::Queue(QueueState::Deliberating), Some(panel)) => {
+            let total = panel.votes.len() + panel.pending.len();
+            line.child(votes_bar(panel.votes.len(), total))
+                .child(small(Msg::RoundVoted { round: panel.round, voted: panel.votes.len(), seats: total }.to_string()).text_color(color(Ink2)))
+                .into_element()
         }
-    };
-    if let Some(issue) = state.selected.get() {
-        spans.push(plain(format!(
-            "选中 #{}，高亮它的前置与阻塞。",
-            issue.number
-        )));
+        _ if node.sub_issues.total > 0 => {
+            let sub = node.sub_issues;
+            line.child(view().w(len(Space8) + len(Space4)).child(meter(sub.completed as f32 / sub.total as f32, Role::Ok.ink())))
+                .child(small(Msg::Implemented(sub.completed, sub.total).to_string()).text_color(color(Ink2)))
+                .into_element()
+        }
+        (NodeState::Queue(QueueState::Failed | QueueState::Interrupted), _) => match node.notes.first() {
+            Some(note) => small(crate::attention::first_line(note).to_owned())
+                .text_color(color(Ink2))
+                .number_of_lines(1)
+                .into_element(),
+            None => nothing(),
+        },
+        _ => nothing(),
     }
-    spans
 }
 
-/// The page's content.
-pub fn issues(sources: Sources, settings: Rc<Settings>, state: IssuesState) -> View {
-    let graph: Memo<Option<Rc<Graph>>> = {
-        let settings = settings.clone();
-        computed(move || graph_of(sources, &settings, state.filters.get()))
+/// The list's dependency cell: what it waits for (`← D34`), else what it
+/// blocks (`→ D35`).
+pub fn deps(graph: &Graph, at: usize) -> AnyElement {
+    let names = |nodes: Vec<usize>| nodes.into_iter().map(|i| agenda(&graph.nodes[i])).collect::<Vec<_>>().join(" ");
+    let waits = graph.open_prerequisites(at);
+    if !waits.is_empty() {
+        return small(Msg::WaitsFor(names(waits)).to_string()).text_color(color(Ink2)).number_of_lines(1).into_element();
+    }
+    let blocks: Vec<usize> = graph.out_of(at).map(|e| e.to).filter(|&to| !graph.nodes[to].state.closed()).collect();
+    if !blocks.is_empty() {
+        return small(Msg::Blocks(names(blocks)).to_string()).number_of_lines(1).into_element();
+    }
+    nothing()
+}
+
+/// A node's line under its title in the DAG.
+fn node_detail(graph: &Graph, at: usize, fields: &Fields) -> String {
+    let node = &graph.nodes[at];
+    let waits = graph.open_prerequisites(at);
+    match (&node.state, &node.panel) {
+        (NodeState::Queue(QueueState::Deliberating), Some(panel)) => Msg::RoundVoted {
+            round: panel.round,
+            voted: panel.votes.len(),
+            seats: panel.votes.len() + panel.pending.len(),
+        }
+        .to_string(),
+        _ if !waits.is_empty() => Msg::WaitsDecided(agenda(&graph.nodes[waits[0]])).to_string(),
+        (NodeState::Queue(QueueState::Failed | QueueState::Interrupted), _) if !node.notes.is_empty() => {
+            crate::attention::first_line(&node.notes[0]).to_owned()
+        }
+        _ if node.sub_issues.total > 0 => Msg::Implemented(node.sub_issues.completed, node.sub_issues.total).to_string(),
+        _ => status::node(&node.state, fields).word.to_string(),
+    }
+}
+
+/// The page.
+pub fn page(sources: Sources, context: Rc<Context>, _nav: Nav) -> impl IntoElement {
+    let state = context.issues;
+    let pm = context.issues_settings.pm.clone();
+    let graph = computed(move || graph_of(sources, &pm, state.human_only.get()));
+    // J / K move the selection through the list's rows.
+    let step = move |by: isize| {
+        let Some(graph) = graph.get_untracked() else {
+            return;
+        };
+        let order = untracked(|| visible_rows(&graph, state));
+        if order.is_empty() {
+            return;
+        }
+        let at = state
+            .selected
+            .with_untracked(|s| s.as_ref().and_then(|s| order.iter().position(|&i| graph.nodes[i].issue == *s)));
+        let next = match at {
+            Some(at) => (at as isize + by).clamp(0, order.len() as isize - 1) as usize,
+            None => 0,
+        };
+        state.selected.set(Some(graph.nodes[order[next]].issue.clone()));
     };
+    on_key("j", move |_| step(1));
+    on_key("k", move |_| step(-1));
+    let settings = context.issues_settings.clone();
     view()
         .flex_1()
         .min_h(Points::ZERO)
-        .gap(len(Space4))
-        .px(len(Space6))
-        .pt(len(Space5))
-        .pb(len(Space5))
-        .child(toolbar(graph, state))
-        .child(source_trouble("Project", sources.project))
-        .child(source_trouble("议会队列", sources.queue))
-        .child(dynamic(move || {
-            if sources.queue.with_error(|e| e.is_some()) {
-                status::label(&status::program(false), Type::Dense)
-                    .child(meta(
-                        "议会不可达：节点按 Project 的 Status 显示，状态以 Project 为准",
-                    ))
-                    .into_element()
-            } else {
-                nothing()
-            }
-        }))
-        .child(dynamic(move || {
-            let settings = settings.clone();
-            match state.shown.get() {
-                Shown::Graph => scroll()
-                    .flex_1()
-                    .child(graph_view(graph, settings, state))
-                    .into_element(),
-                Shown::List => scroll()
-                    .flex_1()
-                    .child(list_view(graph, settings, state))
-                    .into_element(),
-            }
-        }))
+        .child(filter_bar(graph, state))
+        .child(source_bar(sources.project, 0))
+        .child(
+            view()
+                .flex_1()
+                .min_h(Points::ZERO)
+                .flex_row()
+                .child(dynamic({
+                    let settings = settings.clone();
+                    move || match state.shown.get() {
+                        Shown::List => scroll()
+                            .flex_1()
+                            .child(list_view(graph, settings.clone(), state))
+                            .into_element(),
+                        Shown::Graph => canvas_panel(graph, settings.clone(), state).into_element(),
+                    }
+                }))
+                .child(inspector(graph, settings, state)),
+        )
 }
 
-// ---------------------------------------------------------------------------
-// Toolbar
-
-fn toolbar(graph: Memo<Option<Rc<Graph>>>, state: IssuesState) -> View {
-    let filters = state.filters;
-    let set =
-        move |change: fn(&mut Filters, bool)| move |on: bool| filters.update(|f| change(f, on));
-    let choice = |label: &'static str, want: Shown| {
-        (
-            SharedString::from(label),
-            Box::new(move || state.shown.get() == want) as Box<dyn Fn() -> bool>,
-            Box::new(move || state.shown.set(want)) as Box<dyn Fn()>,
-        )
+fn filter_bar(graph: Memo<Option<Rc<Graph>>>, state: IssuesState) -> View {
+    let view_choice = |label: Msg, lead: Icon, want: Shown| {
+        Choice::new(label, move || state.shown.get() == want, move || state.shown.set(want)).lead(lead)
     };
     view()
         .flex_row()
-        .flex_wrap()
+        .flex_shrink_0()
         .items_center()
         .gap(len(Space2))
+        .h(len(Toolbar))
+        .px(len(Space6))
+        .border_b_1()
+        .border_b_color(color(Border))
         .child(segmented(vec![
-            choice("图", Shown::Graph),
-            choice("列表", Shown::List),
+            view_choice(Msg::ViewList, Icon::List, Shown::List),
+            view_choice(Msg::ViewGraph, Icon::Graph, Shown::Graph),
         ]))
-        .child(toggle(
-            "隐藏已定案",
-            move || filters.get().hide_decided,
-            set(|f, on| f.hide_decided = on),
+        .child(token(
+            Msg::FilterState,
+            move || SharedString::from(state.group.get().map_or(Msg::All, Msg::GroupName)),
+            move || {
+                state.group.update(|g| {
+                    *g = match g {
+                        None => Some(Group::ALL[0]),
+                        Some(g) => Group::ALL.iter().position(|x| x == g).and_then(|i| Group::ALL.get(i + 1)).copied(),
+                    }
+                })
+            },
         ))
-        .child(toggle(
-            "隐藏已取代",
-            move || filters.get().hide_superseded,
-            set(|f, on| f.hide_superseded = on),
+        .child(token(
+            Msg::FilterClosed,
+            move || SharedString::from(Msg::ClosedMode(state.closed.get())),
+            move || state.closed.update(|c| *c = c.next()),
         ))
-        .child(toggle(
-            "只看人类议题及其后继",
-            move || filters.get().human_only,
-            set(|f, on| f.human_only = on),
+        .child(token(
+            Msg::FilterHuman,
+            move || SharedString::from(Msg::OnOff(state.human_only.get())),
+            move || state.human_only.update(|h| *h = !*h),
         ))
         .child(view().flex_1())
-        .child(meta(move || {
+        .child(small(move || {
             graph
                 .get()
                 .map(|g| {
-                    let order = match state.shown.get() {
-                        Shown::Graph => "",
-                        Shown::List => " · 先失败，后已定案",
-                    };
-                    format!(
-                        "{} 个议题 · 显示 {}{order}",
-                        g.nodes.len() + g.hidden,
-                        g.nodes.len()
-                    )
+                    SharedString::from(Msg::OpenOfTotal {
+                        open: g.nodes.iter().filter(|n| !n.state.closed()).count(),
+                        total: g.nodes.len(),
+                    })
                 })
-                .map(SharedString::from)
                 .unwrap_or_default()
         }))
+        .child(search_field(state.query, Msg::IssuesFilterHint).w(len(InspectorWidth) * 0.75))
 }
 
 // ---------------------------------------------------------------------------
-// Graph
+// The list
 
-/// The zoom a button press multiplies or divides by.
-const ZOOM_STEP: f32 = 1.25;
+/// The rows as the list shows them, in its order (tracked).
+fn visible_rows(graph: &Graph, state: IssuesState) -> Vec<usize> {
+    let keep = |n: &Node| state.keeps(n);
+    let mut order = Vec::new();
+    for group in Group::ALL {
+        let rows = dag::rows(graph, group, &keep);
+        match (group, state.closed.get()) {
+            (Group::Closed, Closed::Hide) => {}
+            (Group::Closed, Closed::Fold) => order.extend(rows.into_iter().take(LATEST_CLOSED)),
+            _ => order.extend(rows),
+        }
+    }
+    order
+}
+
+/// The list's column widths: glyph, agenda, (title), progress, deps,
+/// updated.
+fn widths() -> [Points; 5] {
+    [len(Space4), len(Space8) + len(Space4), len(InspectorWidth) * 0.75, len(Space8) * 2.5, len(Space8) * 2.0]
+}
+
+/// A group's glyph in its header.
+fn group_glyph(group: Group) -> (Glyph, Role) {
+    match group {
+        Group::Attention => (Glyph::Cross, Role::Fail),
+        Group::Deliberating => (Glyph::Half, Role::Run),
+        Group::Ready => (Glyph::Ring, Role::Neutral),
+        Group::Waiting => (Glyph::Dashed, Role::Wait),
+        Group::Closed => (Glyph::Check, Role::Done),
+    }
+}
+
+fn list_view(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: IssuesState) -> View {
+    let [glyph, agenda_w, progress_w, deps_w, updated_w] = widths();
+    view()
+        .child(head_row(vec![
+            view().w(glyph).into_element(),
+            th(Msg::Agenda).w(agenda_w).into_element(),
+            th(Msg::Title).flex_1().into_element(),
+            th(Msg::Progress).w(progress_w).into_element(),
+            th(Msg::Deps).w(deps_w).into_element(),
+            th(Msg::UpdatedColumn).w(updated_w).text_right().into_element(),
+        ]))
+        .child(dynamic(move || {
+            let Some(graph) = graph.get() else {
+                return super::parts::skeleton(8).into_element();
+            };
+            let closed = state.closed.get();
+            let groups: Vec<(Group, Vec<usize>)> = Group::ALL
+                .into_iter()
+                .map(|g| (g, dag::rows(&graph, g, &|n| state.keeps(n))))
+                .collect();
+            let settings = settings.clone();
+            untracked(move || {
+                if groups.iter().all(|(_, rows)| rows.is_empty()) {
+                    return empty(Msg::NoIssues).into_element();
+                }
+                let mut children: Vec<AnyElement> = Vec::new();
+                for (group, rows) in groups {
+                    if rows.is_empty() || (group == Group::Closed && closed == Closed::Hide) {
+                        continue;
+                    }
+                    let (g, role) = group_glyph(group);
+                    children.push(
+                        super::parts::group_header(status::glyph(g, role).into_element(), SharedString::from(Msg::GroupName(group)), rows.len())
+                            .into_element(),
+                    );
+                    let folded = group == Group::Closed && closed == Closed::Fold;
+                    let shown = if folded { &rows[..rows.len().min(LATEST_CLOSED)] } else { &rows[..] };
+                    for &i in shown {
+                        children.push(list_row(&graph, i, &settings, state).into_element());
+                    }
+                    if folded && rows.len() > LATEST_CLOSED {
+                        let rest = &rows[LATEST_CLOSED..];
+                        let superseded = rest.iter().filter(|&&i| graph.nodes[i].state.superseded()).count();
+                        children.push(
+                            view()
+                                .flex_row()
+                                .items_center()
+                                .gap(len(Space2))
+                                .h(len(Row))
+                                .pl(len(Space8) + len(Space4))
+                                .border_b_1()
+                                .border_b_color(color(Border))
+                                .child(small(Msg::MoreClosed { decided: rest.len() - superseded, superseded }.to_string()))
+                                .child(press(Msg::Expand, Look::Link, move || state.closed.set(Closed::Show)))
+                                .into_element(),
+                        );
+                    }
+                }
+                view().children(children).into_element()
+            })
+        }))
+}
+
+fn list_row(graph: &Rc<Graph>, i: usize, settings: &Settings, state: IssuesState) -> ButtonElement {
+    let [glyph, agenda_w, progress_w, deps_w, updated_w] = widths();
+    let node = &graph.nodes[i];
+    let st = status::node(&node.state, &settings.fields);
+    let issue = node.issue.clone();
+    let selected = {
+        let issue = issue.clone();
+        move || state.selected.with(|s| s.as_ref() == Some(&issue))
+    };
+    let closed = node.state.closed();
+    let updated = time::parse_ms(&node.updated_at);
+    let title = text(node.title.clone())
+        .ty(Type::Body)
+        .text_color(if closed { color(Ink3) } else { color(Foreground) })
+        .number_of_lines(1);
+    let title = if node.state.superseded() { title.line_through() } else { title };
+    row(selected, node.title.clone(), move || state.selected.set(Some(issue.clone())))
+        .child(view().w(glyph).child(status::glyph(st.glyph, st.role)))
+        .child(small(agenda(node)).w(agenda_w))
+        .child(
+            view()
+                .flex_row()
+                .items_center()
+                .gap(len(Space2))
+                .flex_1()
+                .min_w(Points::ZERO)
+                .child(title)
+                .children(human_tag(node)),
+        )
+        .child(view().w(progress_w).child(progress(graph, i)))
+        .child(view().w(deps_w).child(deps(graph, i)))
+        .child(
+            small(move || updated.map(|at| SharedString::from(Msg::Span(time::ago(at, time::now_ms())))).unwrap_or_default())
+                .w(updated_w).text_right(),
+        )
+}
+
+// ---------------------------------------------------------------------------
+// The DAG
 
 /// The drawing's lengths from the theme.
 fn sizes() -> dag::Sizes {
     dag::Sizes {
         node_width: len(DagNodeWidth).0,
         node_height: len(DagNodeHeight).0,
-        layer_gap: len(DagLayerGap).0,
+        column_gap: len(DagColumnGap).0,
         node_gap: len(DagNodeGap).0,
-        label: Type::Meta.line() + len(Space2).0,
+        label: len(Space6).0,
     }
 }
 
-/// The issues next to `selected`: itself, its prerequisites and what it
-/// blocks (indices of the graph's nodes).
-fn neighbours(graph: &Graph, selected: Option<&IssueRef>) -> Option<HashSet<usize>> {
-    let at = graph
-        .nodes
-        .iter()
-        .position(|n| Some(&n.issue) == selected)?;
+/// The layout of the graph as the filters set it (tracked).
+fn layout_of(graph: &Graph, state: IssuesState) -> Layout {
+    dag::layout(graph, state.closed.get(), &|n| state.keeps(n))
+}
+
+/// The selection, else the first node of column 0 (tracked).
+fn selected_or_first(graph: &Graph, layout: &Layout, state: IssuesState) -> Option<usize> {
+    state
+        .selected
+        .get()
+        .and_then(|s| graph.nodes.iter().position(|n| n.issue == s))
+        .or_else(|| layout.columns.first().and_then(|c| c.first().copied()))
+}
+
+/// The issues next to `selected` by counted edges: itself, its
+/// prerequisites and what it blocks.
+fn neighbours(graph: &Graph, selected: Option<usize>) -> Option<HashSet<usize>> {
+    let at = selected?;
     let mut near: HashSet<usize> = HashSet::from([at]);
-    for edge in &graph.edges {
+    for edge in graph.edges.iter().filter(|e| e.kind == EdgeKind::Prerequisite) {
         if edge.from == at {
             near.insert(edge.to);
         }
@@ -335,87 +525,18 @@ fn neighbours(graph: &Graph, selected: Option<&IssueRef>) -> Option<HashSet<usiz
     Some(near)
 }
 
-fn graph_view(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: IssuesState) -> View {
-    view()
-        .gap(len(Space4))
-        .child(legend())
-        .child(
-            card()
-                .flex_row()
-                .child(
-                    canvas_panel(graph, settings.clone(), state)
-                        .flex_1()
-                        .min_w(Points::ZERO),
-                )
-                .child(inspector(graph, settings.clone(), state)),
-        )
-        .child(isolated(graph, settings, state))
-}
-
-/// The eight queue states, and the two kinds of edge.
-fn legend() -> View {
-    let line = |dashed: bool| {
-        canvas(move || {
-            let edge = color(Edge);
-            let ink = if dark() { edge.dark } else { edge.light };
-            let w = len(Space5).0;
-            let y = Type::Meta.line() / 2.0;
-            let dash = [px(len(Space1).0 * 1.25), px(len(Space1).0)];
-            Painter::new()
-                .stroke_color(ink)
-                .line_width(MARK * 0.75)
-                .line_dash(if dashed { &dash } else { &[] })
-                .begin_path()
-                .move_to(Points::ZERO, px(y))
-                .line_to(px(w), px(y))
-                .stroke()
-        })
-        .w(len(Space5))
-        .h(px(Type::Meta.line()))
-    };
-    view()
-        .flex_row()
-        .flex_wrap()
-        .items_center()
-        .gap(len(Space3))
-        .child(meta("图例"))
-        .children(status::QUEUE_STATES.map(|s| status::label(&status::queue(s), Type::Meta)))
-        .child(view().w(len(Space2)))
-        .child(
-            view()
-                .flex_row()
-                .items_center()
-                .gap(len(Space1))
-                .child(line(false))
-                .child(meta("前置（议会计入）")),
-        )
-        .child(
-            view()
-                .flex_row()
-                .items_center()
-                .gap(len(Space1))
-                .child(line(true))
-                .child(meta("前置（议会不计）")),
-        )
-}
-
-fn canvas_panel(
-    graph: Memo<Option<Rc<Graph>>>,
-    settings: Rc<Settings>,
-    state: IssuesState,
-) -> View {
+fn canvas_panel(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: IssuesState) -> View {
     let fit = move || {
         let Some(graph) = graph.get_untracked() else {
             return;
         };
-        let geometry = dag::geometry(&graph, sizes());
+        let layout = untracked(|| layout_of(&graph, state));
+        let geometry = dag::geometry(&graph, &layout, sizes());
         let (w, h) = state.viewport.get_untracked();
-        if w <= 0.0 || h <= 0.0 || graph.layers.is_empty() {
+        if w <= 0.0 || h <= 0.0 || layout.columns.is_empty() {
             return;
         }
-        let scale = (w / geometry.width)
-            .min(h / geometry.height)
-            .clamp(Camera::MIN, 1.0);
+        let scale = (w / geometry.width).min(h / geometry.height).clamp(Camera::MIN, 1.0);
         state.camera.set(Camera {
             x: ((w - geometry.width * scale) / 2.0).max(0.0),
             y: 0.0,
@@ -429,46 +550,35 @@ fn canvas_panel(
             .camera
             .update(|camera| *camera = camera.zoomed(factor, (w / 2.0, h / 2.0), 0.0, 0.0));
     };
-    // As tall as the drawing at zoom 1, between four and seven node heights.
-    let height = move || {
-        let node = len(DagNodeHeight).0;
-        let drawn = graph.get().map_or(0.0, |g| {
-            dag::geometry(&g, sizes()).height + len(Space6).0 + len(Space3).0
-        });
-        px(drawn.clamp(node * 4.0, node * 7.0))
-    };
     let zoom_bar = view()
         .absolute()
-        .left(len(Space3))
-        .bottom(len(Space3))
+        .right(len(Space4))
+        .bottom(len(Space4))
         .flex_row()
         .items_center()
-        .rounded(len(Radius))
+        .gap(len(Space1))
+        .px(len(Space1))
+        .h(len(Control) + len(Space2))
+        .rounded(len(RadiusControl))
         .border_1()
         .border_color(color(Border))
-        .bg(color(Card))
-        .child(press("－", Look::Ghost, true, move || {
-            zoom_by(1.0 / ZOOM_STEP)
-        }))
+        .bg(color(Background))
+        .child(icon_button(Icon::Minus, Msg::ZoomOut, move || zoom_by(1.0 / ZOOM_STEP)))
         .child(
-            text(move || format!("{:.0}%", state.camera.get().scale * 100.0))
-                .ty(Type::Meta)
-                .tabular_nums()
+            small(move || SharedString::from(format!("{:.0}%", state.camera.get().scale * 100.0)))
                 .text_color(color(Ink2))
-                .px(len(Space2)),
+                .w(len(Space8) + len(Space2))
+                .text_center(),
         )
-        .child(press("＋", Look::Ghost, true, move || zoom_by(ZOOM_STEP)))
-        .child(press("适应", Look::Ghost, true, fit))
-        .child(meta("拖动平移 · ⌃/Ctrl+滚轮或双指缩放").px(len(Space2)));
+        .child(icon_button(Icon::Plus, Msg::ZoomIn, move || zoom_by(ZOOM_STEP)))
+        .child(view().h(len(Space5)).border_l_1().border_l_color(color(Border)))
+        .child(action(Msg::Fit, Some(Icon::Fit), Look::Link, || false, fit));
     view()
-        .h(height)
+        .flex_1()
+        .min_w(Points::ZERO)
         .overflow_hidden()
-        .bg(color(Card))
-        .on_layout(move |bounds: &Bounds<Points>| {
-            state
-                .viewport
-                .set((bounds.size.width.0, bounds.size.height.0))
-        })
+        .bg(color(Background))
+        .on_layout(move |bounds: &Bounds<Points>| state.viewport.set((bounds.size.width.0, bounds.size.height.0)))
         .pan_values(Some(&state.pan_x), Some(&state.pan_y))
         .pinch_value(&state.zoom)
         .on_pan_end(move |_: &PanEvent| state.settle())
@@ -476,23 +586,24 @@ fn canvas_panel(
         .child(dots(state))
         .child(dynamic(move || {
             let Some(graph) = graph.get() else {
-                return meta("等待 Project 与议会队列…")
-                    .p(len(Space4))
-                    .into_element();
+                return small(SharedString::from(Msg::WaitingForData)).p(len(Space4)).into_element();
             };
-            if graph.layers.is_empty() {
-                return meta("没有带前置关系的议题（或都被过滤掉了）")
-                    .p(len(Space4))
-                    .into_element();
-            }
-            let (camera, viewport, selected) = (
-                state.camera.get(),
-                state.viewport.get(),
-                state.selected.get(),
-            );
+            let layout = layout_of(&graph, state);
+            let selected = selected_or_first(&graph, &layout, state);
+            let (camera, viewport) = (state.camera.get(), state.viewport.get());
             let settings = settings.clone();
             untracked(move || {
-                drawing(graph, &settings, state, camera, viewport, selected).into_element()
+                if layout.columns.is_empty() && layout.folded.is_empty() {
+                    return small(SharedString::from(Msg::NoIssues)).p(len(Space4)).into_element();
+                }
+                view()
+                    .absolute()
+                    .left(Points::ZERO)
+                    .top(Points::ZERO)
+                    .size_full()
+                    .child(drawing(&graph, &layout, &settings, state, camera, viewport, selected))
+                    .child(fold_chip(&graph, &layout, state))
+                    .into_element()
             })
         }))
         .child(zoom_bar)
@@ -502,17 +613,17 @@ fn canvas_panel(
 fn dots(state: IssuesState) -> CanvasView {
     canvas(move || {
         let (w, h) = state.viewport.get();
-        let dot = color(CanvasDot);
-        let ink = if dark() { dot.dark } else { dot.light };
+        let ink = super::parts::pick(color(CanvasDot));
         let step = len(Space4).0;
+        let dot = mark().0 / 2.0;
         let mut painter = Painter::new().fill_color(ink);
-        let (mut x, mut y) = (step / 2.0, step / 2.0);
+        let mut y = step / 2.0;
         while y < h {
+            let mut x = step / 2.0;
             while x < w {
-                painter = painter.fill_rect(px(x), px(y), px(MARK / 2.0), px(MARK / 2.0));
+                painter = painter.fill_rect(px(x), px(y), px(dot), px(dot));
                 x += step;
             }
-            x = step / 2.0;
             y += step;
         }
         painter
@@ -524,27 +635,21 @@ fn dots(state: IssuesState) -> CanvasView {
     .h(move || px(state.viewport.get().1))
 }
 
-/// The graph where `camera` puts it in a viewport of `size`: the layers'
-/// labels, the edges on a canvas under a view per node, all moved and
-/// scaled by a gesture under way.
+/// The columns where `camera` puts them in a viewport of `size`: their
+/// labels, the counted edges on a canvas under a view per node, all moved
+/// and scaled by a gesture under way.
 fn drawing(
-    graph: Rc<Graph>,
+    graph: &Rc<Graph>,
+    layout: &Layout,
     settings: &Settings,
     state: IssuesState,
     camera: Camera,
     size: (f32, f32),
-    selected: Option<IssueRef>,
+    selected: Option<usize>,
 ) -> View {
-    let geometry = dag::geometry(&graph, sizes());
-    let boxes: Vec<dag::Rect> = geometry
-        .boxes
-        .iter()
-        .map(|rect| camera.place(*rect))
-        .collect();
-    let near = neighbours(&graph, selected.as_ref());
-    let at = selected
-        .as_ref()
-        .and_then(|s| graph.nodes.iter().position(|n| n.issue == *s));
+    let geometry = dag::geometry(graph, layout, sizes());
+    let boxes: Vec<Option<dag::Rect>> = geometry.boxes.iter().map(|b| b.map(|b| camera.place(b))).collect();
+    let near = neighbours(graph, selected);
     let origin = TransformOrigin {
         x: Points::ZERO.into(),
         y: Points::ZERO.into(),
@@ -552,14 +657,14 @@ fn drawing(
     };
     let labels = geometry.columns.iter().enumerate().map(|(i, &x)| {
         let label = if i == 0 {
-            "第 1 层 · 无前置".to_owned()
+            Msg::CanMove(layout.columns[0].len())
         } else {
-            format!("第 {} 层", i + 1)
+            Msg::WaitsColumn(layout.columns[i].len())
         };
-        text(label)
-            .text_size(px(len(TextMeta).0 * camera.scale))
-            .line_height(px(Type::Meta.line() * camera.scale))
-            .text_color(color(MutedForeground))
+        text(SharedString::from(label))
+            .text_size(len(TextSmall) * camera.scale)
+            .line_height(px(Type::Small.line() * camera.scale))
+            .text_color(color(Ink3))
             .number_of_lines(1)
             .absolute()
             .left(px(camera.x + x * camera.scale))
@@ -568,8 +673,24 @@ fn drawing(
     let edges = {
         let graph = graph.clone();
         let boxes = boxes.clone();
-        canvas(move || edges(&graph, &boxes, at, camera.scale))
+        canvas(move || edges(&graph, &boxes, selected, camera.scale))
     };
+    let mut cards: Vec<AnyElement> = Vec::new();
+    for (i, rect) in boxes.iter().enumerate() {
+        let Some(rect) = rect else {
+            continue;
+        };
+        let dim = near.as_ref().is_some_and(|near| !near.contains(&i));
+        cards.push(
+            node_card(graph, i, settings, state, camera.scale, dim, selected == Some(i))
+                .absolute()
+                .left(px(rect.x))
+                .top(px(rect.y))
+                .w(px(rect.w))
+                .h(px(rect.h))
+                .into_element(),
+        );
+    }
     view()
         .absolute()
         .left(Points::ZERO)
@@ -581,799 +702,355 @@ fn drawing(
         .bind_translate_y(&state.pan_y)
         .bind_scale(&state.zoom)
         .children(labels)
-        .child(
-            edges
-                .absolute()
-                .left(Points::ZERO)
-                .top(Points::ZERO)
-                .w(px(size.0))
-                .h(px(size.1)),
-        )
-        .children(
-            graph
-                .nodes
-                .iter()
-                .zip(boxes)
-                .enumerate()
-                .map(|(i, (node, rect))| {
-                    let dim = near.as_ref().is_some_and(|near| !near.contains(&i));
-                    node_card(node, settings, state, camera.scale, dim)
-                        .absolute()
-                        .left(px(rect.x))
-                        .top(px(rect.y))
-                        .w(px(rect.w))
-                        .h(px(rect.h))
-                }),
-        )
+        .child(edges.absolute().left(Points::ZERO).top(Points::ZERO).w(px(size.0)).h(px(size.1)))
+        .children(cards)
 }
 
-/// The edges between `boxes` (one per layered node), from the right of the
-/// prerequisite to the left of the issue it blocks, with an arrowhead
-/// there; ignored edges dashed; the selected node's edges highlighted.
-fn edges(graph: &Graph, boxes: &[dag::Rect], selected: Option<usize>, scale: f32) -> Painter {
-    let pick = |c: AdaptiveColor| if dark() { c.dark } else { c.light };
-    let (plain_ink, hot_ink) = (pick(color(Edge)), pick(color(Selection)));
-    let dash = [px(len(Space1).0 * 1.25 * scale), px(len(Space1).0 * scale)];
+/// The counted edges between laid-out nodes, routed orthogonally with an
+/// arrowhead at the issue blocked; the selected node's in `selection`
+/// over the others, the rest dimmed while something is selected.
+fn edges(graph: &Graph, boxes: &[Option<dag::Rect>], selected: Option<usize>, scale: f32) -> Painter {
+    let pick = super::parts::pick;
+    let (plain, hot) = (pick(color(BorderStrong)), pick(color(Selection)));
     let head = len(Space2).0 * scale;
-    let mut painter = Painter::new().line_cap(LineCap::Round);
-    // Plain edges first, the highlighted ones over them.
-    for hot in [false, true] {
-        for edge in graph.edges.iter().filter(|e| {
-            (selected == Some(e.from) || selected == Some(e.to)) == hot
-                && e.from < boxes.len()
-                && e.to < boxes.len()
-        }) {
-            let ignored = matches!(edge.kind, EdgeKind::Ignored { .. });
-            let (from, to) = (boxes[edge.from], boxes[edge.to]);
-            let (x1, y1) = (from.x + from.w, from.y + from.h / 2.0);
-            let (x2, y2) = (to.x, to.y + to.h / 2.0);
-            let mid = (x1 + x2) / 2.0;
-            let ink = if hot { hot_ink } else { plain_ink };
+    let width = mark().0 * scale;
+    let mut painter = Painter::new();
+    for hot_pass in [false, true] {
+        for edge in graph.edges.iter().filter(|e| e.kind == EdgeKind::Prerequisite) {
+            let (Some(from), Some(to)) = (boxes[edge.from], boxes[edge.to]) else {
+                continue;
+            };
+            let touches = selected == Some(edge.from) || selected == Some(edge.to);
+            if touches != hot_pass {
+                continue;
+            }
+            let ink = if touches { hot } else { plain };
+            let alpha = if selected.is_some() && !touches { DIM } else { 1.0 };
+            let [a, b, c, d] = dag::route(from, to);
             painter = painter
-                .line_dash(if ignored { &dash } else { &[] })
-                .line_width(if hot { MARK } else { MARK * 0.75 })
+                .global_alpha(alpha)
+                .line_width(if touches { width } else { width * 0.75 })
                 .stroke_color(ink)
                 .fill_color(ink)
                 .begin_path()
-                .move_to(px(x1), px(y1))
-                .bezier_curve_to(
-                    point(px(mid), px(y1)),
-                    point(px(mid), px(y2)),
-                    point(px(x2 - head * 0.75), px(y2)),
-                )
+                .move_to(px(a.0), px(a.1))
+                .line_to(px(b.0), px(b.1))
+                .line_to(px(c.0), px(c.1))
+                .line_to(px(d.0 - head * 0.75), px(d.1))
                 .stroke()
-                .line_dash(&[])
                 .begin_path()
-                .move_to(px(x2), px(y2))
-                .line_to(px(x2 - head), px(y2 - head / 2.0))
-                .line_to(px(x2 - head), px(y2 + head / 2.0))
+                .move_to(px(d.0), px(d.1))
+                .line_to(px(d.0 - head), px(d.1 - head / 2.0))
+                .line_to(px(d.0 - head), px(d.1 + head / 2.0))
                 .close_path()
                 .fill();
         }
     }
-    painter
+    painter.global_alpha(1.0)
 }
 
-/// A node's footnote: the panel's progress while deliberating, what it
-/// waits for, the sub-issues done, a cycle.
-fn node_detail(node: &Node, pm: &RepoName) -> String {
-    let mut parts = Vec::new();
-    if let Some(panel) = &node.panel
-        && node.state == NodeState::Queue(QueueState::Deliberating)
-    {
-        parts.push(format!(
-            "第 {} 轮 · 票 {}/{}",
-            panel.round,
-            panel.votes.len(),
-            panel.votes.len() + panel.pending.len()
-        ));
-    }
-    if matches!(
-        node.state,
-        NodeState::Queue(QueueState::Blocked | QueueState::Held)
-    ) && !node.blocked_by.is_empty()
-    {
-        parts.push(format!(
-            "等 {}",
-            node.blocked_by
-                .iter()
-                .map(|i| short_ref(i, pm))
-                .collect::<Vec<_>>()
-                .join(" ")
-        ));
-    }
-    if node.sub_issues.total > 0 {
-        parts.push(format!(
-            "{}/{}",
-            node.sub_issues.completed, node.sub_issues.total
-        ));
-    }
-    if matches!(node.place, Place::Layer { cycle: true, .. }) {
-        parts.push("前置成环".to_owned());
-    }
-    parts.join(" · ")
-}
-
-fn short_ref(issue: &IssueRef, pm: &RepoName) -> String {
-    if issue.repo == *pm {
-        format!("#{}", issue.number)
-    } else {
-        issue.to_string()
-    }
-}
-
-fn proposer_word(node: &Node, fields: &Fields) -> String {
-    if node.kind == NodeKind::Human {
-        return "人类".to_owned();
-    }
-    let options = &fields.proposer.options;
-    match &node.proposer {
-        Some(Proposer::Human) => options.human.to_string(),
-        Some(Proposer::Guardians) => options.guardians.to_string(),
-        Some(Proposer::Coordination) => options.coordination.to_string(),
-        Some(Proposer::Other(name)) => name.clone(),
-        None => "议程".to_owned(),
-    }
-}
-
-/// A node: number, proposer and agenda; title; state and footnote. At
-/// `scale` in the graph (1 in the grid); dimmed when another is selected
-/// and it is not next to it.
+/// A node: glyph, agenda and title; under them its state's detail. At
+/// `scale`; dimmed when another is selected and it is not next to it.
+#[allow(clippy::too_many_arguments)]
 fn node_card(
-    node: &Node,
+    graph: &Graph,
+    at: usize,
     settings: &Settings,
     state: IssuesState,
     scale: f32,
     dim: bool,
+    selected: bool,
 ) -> ButtonElement {
-    let s = |v: f32| px(v * scale);
+    let node = &graph.nodes[at];
+    let st = status::node(&node.state, &settings.fields);
+    let closed = node.state.closed();
     let issue = node.issue.clone();
-    let selected = {
-        let issue = issue.clone();
-        move || state.selected.with(|s| s.as_ref() == Some(&issue))
-    };
-    let status = status::node(&node.state, &settings.fields);
-    let superseded = node.state.superseded();
-    let detail = node_detail(node, &settings.pm);
-    let scaled = |t: Text, ty: Type| {
-        let (size, line) = match ty {
-            Type::Meta => (len(TextMeta).0, Type::Meta.line()),
-            _ => (len(TextDense).0, Type::Dense.line()),
-        };
-        t.text_size(s(size)).line_height(s(line))
-    };
-    let selected_ring = selected.clone();
+    let scaled = |token| len(token) * scale;
     button()
         .on_press(move || state.selected.set(Some(issue.clone())))
-        .selected(selected)
-        .role(Some(AccessibilityRole::Button))
-        .accessibility_label(Some(SharedString::from(format!(
-            "#{} {}",
-            node.issue.number, node.title
-        ))))
-        .px(s(len(Space3).0 - len(Space1).0 / 2.0))
-        .py(s(len(Space2).0))
-        .gap(s(len(Space1).0))
-        .overflow_hidden()
-        .rounded(s(len(Radius).0))
+        .accessibility_label(node.title.clone())
+        .selected(move || selected)
+        .gap(scaled(Space1) / 2.0)
+        .justify_center()
+        .pl(scaled(Space3) - mark() * scale)
+        .pr(scaled(Space3))
+        .rounded(scaled(RadiusControl))
         .border_1()
-        .border_color(color(BorderStrong))
-        .bg(color(Card))
+        .border_l(mark() * scale)
+        .border_color(if selected { color(Selection) } else { color(BorderStrong) })
+        .bg(if selected { color(Selected) } else { color(Background) })
         .opacity(if dim { DIM } else { 1.0 })
-        .outline(px(MARK))
-        .outline_offset(px(MARK / 2.0))
-        .outline_color(move || {
-            if selected_ring() {
-                color(Selection)
-            } else {
-                color(Selection).opacity(0.0)
-            }
-        })
+        .hover(|s| s.border_color(color(Selection)))
         .cursor_pointer()
         .child(
             view()
                 .flex_row()
                 .items_center()
-                .gap(s(len(Space1).0 * 1.5))
+                .gap(scaled(Space2))
+                .child(status::glyph(st.glyph, st.role))
                 .child(
-                    scaled(text(format!("#{}", node.issue.number)), Type::Meta)
-                        .mono()
-                        .text_color(color(MutedForeground)),
+                    text(agenda(node))
+                        .text_size(scaled(TextSmall))
+                        .text_color(color(Ink3))
+                        .flex_shrink_0(),
                 )
                 .child(
-                    view()
-                        .px(s(len(Space1).0))
-                        .rounded(s(len(Space1).0))
-                        .bg(color(Secondary))
-                        .child(
-                            scaled(text(proposer_word(node, &settings.fields)), Type::Meta)
-                                .text_color(color(Ink2)),
-                        ),
-                )
-                .child(view().flex_1())
-                .children(node.agenda.clone().map(|agenda| {
-                    view()
-                        .px(s(len(Space1).0))
-                        .rounded(s(len(Space1).0))
-                        .border_1()
-                        .border_color(color(Border))
-                        .child(
-                            scaled(text(agenda), Type::Meta)
-                                .mono()
-                                .text_color(color(Ink2)),
-                        )
-                })),
-        )
-        .child({
-            let title = scaled(text(node.title.clone()), Type::Dense)
-                .font_weight(FontWeight::SEMIBOLD)
-                .truncate();
-            if superseded {
-                title.line_through().text_color(color(MutedForeground))
-            } else {
-                title
-            }
-        })
-        .child(
-            view()
-                .flex_row()
-                .items_center()
-                .gap(s(len(Space1).0))
-                .child(status::glyph(status.glyph, status.role).size(s(status::GLYPH)))
-                .child(
-                    scaled(text(status.word.clone()), Type::Meta)
+                    text(node.title.clone())
+                        .text_size(scaled(TextBody))
                         .font_weight(FontWeight::MEDIUM)
-                        .text_color(status.role.text())
+                        .text_color(if closed { color(Ink3) } else { color(Foreground) })
+                        .flex_1()
+                        .min_w(Points::ZERO)
                         .number_of_lines(1),
-                )
-                .when(!detail.is_empty(), |row| {
-                    row.child(
-                        scaled(text(format!("· {detail}")), Type::Meta)
-                            .text_color(color(MutedForeground))
-                            .truncate()
-                            .flex_shrink(1.0),
-                    )
-                }),
+                ),
         )
-}
-
-/// The issues with no "Blocked by" either way, in agenda order.
-fn isolated(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: IssuesState) -> View {
-    card().child(dynamic(move || {
-        let Some(graph) = graph.get() else {
-            return nothing();
-        };
-        let settings = settings.clone();
-        untracked(move || {
-            let range = graph.isolated.clone();
-            view()
-                .child(
-                    meta(format!("没有前置关系的议题 · {} · 按议程号", range.len()))
-                        .px(len(Space4))
-                        .pt(len(Space4))
-                        .pb(len(Space2)),
-                )
-                .child(
-                    view()
-                        .flex_row()
-                        .flex_wrap()
-                        .gap(len(Space3))
-                        .px(len(Space4))
-                        .pb(len(Space4))
-                        .children(graph.nodes[range].iter().map(|node| {
-                            node_card(node, &settings, state, 1.0, false)
-                                .w(len(DagNodeWidth))
-                                .h(len(DagNodeHeight))
-                        })),
-                )
-                .into_element()
-        })
-    }))
-}
-
-/// The selected issue's facts: its panel, who voted and who has not, its
-/// prerequisites, what it blocks, its sub-issues, the council's notes, and
-/// the button to open it.
-fn inspector(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: IssuesState) -> View {
-    view()
-        .w(px(len(DagNodeWidth).0
-            + len(Space6).0 * 2.0
-            + len(Space4).0))
-        .flex_shrink_0()
-        .gap(len(Space3))
-        .px(len(Space4))
-        .py(len(Space4))
-        .border_l_1()
-        .border_l_color(color(Border))
-        .bg(color(Card))
-        .child(dynamic(move || {
-            let (Some(graph), Some(selected)) = (graph.get(), state.selected.get()) else {
-                return meta("选中一个议题，这里显示它的小组进度、投票、前置与阻塞。")
-                    .into_element();
-            };
-            let Some(at) = graph.nodes.iter().position(|n| n.issue == selected) else {
-                return meta("选中的议题被过滤掉了。").into_element();
-            };
-            let settings = settings.clone();
-            untracked(move || facts(&graph, at, &settings).into_element())
-        }))
-}
-
-fn fact(label: &'static str, value: AnyElement) -> View {
-    view()
-        .flex_row()
-        .items_start()
-        .gap(len(Space2))
-        .child(meta(label).w(len(RowAttention)).flex_shrink_0())
         .child(
-            view()
-                .flex_1()
-                .flex_row()
-                .flex_wrap()
-                .gap(len(Space1))
-                .child(value),
+            text(node_detail(graph, at, &settings.fields))
+                .text_size(scaled(TextSmall))
+                .text_color(color(Ink3))
+                .pl(scaled(Space4) + scaled(Space2))
+                .number_of_lines(1),
         )
 }
 
-fn chips(refs: Vec<String>) -> AnyElement {
-    if refs.is_empty() {
-        return text("—")
-            .ty(Type::Dense)
-            .text_color(color(MutedForeground))
-            .into_element();
+/// The closed issues folded: how many, the chains among them, 「展开」.
+fn fold_chip(graph: &Graph, layout: &Layout, state: IssuesState) -> AnyElement {
+    if layout.folded.is_empty() {
+        return nothing();
     }
+    let chains: Vec<String> = layout
+        .chains
+        .iter()
+        .map(|chain| chain.iter().map(|&i| agenda(&graph.nodes[i])).collect::<Vec<_>>().join(" → "))
+        .collect();
     view()
+        .absolute()
+        .left(len(Space4))
+        .bottom(len(Space4))
+        .max_w(relative(0.6))
         .flex_row()
-        .flex_wrap()
-        .gap(len(Space1))
-        .children(refs.into_iter().map(chip))
+        .items_center()
+        .gap(len(Space2))
+        .h(len(Control) + len(Space2))
+        .px(len(Space3))
+        .rounded(len(RadiusControl))
+        .border_1()
+        .border_color(color(Border))
+        .bg(color(Background))
+        .child(status::glyph(Glyph::Check, Role::Done))
+        .child(
+            small(Msg::FoldedClosed { closed: layout.folded.len(), chains }.to_string())
+                .text_color(color(Ink2))
+                .flex_shrink(1.0)
+                .number_of_lines(1),
+        )
+        .child(press(Msg::Expand, Look::Link, move || state.closed.set(Closed::Show)))
         .into_element()
 }
 
-fn words(words: &[String]) -> AnyElement {
-    text(if words.is_empty() {
-        "—".to_owned()
-    } else {
-        words.join(" ")
-    })
-    .ty(Type::Dense)
-    .into_element()
+// ---------------------------------------------------------------------------
+// The inspector
+
+fn inspector(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: IssuesState) -> View {
+    view()
+        .w(len(InspectorWidth) + len(Space8))
+        .flex_shrink_0()
+        .border_l_1()
+        .border_l_color(color(Border))
+        .child(scroll().flex_1().child(dynamic(move || {
+            let Some(graph) = graph.get() else {
+                return nothing();
+            };
+            let at = match state.shown.get() {
+                Shown::Graph => {
+                    let layout = layout_of(&graph, state);
+                    selected_or_first(&graph, &layout, state)
+                }
+                Shown::List => state
+                    .selected
+                    .get()
+                    .and_then(|s| graph.nodes.iter().position(|n| n.issue == s)),
+            };
+            let settings = settings.clone();
+            untracked(move || match at {
+                Some(at) => facts(&graph, at, &settings, state).into_element(),
+                None => empty(Msg::SelectIssue).into_element(),
+            })
+        })))
 }
 
-fn facts(graph: &Graph, at: usize, settings: &Settings) -> View {
+/// One issue in a line: glyph, agenda, title; a press selects it.
+fn issue_line(graph: &Graph, at: usize, settings: &Settings, state: IssuesState, note: Option<String>) -> impl IntoElement {
     let node = &graph.nodes[at];
-    let status = status::node(&node.state, &settings.fields);
-    let blocks: Vec<String> = graph
-        .edges
-        .iter()
-        .filter(|e| e.from == at)
-        .map(|e| short_ref(&graph.nodes[e.to].issue, &settings.pm))
-        .collect();
-    let ignored: Vec<String> = graph
-        .edges
-        .iter()
-        .filter(|e| e.to == at && matches!(e.kind, EdgeKind::Ignored { .. }))
-        .map(|e| short_ref(&graph.nodes[e.from].issue, &settings.pm))
-        .collect();
+    let st = status::node(&node.state, &settings.fields);
+    let issue = node.issue.clone();
+    button()
+        .on_press(move || state.selected.set(Some(issue.clone())))
+        .accessibility_label(node.title.clone())
+        .flex_row()
+        .items_center()
+        .gap(len(Space2))
+        .min_h(len(RowLog))
+        .rounded(len(RadiusControl))
+        .hover(|s| s.bg(color(Accent)))
+        .cursor_pointer()
+        .child(status::glyph(st.glyph, st.role))
+        .child(small(agenda(node)))
+        .child(text(node.title.clone()).ty(Type::Body).flex_1().min_w(Points::ZERO).number_of_lines(1))
+        .children(note.map(small))
+}
+
+fn section(title: Msg) -> View {
+    view()
+        .gap(len(Space1))
+        .pt(len(Space3))
+        .border_t_1()
+        .border_t_color(color(Border))
+        .child(small(SharedString::from(title)))
+}
+
+fn facts(graph: &Rc<Graph>, at: usize, settings: &Settings, state: IssuesState) -> View {
+    let node = &graph.nodes[at];
+    let st = status::node(&node.state, &settings.fields);
     let url = node.url.clone();
-    let open = {
+    let open_github = {
         let url = url.clone();
         move || drop(open_url(url.clone()))
     };
-    let panel = node.panel.as_ref();
+    let updated = time::parse_ms(&node.updated_at);
+    let ups: Vec<usize> = graph.into_node(at).filter(|e| e.kind == EdgeKind::Prerequisite).map(|e| e.from).collect();
+    let downs: Vec<usize> = graph.out_of(at).map(|e| e.to).collect();
+    let ignored: Vec<(usize, Vec<String>)> = graph
+        .into_node(at)
+        .filter_map(|e| match &e.kind {
+            EdgeKind::Ignored { notes } => Some((e.from, notes.clone())),
+            EdgeKind::Prerequisite => None,
+        })
+        .collect();
+    let waits = graph.open_prerequisites(at);
+    let waiting = matches!(node.state, NodeState::Queue(QueueState::Blocked | QueueState::Held));
+    let mut parts: Vec<AnyElement> = Vec::new();
+    // The round.
+    if let Some(panel) = &node.panel {
+        let total = panel.votes.len() + panel.pending.len();
+        parts.push(
+            section(Msg::ThisRound)
+                .child(
+                    view()
+                        .flex_row()
+                        .items_center()
+                        .gap(len(Space2))
+                        .child(votes_bar(panel.votes.len(), total))
+                        .child(text(Msg::RoundSummary { round: panel.round, version: panel.version, voted: panel.votes.len(), seats: total }.to_string()).ty(Type::Body)),
+                )
+                .child(kv(Msg::Voted, text(panel.votes.join("、")).ty(Type::Body)))
+                .child(kv(Msg::Pending, text(panel.pending.join("、")).ty(Type::Body)))
+                .into_element(),
+        );
+    }
+    // Why it has not started.
+    if waiting {
+        let reason = if waits.is_empty() {
+            Msg::WaitsNothingOpen.to_string()
+        } else {
+            waits
+                .iter()
+                .map(|&w| {
+                    let n = &graph.nodes[w];
+                    Msg::WaitsOn(agenda(n), status::node(&n.state, &settings.fields).word.to_string()).to_string()
+                })
+                .collect::<Vec<_>>()
+                .join(" ")
+        };
+        parts.push(
+            section(Msg::WhyNotStarted)
+                .child(
+                    view()
+                        .flex_row()
+                        .items_start()
+                        .gap(len(Space2))
+                        .px(len(Space3))
+                        .py(len(Space2))
+                        .rounded(len(RadiusControl))
+                        .bg(color(Sunken))
+                        .child(status::glyph(st.glyph, st.role))
+                        .child(text(reason).ty(Type::Body).flex_1()),
+                )
+                .into_element(),
+        );
+    }
+    let list = |nodes: &[usize]| -> Vec<AnyElement> {
+        if nodes.is_empty() {
+            vec![small(SharedString::from(Msg::None)).into_element()]
+        } else {
+            nodes.iter().map(|&i| issue_line(graph, i, settings, state, None).into_element()).collect()
+        }
+    };
+    parts.push(section(Msg::Prerequisites).children(list(&ups)).into_element());
+    parts.push(section(Msg::Blocking).children(list(&downs)).into_element());
+    if !ignored.is_empty() {
+        parts.push(
+            section(Msg::IgnoredBlockers)
+                .children(ignored.iter().map(|(from, notes)| {
+                    view()
+                        .gap(len(Space1))
+                        .child(issue_line(graph, *from, settings, state, Some(Msg::NotCounted.to_string())))
+                        .children(notes.iter().map(|n| mono(n.clone()).selectable(true)))
+                        .into_element()
+                }))
+                .into_element(),
+        );
+    }
+    if !node.notes.is_empty() && ignored.iter().all(|(_, n)| n.is_empty()) {
+        parts.push(
+            section(Msg::CouncilNotes)
+                .children(node.notes.iter().map(|n| mono(n.clone()).selectable(true).into_element()))
+                .into_element(),
+        );
+    }
+    let title = text(node.title.clone()).ty(Type::Title).number_of_lines(3);
     view()
-        .flex_1()
+        .px(len(Space5))
+        .py(len(Space4))
         .gap(len(Space3))
         .child(
             view()
                 .flex_row()
                 .items_center()
                 .gap(len(Space2))
-                .child(
-                    text(format!("#{}", node.issue.number))
-                        .ty(Type::Meta)
-                        .mono()
-                        .text_color(color(MutedForeground)),
-                )
-                .children(node.agenda.clone().map(chip))
+                .child(status::label(&st, Type::Body))
+                .child(small(agenda(node)))
                 .child(view().flex_1())
-                .child(press("GitHub ↗", Look::Ghost, true, move || {
-                    drop(open_url(url.clone()))
-                })),
+                .child(icon_button(Icon::External, Msg::OpenOnGitHub, open_github.clone())),
         )
-        .child({
-            let title = text(node.title.clone())
-                .ty(Type::Heading)
-                .font_weight(FontWeight::SEMIBOLD)
-                .number_of_lines(3)
-                .selectable(true);
-            if node.state.superseded() {
-                title.line_through()
-            } else {
-                title
+        .child(if node.state.superseded() { title.line_through() } else { title })
+        .child(small(
+            Msg::IssueMeta {
+                human: node.kind == NodeKind::Human,
+                proposer: node.proposer.as_ref().map(|p| proposer(p, &settings.fields)),
+                updated: updated.map(|at| time::ago(at, time::now_ms())),
             }
-        })
-        .child(view().flex_row().child(status::pill(&status)))
-        .child(fact(
-            "小组",
-            text(match panel {
-                Some(p) => format!(
-                    "第 {} 轮{}",
-                    p.round,
-                    p.version
-                        .map(|v| format!(" · 草案 v{v}"))
-                        .unwrap_or_default()
-                ),
-                None => "—".to_owned(),
-            })
-            .ty(Type::Dense)
-            .into_element(),
+            .to_string(),
         ))
-        .child(fact(
-            "已投",
-            words(panel.map(|p| p.votes.as_slice()).unwrap_or_default()),
-        ))
-        .child(fact(
-            "待投",
-            words(panel.map(|p| p.pending.as_slice()).unwrap_or_default()),
-        ))
-        .child(fact(
-            "前置",
-            chips(
-                node.blocked_by
-                    .iter()
-                    .map(|i| short_ref(i, &settings.pm))
-                    .collect(),
-            ),
-        ))
-        .child(fact("阻塞", chips(blocks)))
-        .child(fact(
-            "实现",
-            text(if node.sub_issues.total > 0 {
-                format!(
-                    "完成 {}/{}",
-                    node.sub_issues.completed, node.sub_issues.total
-                )
-            } else {
-                "—".to_owned()
-            })
-            .ty(Type::Dense)
-            .into_element(),
-        ))
-        .when(!ignored.is_empty(), |v| {
-            v.child(meta(format!(
-                "议会不计的前置（虚线）：{}",
-                ignored.join("、")
-            )))
-        })
-        .children(node.notes.iter().map(|n| {
-            text(n.clone())
-                .ty(Type::Meta)
-                .text_color(color(Ink2))
-                .selectable(true)
-        }))
-        .child(view().flex_1())
+        .children(parts)
         .child(
-            button()
-                .on_press(open)
-                .accessibility_label("打开议题详情")
-                .justify_center()
-                .items_center()
-                .py(len(Space2))
-                .rounded(len(RadiusControl))
-                .bg(color(Primary))
-                .hover(|s| s.opacity(0.9))
-                .cursor_pointer()
-                .child(
-                    text("打开议题详情")
-                        .ty(Type::Dense)
-                        .font_weight(FontWeight::SEMIBOLD)
-                        .text_color(color(PrimaryForeground)),
-                ),
+            view()
+                .flex_row()
+                .gap(len(Space2))
+                .pt(len(Space3))
+                .child(action(Msg::OpenDetail, None, Look::Primary, || false, open_github.clone()))
+                .child(action(Msg::OpenOnGitHub, Some(Icon::External), Look::Plain, || false, open_github)),
         )
 }
 
-// ---------------------------------------------------------------------------
-// List
-
-fn column_title(column: ListColumn) -> &'static str {
-    match column {
-        ListColumn::Agenda => "编号",
-        ListColumn::Title => "议题",
-        ListColumn::Kind => "类型",
-        ListColumn::State => "状态",
-        ListColumn::Proposer => "提出者",
-        ListColumn::BlockedBy => "前置",
-        ListColumn::Progress => "进度",
+/// A proposer's name as the Project calls it.
+fn proposer(proposer: &crate::gh::project::Proposer, fields: &Fields) -> String {
+    use crate::gh::project::Proposer;
+    let options = &fields.proposer.options;
+    match proposer {
+        Proposer::Human => options.human.to_string(),
+        Proposer::Guardians => options.guardians.to_string(),
+        Proposer::Coordination => options.coordination.to_string(),
+        Proposer::Other(name) => name.clone(),
     }
-}
-
-/// A column's share of the row's width.
-fn share(column: ListColumn) -> f32 {
-    match column {
-        ListColumn::Title => 4.0,
-        ListColumn::State => 2.0,
-        ListColumn::Progress => 2.0,
-        ListColumn::Agenda => 1.6,
-        ListColumn::BlockedBy => 1.4,
-        ListColumn::Proposer => 1.0,
-        ListColumn::Kind => 0.8,
-    }
-}
-
-fn column(c: ListColumn) -> View {
-    view()
-        .flex_row()
-        .items_center()
-        .gap(len(Space1))
-        .flex_grow(share(c))
-        .basis(Points::ZERO)
-        .min_w(Points::ZERO)
-}
-
-/// The table's groups, failures first: each the states it holds.
-const GROUPS: [&[QueueState]; 6] = [
-    &[QueueState::Failed],
-    &[QueueState::Interrupted],
-    &[QueueState::Deliberating],
-    &[QueueState::Ready],
-    &[QueueState::Held, QueueState::Blocked],
-    &[QueueState::Decided, QueueState::Superseded],
-];
-
-fn cell(node: &Node, c: ListColumn, settings: &Settings) -> AnyElement {
-    let muted = |s: &str| {
-        text(s.to_owned())
-            .ty(Type::Dense)
-            .text_color(color(MutedForeground))
-            .into_element()
-    };
-    match c {
-        ListColumn::Agenda => view()
-            .flex_row()
-            .items_center()
-            .gap(len(Space1))
-            .child(
-                text(format!("#{}", node.issue.number))
-                    .ty(Type::Dense)
-                    .mono()
-                    .text_color(color(MutedForeground)),
-            )
-            .children(node.agenda.clone().map(chip))
-            .into_element(),
-        ListColumn::Title => {
-            let title = text(node.title.clone()).ty(Type::Dense).truncate();
-            if node.state.superseded() {
-                title
-                    .line_through()
-                    .text_color(color(MutedForeground))
-                    .into_element()
-            } else {
-                title.font_weight(FontWeight::MEDIUM).into_element()
-            }
-        }
-        ListColumn::Kind => tag(match node.kind {
-            NodeKind::Human => "人类",
-            NodeKind::Agenda => "议程",
-        })
-        .into_element(),
-        ListColumn::State => {
-            status::label(&status::node(&node.state, &settings.fields), Type::Dense).into_element()
-        }
-        ListColumn::Proposer => text(proposer_word(node, &settings.fields))
-            .ty(Type::Dense)
-            .text_color(color(Ink2))
-            .truncate()
-            .into_element(),
-        ListColumn::BlockedBy => {
-            if node.blocked_by.is_empty() {
-                muted("—")
-            } else {
-                chips(
-                    node.blocked_by
-                        .iter()
-                        .map(|i| short_ref(i, &settings.pm))
-                        .collect(),
-                )
-            }
-        }
-        ListColumn::Progress => match (&node.panel, node.sub_issues.total) {
-            (Some(panel), _) if node.state == NodeState::Queue(QueueState::Deliberating) => {
-                text(format!(
-                    "第 {} 轮 · 票 {}/{}",
-                    panel.round,
-                    panel.votes.len(),
-                    panel.votes.len() + panel.pending.len()
-                ))
-                .ty(Type::Dense)
-                .text_color(color(Ink2))
-                .into_element()
-            }
-            (_, 0) => muted("—"),
-            (_, total) => {
-                let done = node.sub_issues.completed;
-                let share = done as f32 / total as f32;
-                let bar = len(RowAttention).0;
-                view()
-                    .flex_row()
-                    .items_center()
-                    .gap(len(Space2))
-                    .child(
-                        text(format!("实现 {done}/{total}"))
-                            .ty(Type::Dense)
-                            .text_color(color(Ink2)),
-                    )
-                    .child(
-                        view()
-                            .w(px(bar))
-                            .h(len(Space1))
-                            .rounded(len(Space1))
-                            .bg(color(Border))
-                            .overflow_hidden()
-                            .child(
-                                view()
-                                    .w(px(bar * share))
-                                    .h(len(Space1))
-                                    .bg(Role::Good.ink()),
-                            ),
-                    )
-                    .into_element()
-            }
-        },
-    }
-}
-
-fn list_view(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: IssuesState) -> View {
-    let head = {
-        let settings = settings.clone();
-        head_row(
-            settings
-                .list
-                .columns
-                .iter()
-                .map(|&c| {
-                    let sorted = move || state.sort.get().filter(|s| s.column == c);
-                    button()
-                        .on_press(move || {
-                            state.sort.update(|sort| {
-                                *sort = Some(match *sort {
-                                    Some(s) if s.column == c => ListSort {
-                                        column: c,
-                                        descending: !s.descending,
-                                    },
-                                    _ => ListSort {
-                                        column: c,
-                                        descending: false,
-                                    },
-                                })
-                            })
-                        })
-                        .selected(move || sorted().is_some())
-                        .flex_row()
-                        .items_center()
-                        .gap(len(Space1))
-                        .flex_grow(share(c))
-                        .basis(Points::ZERO)
-                        .min_w(Points::ZERO)
-                        .cursor_pointer()
-                        .child(th(column_title(c)))
-                        .child(
-                            text(move || match sorted() {
-                                Some(s) if s.descending => "↓",
-                                Some(_) => "↑",
-                                None => "",
-                            })
-                            .ty(Type::Meta)
-                            .text_color(color(MutedForeground)),
-                        )
-                        .into_element()
-                })
-                .collect(),
-        )
-    };
-    let body = dynamic(move || {
-        let Some(graph) = graph.get() else {
-            return nothing();
-        };
-        let sort = state.sort.get();
-        let selected = state.selected.get();
-        let settings = settings.clone();
-        untracked(move || rows(&graph, sort, selected.as_ref(), &settings, state).into_element())
-    });
-    card().child(head).child(body)
-}
-
-/// The rows, grouped by state: the queue's groups in order (reversed when
-/// sorted by state descending), then the issues shown with their Project
-/// `Status`; within a group, the table's order.
-fn rows(
-    graph: &Graph,
-    sort: Option<ListSort>,
-    selected: Option<&IssueRef>,
-    settings: &Settings,
-    state: IssuesState,
-) -> View {
-    let order = dag::sorted(&graph.nodes, sort);
-    let mut groups: Vec<(String, Vec<usize>)> = GROUPS
-        .iter()
-        .map(|states| {
-            let label = states
-                .iter()
-                .map(|&s| {
-                    let n = graph
-                        .nodes
-                        .iter()
-                        .filter(|n| n.state == NodeState::Queue(s))
-                        .count();
-                    format!("{} · {n}", s.label())
-                })
-                .collect::<Vec<_>>()
-                .join(" · ");
-            let members = order
-                .iter()
-                .copied()
-                .filter(
-                    |&i| matches!(graph.nodes[i].state, NodeState::Queue(s) if states.contains(&s)),
-                )
-                .collect();
-            (label, members)
-        })
-        .collect();
-    for (why, label) in [
-        (Fallback::Unreachable, "议会不可达 · 按 Project Status"),
-        (Fallback::Unlisted, "议会队列未列出 · 按 Project Status"),
-    ] {
-        let members: Vec<usize> = order
-            .iter()
-            .copied()
-            .filter(
-                |&i| matches!(graph.nodes[i].state, NodeState::Project { why: w, .. } if w == why),
-            )
-            .collect();
-        if !members.is_empty() {
-            groups.push((format!("{label} · {}", members.len()), members));
-        }
-    }
-    if sort.is_some_and(|s| s.column == ListColumn::State && s.descending) {
-        groups.reverse();
-    }
-    view().children(groups.into_iter().flat_map(|(label, members)| {
-        std::iter::once(group_row(label).into_element())
-            .chain(members.into_iter().map(|i| {
-                let node = &graph.nodes[i];
-                let is_selected = selected == Some(&node.issue);
-                let issue = node.issue.clone();
-                let url = node.url.clone();
-                button()
-                    .on_press(move || {
-                        state.selected.set(Some(issue.clone()));
-                        drop(open_url(url.clone()));
-                    })
-                    .accessibility_label(format!("#{} {}", node.issue.number, node.title))
-                    .selected(is_selected)
-                    .flex_row()
-                    .items_center()
-                    .gap(len(Space3))
-                    .px(len(Space4))
-                    .min_h(len(RowDense))
-                    .border_t_1()
-                    .border_t_color(color(Border))
-                    .bg(if is_selected {
-                        Role::Active.subtle()
-                    } else {
-                        color(Card)
-                    })
-                    .hover(|s| s.bg(color(Muted)))
-                    .cursor_pointer()
-                    .children(
-                        settings
-                            .list
-                            .columns
-                            .iter()
-                            .map(|&c| column(c).child(cell(node, c, settings)).into_element()),
-                    )
-                    .into_element()
-            }))
-            .collect::<Vec<_>>()
-    }))
 }

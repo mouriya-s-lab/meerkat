@@ -11,7 +11,7 @@ use std::time::Duration;
 
 pub use schema::{
     Attention, BaseUrl, Config, ConfigError, ConfigText, Digest, Endpoints, Fields, Filters,
-    HexColor, List, ListColumn, ListSort, ProjectRef, RepoName, Repos,
+    HexColor, ProjectRef, RepoName, Repos,
 };
 pub use theme::{ColorToken, FontToken, LengthToken, Theme, ThemeColor};
 
@@ -22,7 +22,6 @@ pub struct AppConfig {
     pub refresh: Duration,
     pub attention: Attention,
     pub digest: Digest,
-    pub list: List,
     pub filters: Filters,
     pub repos: Repos,
     pub fields: Fields,
@@ -45,7 +44,6 @@ impl AppConfig {
             refresh: Duration::from_secs(u64::from(dashboard.refresh_seconds.get())),
             attention: dashboard.attention,
             digest: dashboard.digest,
-            list: dashboard.list,
             filters: dashboard.filters,
             repos,
             fields: project.fields,

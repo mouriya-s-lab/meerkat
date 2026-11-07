@@ -35,76 +35,97 @@ impl FontToken {
 /// A length token in points (`cssVars.theme`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LengthToken {
-    Radius,
-    RadiusControl,
     TextTitle,
     TextHeading,
     TextBody,
-    TextDense,
-    TextMeta,
-    TextKpi,
+    TextSmall,
+    TextNum,
+    TextMono,
     Space1,
     Space2,
     Space3,
     Space4,
     Space5,
     Space6,
-    RowDense,
-    RowAttention,
+    Space8,
+    Row,
+    RowLog,
+    RowGroup,
+    Control,
+    Toolbar,
     SidebarWidth,
+    InspectorWidth,
+    Mark,
+    RadiusControl,
+    RadiusPanel,
+    RadiusChip,
     DagNodeWidth,
     DagNodeHeight,
-    DagLayerGap,
+    DagColumnGap,
     DagNodeGap,
 }
 
 impl LengthToken {
-    pub const ALL: [LengthToken; 21] = [
-        LengthToken::Radius,
-        LengthToken::RadiusControl,
+    pub const ALL: [LengthToken; 28] = [
         LengthToken::TextTitle,
         LengthToken::TextHeading,
         LengthToken::TextBody,
-        LengthToken::TextDense,
-        LengthToken::TextMeta,
-        LengthToken::TextKpi,
+        LengthToken::TextSmall,
+        LengthToken::TextNum,
+        LengthToken::TextMono,
         LengthToken::Space1,
         LengthToken::Space2,
         LengthToken::Space3,
         LengthToken::Space4,
         LengthToken::Space5,
         LengthToken::Space6,
-        LengthToken::RowDense,
-        LengthToken::RowAttention,
+        LengthToken::Space8,
+        LengthToken::Row,
+        LengthToken::RowLog,
+        LengthToken::RowGroup,
+        LengthToken::Control,
+        LengthToken::Toolbar,
         LengthToken::SidebarWidth,
+        LengthToken::InspectorWidth,
+        LengthToken::Mark,
+        LengthToken::RadiusControl,
+        LengthToken::RadiusPanel,
+        LengthToken::RadiusChip,
         LengthToken::DagNodeWidth,
         LengthToken::DagNodeHeight,
-        LengthToken::DagLayerGap,
+        LengthToken::DagColumnGap,
         LengthToken::DagNodeGap,
     ];
 
     pub fn name(self) -> &'static str {
         match self {
-            LengthToken::Radius => "radius",
-            LengthToken::RadiusControl => "radius-control",
             LengthToken::TextTitle => "text-title",
             LengthToken::TextHeading => "text-heading",
             LengthToken::TextBody => "text-body",
-            LengthToken::TextDense => "text-dense",
-            LengthToken::TextMeta => "text-meta",
-            LengthToken::TextKpi => "text-kpi",
+            LengthToken::TextSmall => "text-small",
+            LengthToken::TextNum => "text-num",
+            LengthToken::TextMono => "text-mono",
             LengthToken::Space1 => "space-1",
             LengthToken::Space2 => "space-2",
             LengthToken::Space3 => "space-3",
             LengthToken::Space4 => "space-4",
             LengthToken::Space5 => "space-5",
             LengthToken::Space6 => "space-6",
-            LengthToken::RowDense => "row-dense",
-            LengthToken::RowAttention => "row-attention",
+            LengthToken::Space8 => "space-8",
+            LengthToken::Row => "row",
+            LengthToken::RowLog => "row-log",
+            LengthToken::RowGroup => "row-group",
+            LengthToken::Control => "control",
+            LengthToken::Toolbar => "toolbar",
             LengthToken::SidebarWidth => "sidebar-width",
+            LengthToken::InspectorWidth => "inspector-width",
+            LengthToken::Mark => "mark",
+            LengthToken::RadiusControl => "radius-control",
+            LengthToken::RadiusPanel => "radius-panel",
+            LengthToken::RadiusChip => "radius-chip",
             LengthToken::DagNodeWidth => "dag-node-width",
             LengthToken::DagNodeHeight => "dag-node-height",
-            LengthToken::DagLayerGap => "dag-layer-gap",
+            LengthToken::DagColumnGap => "dag-column-gap",
             LengthToken::DagNodeGap => "dag-node-gap",
         }
     }
@@ -132,30 +153,43 @@ pub enum ColorToken {
     Border,
     Input,
     Ring,
-    Ink2,
-    BorderStrong,
+    Sidebar,
+    Sunken,
+    Selected,
+    NavSelected,
     Selection,
-    Critical,
-    CriticalText,
-    CriticalSubtle,
-    Warning,
-    WarningText,
-    WarningSubtle,
-    Good,
-    GoodText,
-    GoodSubtle,
-    Active,
-    ActiveText,
-    ActiveSubtle,
-    Neutral,
-    NeutralText,
-    NeutralSubtle,
-    Edge,
+    Ink2,
+    Ink3,
+    Ink4,
+    BorderStrong,
+    Fail,
+    FailText,
+    FailSubtle,
+    Warn,
+    WarnText,
+    WarnSubtle,
+    Ok,
+    OkText,
+    OkSubtle,
+    Run,
+    RunText,
+    RunSubtle,
+    Wait,
+    WaitText,
+    WaitSubtle,
+    Done,
+    Human,
+    HumanText,
+    HumanSubtle,
+    DiffAdd,
+    DiffAddText,
+    DiffDel,
+    DiffDelText,
     CanvasDot,
 }
 
 impl ColorToken {
-    pub const ALL: [ColorToken; 38] = [
+    pub const ALL: [ColorToken; 51] = [
         ColorToken::Background,
         ColorToken::Foreground,
         ColorToken::Card,
@@ -174,25 +208,38 @@ impl ColorToken {
         ColorToken::Border,
         ColorToken::Input,
         ColorToken::Ring,
-        ColorToken::Ink2,
-        ColorToken::BorderStrong,
+        ColorToken::Sidebar,
+        ColorToken::Sunken,
+        ColorToken::Selected,
+        ColorToken::NavSelected,
         ColorToken::Selection,
-        ColorToken::Critical,
-        ColorToken::CriticalText,
-        ColorToken::CriticalSubtle,
-        ColorToken::Warning,
-        ColorToken::WarningText,
-        ColorToken::WarningSubtle,
-        ColorToken::Good,
-        ColorToken::GoodText,
-        ColorToken::GoodSubtle,
-        ColorToken::Active,
-        ColorToken::ActiveText,
-        ColorToken::ActiveSubtle,
-        ColorToken::Neutral,
-        ColorToken::NeutralText,
-        ColorToken::NeutralSubtle,
-        ColorToken::Edge,
+        ColorToken::Ink2,
+        ColorToken::Ink3,
+        ColorToken::Ink4,
+        ColorToken::BorderStrong,
+        ColorToken::Fail,
+        ColorToken::FailText,
+        ColorToken::FailSubtle,
+        ColorToken::Warn,
+        ColorToken::WarnText,
+        ColorToken::WarnSubtle,
+        ColorToken::Ok,
+        ColorToken::OkText,
+        ColorToken::OkSubtle,
+        ColorToken::Run,
+        ColorToken::RunText,
+        ColorToken::RunSubtle,
+        ColorToken::Wait,
+        ColorToken::WaitText,
+        ColorToken::WaitSubtle,
+        ColorToken::Done,
+        ColorToken::Human,
+        ColorToken::HumanText,
+        ColorToken::HumanSubtle,
+        ColorToken::DiffAdd,
+        ColorToken::DiffAddText,
+        ColorToken::DiffDel,
+        ColorToken::DiffDelText,
         ColorToken::CanvasDot,
     ];
 
@@ -216,25 +263,38 @@ impl ColorToken {
             ColorToken::Border => "border",
             ColorToken::Input => "input",
             ColorToken::Ring => "ring",
-            ColorToken::Ink2 => "ink-2",
-            ColorToken::BorderStrong => "border-strong",
+            ColorToken::Sidebar => "sidebar",
+            ColorToken::Sunken => "sunken",
+            ColorToken::Selected => "selected",
+            ColorToken::NavSelected => "nav-selected",
             ColorToken::Selection => "selection",
-            ColorToken::Critical => "critical",
-            ColorToken::CriticalText => "critical-text",
-            ColorToken::CriticalSubtle => "critical-subtle",
-            ColorToken::Warning => "warning",
-            ColorToken::WarningText => "warning-text",
-            ColorToken::WarningSubtle => "warning-subtle",
-            ColorToken::Good => "good",
-            ColorToken::GoodText => "good-text",
-            ColorToken::GoodSubtle => "good-subtle",
-            ColorToken::Active => "active",
-            ColorToken::ActiveText => "active-text",
-            ColorToken::ActiveSubtle => "active-subtle",
-            ColorToken::Neutral => "neutral",
-            ColorToken::NeutralText => "neutral-text",
-            ColorToken::NeutralSubtle => "neutral-subtle",
-            ColorToken::Edge => "edge",
+            ColorToken::Ink2 => "ink-2",
+            ColorToken::Ink3 => "ink-3",
+            ColorToken::Ink4 => "ink-4",
+            ColorToken::BorderStrong => "border-strong",
+            ColorToken::Fail => "fail",
+            ColorToken::FailText => "fail-text",
+            ColorToken::FailSubtle => "fail-subtle",
+            ColorToken::Warn => "warn",
+            ColorToken::WarnText => "warn-text",
+            ColorToken::WarnSubtle => "warn-subtle",
+            ColorToken::Ok => "ok",
+            ColorToken::OkText => "ok-text",
+            ColorToken::OkSubtle => "ok-subtle",
+            ColorToken::Run => "run",
+            ColorToken::RunText => "run-text",
+            ColorToken::RunSubtle => "run-subtle",
+            ColorToken::Wait => "wait",
+            ColorToken::WaitText => "wait-text",
+            ColorToken::WaitSubtle => "wait-subtle",
+            ColorToken::Done => "done",
+            ColorToken::Human => "human",
+            ColorToken::HumanText => "human-text",
+            ColorToken::HumanSubtle => "human-subtle",
+            ColorToken::DiffAdd => "diff-add",
+            ColorToken::DiffAddText => "diff-add-text",
+            ColorToken::DiffDel => "diff-del",
+            ColorToken::DiffDelText => "diff-del-text",
             ColorToken::CanvasDot => "canvas-dot",
         }
     }
@@ -274,7 +334,7 @@ impl Theme {
 }
 
 /// Parses `dashboard/theme.json`: the first missing, unknown or bad token,
-/// with its key path (`cssVars.light.good-text`).
+/// with its key path (`cssVars.light.ok-text`).
 pub fn parse(text: &str) -> Result<Theme, ConfigError> {
     let error = |path: String, message: String| ConfigError {
         file: THEME_FILE.to_owned(),
@@ -399,13 +459,13 @@ mod tests {
     #[test]
     fn the_example_parses_with_every_token() {
         let theme = parse(EXAMPLE).unwrap();
-        assert_eq!(theme.length(LengthToken::SidebarWidth), 220.0);
-        assert_eq!(theme.length(LengthToken::DagNodeHeight), 84.0);
-        assert_eq!(theme.color(ColorToken::Critical).light.packed(), 0xd03b3b);
-        assert_eq!(theme.color(ColorToken::GoodText).dark.packed(), 0x3cc79b);
+        assert_eq!(theme.length(LengthToken::SidebarWidth), 224.0);
+        assert_eq!(theme.length(LengthToken::DagNodeHeight), 52.0);
+        assert_eq!(theme.color(ColorToken::Fail).light.packed(), 0xd93036);
+        assert_eq!(theme.color(ColorToken::OkText).dark.packed(), 0x3cc79b);
         assert_eq!(
             theme.font(FontToken::Mono),
-            "\"SF Mono\", ui-monospace, Menlo, monospace"
+            "ui-monospace, \"SF Mono\", \"Cascadia Mono\", \"JetBrains Mono\", Menlo, Consolas, monospace"
         );
     }
 
@@ -415,12 +475,12 @@ mod tests {
             json["cssVars"]["light"]
                 .as_object_mut()
                 .unwrap()
-                .remove("good-text");
+                .remove("ok-text");
         });
         let error = error_of(&text);
         assert_eq!(error.file, "dashboard/theme.json");
-        assert_eq!(error.path, "cssVars.light.good-text");
-        assert!(error.to_string().contains("good-text"), "{error}");
+        assert_eq!(error.path, "cssVars.light.ok-text");
+        assert!(error.to_string().contains("ok-text"), "{error}");
         let text = edited(|json| {
             json["cssVars"]["theme"]
                 .as_object_mut()
@@ -445,10 +505,10 @@ mod tests {
     #[test]
     fn a_value_that_does_not_parse_is_an_error() {
         for (section, name, value) in [
-            ("light", "critical", Value::from("red")),
-            ("dark", "edge", Value::from("#12345")),
+            ("light", "fail", Value::from("red")),
+            ("dark", "run", Value::from("#12345")),
             ("theme", "space-2", Value::from("8")),
-            ("theme", "radius", Value::from("-2px")),
+            ("theme", "radius-panel", Value::from("-2px")),
             ("theme", "text-body", Value::from(14)),
             ("theme", "font-mono", Value::from("Menlo,,")),
         ] {

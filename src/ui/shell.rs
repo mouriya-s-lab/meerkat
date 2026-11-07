@@ -1,31 +1,35 @@
-//! The shell: in windows at least 900 pt wide a sidebar (the pages with
-//! their counts; the programs' and the GitHub API's state and the refresh
-//! button at its foot) beside the page; narrower windows keep the pages as
-//! tabs in a top bar. Every page opens with its title and a sentence that
-//! sums it up. The pages: the overview, 「议题」, the guardians' bases and
-//! the sessions.
+//! The shell (#9 「骨架与导航」): in windows at least 900 pt wide a 224 pt
+//! sidebar (Quorum, the ⌘K search, the pages in their groups with what
+//! needs you there, the programs and the GitHub API at its foot) beside
+//! the page; narrower windows keep the pages as tabs in a top bar. Each
+//! page opens under a toolbar with its title and, once, how fresh the data
+//! is. ⌘K opens the command bar, ⌘1… the pages in the sidebar's order, ⌘R
+//! refreshes.
 
 use std::rc::Rc;
 
 use nsh_base::{button, theme};
-use nsh_core::{element::Tokens, prelude::*};
+use nsh_core::{element::Tokens, keymap::When, prelude::*};
 
 use super::{
-    guardians::{self, Rewarms, guardians},
+    command::{self, Palette},
     icons::{Icon, icon},
-    issues::{self, IssuesState, Settings, issues},
-    overview::{self, overview},
-    parts::{Look, Span, meta, nothing, press, refresh_button, sentence},
-    sessions::{self, OpenSession, sessions},
+    issues::{self, IssuesState, Settings},
+    overview,
+    parts::{icon_button, kbd, meter, nothing, small},
+    runtime::{self, Rewarms},
+    sessions::{self, OpenSession, SessionsState},
     status::{self, Role},
-    tokens::{Type, Typeset, color, len},
+    text::Msg,
+    tokens::{Type, Typeset, color, font, len, mark},
 };
 use crate::{
-    attention::{self, Concern, Inputs, ProgramView},
-    config::{AppConfig, Attention, ColorToken::*, ConfigError, Digest, LengthToken::*},
-    gh::Credential,
-    programs::{BaseState, Program, ProgramClient},
-    sources::{ProgramSources, Source, Sources},
+    attention::{self, Concern, Inputs, Need, ProgramView},
+    config::{AppConfig, Attention, ColorToken::*, ConfigError, Digest, FontToken, LengthToken::*},
+    dag::{self, Council, Graph},
+    gh::{Credential, IssueRef},
+    programs::{BaseState, Program, ProgramClient, QueueState, SessionState},
+    sources::{ProgramSources, Sources},
     time,
 };
 
@@ -36,50 +40,59 @@ fn wide() -> bool {
     window().width >= px(WIDE)
 }
 
-/// A page of the app.
+/// A page of the app, in the sidebar's order.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Page {
     Overview,
     Issues,
-    Guardians,
     Sessions,
+    Runtime,
+}
+
+/// The sidebar's groups under 「概览」.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Group {
+    Council,
+    Run,
 }
 
 impl Page {
-    /// The pages, in the sidebar's order.
-    const ALL: [Page; 4] = [
-        Page::Overview,
-        Page::Issues,
-        Page::Guardians,
-        Page::Sessions,
-    ];
+    pub const ALL: [Page; 4] = [Page::Overview, Page::Issues, Page::Sessions, Page::Runtime];
 
-    fn label(self) -> &'static str {
+    pub fn title(self) -> Msg {
         match self {
-            Page::Overview => "概览",
-            Page::Issues => "议题",
-            Page::Guardians => "守护基座",
-            Page::Sessions => "会话",
+            Page::Overview => Msg::PageOverview,
+            Page::Issues => Msg::PageIssues,
+            Page::Sessions => Msg::PageSessions,
+            Page::Runtime => Msg::PageRuntime,
         }
     }
 
     fn icon(self) -> Icon {
         match self {
             Page::Overview => Icon::Overview,
-            Page::Issues => Icon::Issues,
-            Page::Guardians => Icon::Bases,
+            Page::Issues => Icon::Graph,
             Page::Sessions => Icon::Sessions,
+            Page::Runtime => Icon::Runtime,
+        }
+    }
+
+    fn group(self) -> Option<Group> {
+        match self {
+            Page::Overview => None,
+            Page::Issues | Page::Sessions => Some(Group::Council),
+            Page::Runtime => Some(Group::Run),
         }
     }
 }
 
-/// Which page shows, and which session the sessions page has open (a
-/// page may open one on another: a fork in the guardians page, a failed
-/// session in the overview).
+/// Which page shows, which session the sessions page has open, and whether
+/// the command bar is open.
 #[derive(Clone, Copy)]
 pub struct Nav {
     pub page: Signal<Page>,
     pub session: Signal<Option<OpenSession>>,
+    pub palette: Signal<bool>,
 }
 
 impl Nav {
@@ -98,11 +111,16 @@ pub struct Context {
     pub guardians: ProgramClient,
     pub attention: Attention,
     pub digest: Digest,
-    pub refresh_seconds: u64,
-    /// What needs a person, in the queue's order.
-    pub concerns: Memo<Rc<Vec<Concern>>>,
+    /// 「需要你处理」's rows, in the consequence order.
+    pub needs: Memo<Rc<Vec<Need>>>,
+    /// Every agenda issue, unfiltered (the command bar searches it).
+    pub all_issues: Memo<Option<Rc<Graph>>>,
     /// Each base's last rewarm, whichever page asked for it.
     pub rewarms: Rewarms,
+    /// The 「议题」 page's settings and what the user set on it.
+    pub issues_settings: Rc<Settings>,
+    pub issues: IssuesState,
+    pub sessions: SessionsState,
     /// Now, to the second, for the "… ago" texts.
     pub now: Signal<f64>,
 }
@@ -114,14 +132,19 @@ impl Context {
             Program::Guardians => &self.guardians,
         }
     }
-}
 
-/// The 「议题」 page's settings, and what the user set on it, which outlives
-/// a visit to the page.
-#[derive(Clone)]
-struct Issues {
-    settings: Rc<Settings>,
-    state: IssuesState,
+    /// The window `attention.sessionFailureHours` sets, in hours.
+    pub fn hours(&self) -> u32 {
+        self.attention.session_failure_hours.get()
+    }
+
+    /// Shows `issue` selected on the 「议题」 page.
+    pub fn open_issue(&self, nav: Nav, issue: IssueRef) {
+        batch(|| {
+            self.issues.select(Some(issue));
+            nav.page.set(Page::Issues);
+        });
+    }
 }
 
 /// The app for `config`, once NSH draws with `tokens` (the theme's, set
@@ -144,63 +167,96 @@ fn shell(config: &AppConfig) -> View {
         now.set(time::now_ms())
     });
     let attention_settings = config.attention.clone();
-    let concerns = computed(move || {
-        Rc::new(attention::ordered(concerns_of(
-            sources,
-            &attention_settings,
-        )))
+    let needs = computed(move || {
+        Rc::new(attention::needs(concerns_of(sources, &attention_settings)))
     });
+    let settings = Rc::new(Settings {
+        pm: config.repos.pm.repo.clone(),
+        fields: config.fields.clone(),
+    });
+    let pm = settings.pm.clone();
+    let all_issues = computed(move || graph_of(sources, &pm, false));
     let context = Rc::new(Context {
         council: ProgramClient::new(Program::Council, config.endpoints.council.clone()),
         guardians: ProgramClient::new(Program::Guardians, config.endpoints.guardians.clone()),
         attention: config.attention.clone(),
         digest: config.digest.clone(),
-        refresh_seconds: config.refresh.as_secs(),
-        concerns,
+        needs,
+        all_issues,
         rewarms: Rewarms::new(),
+        issues: IssuesState::new(config.filters),
+        issues_settings: settings,
+        sessions: SessionsState::new(),
         now,
     });
-    let settings = Settings {
-        list: config.list.clone(),
-        pm: config.repos.pm.repo.clone(),
-        fields: config.fields.clone(),
-    };
-    let issues = Issues {
-        state: IssuesState::new(&settings, config.filters),
-        settings: Rc::new(settings),
-    };
     let nav = Nav {
         page: signal(Page::Overview),
         session: signal(None),
+        palette: signal(false),
     };
+    on_key("mod+k", move |_| nav.palette.update(|open| *open = !*open));
+    on_key("mod+r", move |_| sources.refresh());
+    for (i, page) in Page::ALL.into_iter().enumerate() {
+        on_key(&format!("mod+{}", i + 1), move |_| {
+            batch(|| {
+                nav.palette.set(false);
+                nav.page.set(page);
+            })
+        });
+    }
+    let palette = Palette::new();
     view()
         .flex_1()
         .bg(color(Background))
         .text_color(color(Foreground))
-        .font_family(super::tokens::font(crate::config::FontToken::Sans))
+        .font_family(font(FontToken::Sans))
         .child(
             when(wide, {
                 let context = context.clone();
-                let issues = issues.clone();
                 move || {
                     view()
                         .flex_1()
                         .flex_row()
                         .child(sidebar(sources, context.clone(), nav))
-                        .child(page(sources, context.clone(), issues.clone(), nav))
+                        .child(main(sources, context.clone(), nav))
                 }
             })
-            .otherwise(move || {
-                view()
-                    .flex_1()
-                    .child(top_bar(sources, context.clone(), nav))
-                    .child(page(sources, context.clone(), issues.clone(), nav))
+            .otherwise({
+                let context = context.clone();
+                move || {
+                    view()
+                        .flex_1()
+                        .child(top_bar(sources, context.clone(), nav))
+                        .child(main(sources, context.clone(), nav))
+                }
             }),
         )
+        .child(when(move || nav.palette.get(), move || {
+            command::bar(sources, context.clone(), nav, palette)
+        }))
 }
 
+/// The agenda issues, once the Project and the queue (or its failure) are
+/// in; only human issues and their successors when `human_only`.
+pub fn graph_of(sources: Sources, pm: &crate::config::RepoName, human_only: bool) -> Option<Rc<Graph>> {
+    let unreachable = sources.queue.with_error(|e| e.is_some());
+    sources.project.with(|project| {
+        let items = &project?.data;
+        sources.queue.with(|queue| {
+            let council = match (unreachable, queue) {
+                (true, _) => Council::Unreachable,
+                (false, Some(queue)) => Council::Queue(&queue.data),
+                // The queue's first answer is still on its way.
+                (false, None) => return None,
+            };
+            Some(Rc::new(dag::build(items, council, pm, human_only)))
+        })
+    })
+}
+
+/// Every concern among the sources' latest values (tracked).
 fn concerns_of(sources: Sources, settings: &Attention) -> Vec<Concern> {
-    let data = |s: &Source<Vec<crate::programs::Session>>| s.get().map(|l| l.data);
+    let data = |s: &crate::sources::Source<Vec<crate::programs::Session>>| s.get().map(|l| l.data);
     let bases = sources.bases.get().map(|l| l.data);
     let queue = sources.queue.get().map(|l| l.data);
     let escalations = sources.escalations.get().map(|l| l.data);
@@ -229,12 +285,7 @@ fn concerns_of(sources: Sources, settings: &Attention) -> Vec<Concern> {
             queue: queue.as_deref(),
             escalations: escalations.as_deref(),
             rate: rate.as_ref(),
-            council: view(
-                &sources.council,
-                &council_error,
-                council_at,
-                &council_sessions,
-            ),
+            council: view(&sources.council, &council_error, council_at, &council_sessions),
             guardians: view(
                 &sources.guardians,
                 &guardians_error,
@@ -247,265 +298,257 @@ fn concerns_of(sources: Sources, settings: &Attention) -> Vec<Concern> {
     )
 }
 
-/// The page's title and summary over its content.
-fn page(sources: Sources, context: Rc<Context>, issues_page: Issues, nav: Nav) -> View {
-    let header = {
-        let context = context.clone();
-        let issues_page = issues_page.clone();
-        dynamic(move || {
-            let current = nav.page.get();
-            let spans = match current {
-                Page::Overview => overview::summary(sources, &context),
-                Page::Issues => issues::summary(sources, issues_page.state),
-                Page::Guardians => guardians::summary(sources),
-                Page::Sessions => sessions::summary(sources, &context),
-            };
-            untracked(move || {
-                view()
-                    .gap(len(Space1))
-                    .flex_1()
-                    .min_w(Points::ZERO)
-                    .child(
-                        text(current.label())
-                            .ty(Type::Title)
-                            .font_weight(FontWeight::SEMIBOLD),
-                    )
-                    .child(sentence(spans))
-                    .into_element()
-            })
-        })
-    };
-    let refreshed = {
-        let context = context.clone();
-        meta(move || {
-            format!(
-                "{}刷新",
-                time::ago(sources.last_refresh.get(), context.now.get())
-            )
-        })
-    };
+/// The page under its toolbar.
+fn main(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
     view()
         .flex_1()
         .min_w(Points::ZERO)
         .min_h(Points::ZERO)
-        .child(
-            view()
-                .flex_row()
-                .items_start()
-                .gap(len(Space4))
-                .px(len(Space6))
-                .pt(len(Space5))
-                .child(header)
-                .child(refreshed),
-        )
+        .child(toolbar(sources, context.clone(), nav))
         .child(dynamic(move || {
             let context = context.clone();
             match nav.page.get() {
-                Page::Overview => scroll()
-                    .flex_1()
-                    .child(overview(sources, context, nav))
-                    .into_element(),
-                Page::Issues => {
-                    issues(sources, issues_page.settings.clone(), issues_page.state).into_element()
-                }
-                Page::Guardians => scroll()
-                    .flex_1()
-                    .child(guardians(sources, context, nav))
-                    .into_element(),
-                Page::Sessions => sessions(sources, context, nav).into_element(),
+                Page::Overview => overview::page(sources, context, nav).into_element(),
+                Page::Issues => issues::page(sources, context, nav).into_element(),
+                Page::Sessions => sessions::page(sources, context, nav).into_element(),
+                Page::Runtime => runtime::page(sources, context, nav).into_element(),
             }
         }))
 }
 
-/// A page's count in the sidebar, red when something there failed.
-fn count(sources: Sources, context: &Context, page: Page) -> Option<(String, bool)> {
+/// The page's title (and its window, for the sessions), and how fresh the
+/// data is with the refresh button: the only place that says so.
+fn toolbar(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
+    let hours = context.hours();
+    view()
+        .flex_row()
+        .flex_shrink_0()
+        .items_center()
+        .gap(len(Space3))
+        .h(len(Toolbar))
+        .px(len(Space6))
+        .border_b_1()
+        .border_b_color(color(Border))
+        .child(text(move || SharedString::from(nav.page.get().title())).ty(Type::Title))
+        .child(dynamic(move || match nav.page.get() {
+            Page::Sessions => small(SharedString::from(Msg::LastHours(hours))).into_element(),
+            _ => nothing(),
+        }))
+        .child(view().flex_1())
+        .child(small(move || {
+            SharedString::from(Msg::Updated(time::ago(
+                sources.last_refresh.get(),
+                context.now.get(),
+            )))
+        }))
+        .child(icon_button(Icon::Refresh, Msg::Refresh, move || sources.refresh()))
+}
+
+/// A page's count in the sidebar, and whether it is a failure's: only what
+/// needs you there (#9 「计数的含义」).
+fn count(sources: Sources, context: &Context, page: Page) -> Option<(usize, bool)> {
     match page {
         Page::Overview => {
-            let concerns = context.concerns.get();
-            (!concerns.is_empty()).then(|| {
-                (
-                    concerns.len().to_string(),
-                    concerns.iter().any(Concern::failure),
-                )
-            })
+            let needs = context.needs.get();
+            (!needs.is_empty()).then(|| (needs.len(), needs.iter().any(Need::failure)))
         }
-        Page::Issues => sources
-            .queue
-            .with(|q| q.map(|q| (q.data.len().to_string(), false))),
-        Page::Guardians => sources.bases.with(|b| {
-            b.map(|b| {
-                let ready = b
+        Page::Issues => sources.queue.with(|q| {
+            q.map(|q| {
+                let open = q
                     .data
                     .iter()
-                    .filter(|b| b.state == BaseState::Ready)
+                    .filter(|e| !matches!(e.state, QueueState::Decided | QueueState::Superseded))
                     .count();
-                let failed = b.data.iter().any(|b| b.state == BaseState::Failed);
-                (format!("{ready}/{}", b.data.len()), failed)
+                (open, false)
             })
         }),
-        Page::Sessions => None,
+        Page::Sessions => {
+            let running = [sources.council.sessions, sources.guardians.sessions]
+                .into_iter()
+                .map(|s| {
+                    s.with(|l| {
+                        l.map_or(0, |l| {
+                            l.data
+                                .iter()
+                                .filter(|s| s.state == SessionState::Running)
+                                .count()
+                        })
+                    })
+                })
+                .sum();
+            Some((running, false))
+        }
+        Page::Runtime => sources.bases.with(|b| {
+            let b = b?;
+            let failed = b.data.iter().any(|b| b.state == BaseState::Failed);
+            let n = b
+                .data
+                .iter()
+                .filter(|b| b.state == BaseState::Failed || b.stale)
+                .count();
+            (n > 0).then_some((n, failed))
+        }),
     }
 }
 
 fn sidebar(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
+    let group_label = |group: Group| {
+        small(SharedString::from(match group {
+            Group::Council => Msg::GroupCouncil,
+            Group::Run => Msg::GroupRun,
+        }))
+        .px(len(Space2))
+        .pt(len(Space4))
+        .pb(len(Space1))
+    };
+    let mut items: Vec<AnyElement> = Vec::new();
+    let mut last = None;
+    for page in Page::ALL {
+        if page.group() != last {
+            if let Some(group) = page.group() {
+                items.push(group_label(group).into_element());
+            }
+            last = page.group();
+        }
+        items.push(nav_item(sources, context.clone(), nav, page).into_element());
+    }
     view()
         .w(len(SidebarWidth))
         .flex_shrink_0()
         .px(len(Space3))
-        .py(len(Space4))
-        .bg(color(Card))
+        .pt(len(Space3))
+        .pb(len(Space3))
+        .gap(len(Space1) / 2.0)
+        .bg(color(Sidebar))
         .border_r_1()
         .border_r_color(color(Border))
-        .child(
-            view()
-                .flex_row()
-                .items_center()
-                .gap(len(Space2))
-                .px(len(Space2))
-                .pb(len(Space4))
-                .child(
-                    view()
-                        .size(len(Space5))
-                        .items_center()
-                        .justify_center()
-                        .rounded(len(RadiusControl))
-                        .bg(color(Foreground))
-                        .child(
-                            text("Q")
-                                .ty(Type::Dense)
-                                .font_weight(FontWeight::BOLD)
-                                .text_color(color(Card)),
-                        ),
-                )
-                .child(
-                    text("Quorum")
-                        .ty(Type::Heading)
-                        .font_weight(FontWeight::SEMIBOLD),
-                ),
-        )
-        .children(Page::ALL.map(|page| {
-            let context = context.clone();
-            let current = move || nav.page.get() == page;
-            button()
-                .on_press(move || nav.page.set(page))
-                .accessibility_label(page.label())
-                .selected(current)
-                .role(Some(AccessibilityRole::Tab))
-                .flex_row()
-                .items_center()
-                .gap(len(Space2))
-                .h(len(Space6))
-                .px(len(Space2))
-                .rounded(len(RadiusControl))
-                .bg(move || {
-                    if current() {
-                        color(Accent)
-                    } else {
-                        color(Card)
-                    }
-                })
-                .hover(|s| s.bg(color(Accent)))
-                .cursor_pointer()
-                .child(icon(page.icon(), move || {
-                    if current() {
-                        color(Foreground)
-                    } else {
-                        color(Ink2)
-                    }
-                }))
-                .child(
-                    text(page.label())
-                        .ty(Type::Body)
-                        .flex_1()
-                        .font_weight(if current() {
-                            FontWeight::SEMIBOLD
-                        } else {
-                            FontWeight::NORMAL
-                        })
-                        .text_color(move || {
-                            if current() {
-                                color(Foreground)
-                            } else {
-                                color(Ink2)
-                            }
-                        }),
-                )
-                .child(dynamic(move || match count(sources, &context, page) {
-                    Some((n, alert)) => text(n)
-                        .ty(Type::Meta)
-                        .tabular_nums()
-                        .font_weight(if alert {
-                            FontWeight::SEMIBOLD
-                        } else {
-                            FontWeight::NORMAL
-                        })
-                        .text_color(if alert {
-                            Role::Critical.text()
-                        } else {
-                            color(MutedForeground)
-                        })
-                        .into_element(),
-                    None => nothing(),
-                }))
-        }))
+        .child(brand())
+        .child(search_button(nav).mt(len(Space2)).mb(len(Space3)))
+        .children(items)
         .child(view().flex_1())
-        .child(health_footer(sources, context))
+        .child(footer(sources, context))
 }
 
-/// The programs' health, the GitHub API's allowance and the refresh
-/// button: the sidebar's foot.
-fn health_footer(sources: Sources, context: Rc<Context>) -> View {
+/// The app's icon and name: once.
+fn brand() -> View {
+    view()
+        .flex_row()
+        .items_center()
+        .gap(len(Space2))
+        .h(len(Control))
+        .px(len(Space2))
+        .child(
+            view()
+                .size(len(Space5))
+                .items_center()
+                .justify_center()
+                .rounded(len(RadiusControl))
+                .bg(color(Foreground))
+                .child(text("Q").ty(Type::Label).text_color(color(Background))),
+        )
+        .child(text("Quorum").ty(Type::Heading))
+}
+
+/// The search field that opens the command bar.
+fn search_button(nav: Nav) -> nsh_base::ButtonElement {
+    button()
+        .on_press(move || nav.palette.set(true))
+        .accessibility_label(SharedString::from(Msg::SearchHint))
+        .flex_row()
+        .items_center()
+        .gap(len(Space2))
+        .h(len(Control))
+        .px(len(Space2))
+        .rounded(len(RadiusControl))
+        .border_1()
+        .border_color(color(Border))
+        .bg(color(Background))
+        .hover(|s| s.border_color(color(BorderStrong)))
+        .cursor_pointer()
+        .child(icon(Icon::Search, || color(Ink3)))
+        .child(small(SharedString::from(Msg::SearchHint)).flex_1().number_of_lines(1))
+        .child(kbd(Msg::KeyPalette))
+}
+
+fn nav_item(sources: Sources, context: Rc<Context>, nav: Nav, page: Page) -> impl IntoElement {
+    let current = move || nav.page.get() == page;
+    button()
+        .on_press(move || nav.page.set(page))
+        .accessibility_label(SharedString::from(page.title()))
+        .selected(current)
+        .role(Some(AccessibilityRole::Tab))
+        .flex_row()
+        .items_center()
+        .gap(len(Space2))
+        .h(len(Row) - len(Space1))
+        .pl(len(Space2) - mark())
+        .pr(len(Space2))
+        .rounded(len(RadiusControl))
+        .border_l(mark())
+        .border_l_color(move || if current() { color(Selection) } else { super::parts::clear() })
+        .bg(move || if current() { color(NavSelected) } else { super::parts::clear() })
+        .hover(|s| s.bg(color(Accent)))
+        .cursor_pointer()
+        .child(icon(page.icon(), move || {
+            if current() { color(Foreground) } else { color(Ink2) }
+        }))
+        .child(
+            text(SharedString::from(page.title()))
+                .ty(Type::Body)
+                .flex_1()
+                .text_color(move || if current() { color(Foreground) } else { color(Ink2) }),
+        )
+        .child(dynamic(move || match count(sources, &context, page) {
+            Some((n, failed)) => text(n.to_string())
+                .ty(Type::Label)
+                .text_color(if failed { Role::Fail.text() } else { color(Ink3) })
+                .into_element(),
+            None => nothing(),
+        }))
+}
+
+/// The programs' state and versions, the GitHub API's allowance and when
+/// it resets: the sidebar's foot.
+fn footer(sources: Sources, context: Rc<Context>) -> View {
     view()
         .gap(len(Space2))
         .pt(len(Space3))
         .px(len(Space2))
         .border_t_1()
         .border_t_color(color(Border))
-        .child(program_line(sources.council, context.clone()))
-        .child(program_line(sources.guardians, context.clone()))
-        .child(rate_line(sources, context.clone()))
-        .child(refresh_button(
-            format!("刷新 · 每 {} 秒", context.refresh_seconds),
-            move || sources.refresh(),
-        ))
+        .child(program_line(sources.council))
+        .child(program_line(sources.guardians))
+        .child(rate_block(sources, context))
 }
 
-fn foot_row(label: &'static str) -> View {
+fn program_line(program: ProgramSources) -> View {
+    let health = program.health;
+    let name = program.program;
     view()
         .flex_row()
         .items_center()
         .gap(len(Space2))
-        .child(text(label).ty(Type::Meta).text_color(color(Ink2)))
+        .child(dynamic(move || {
+            let failed = health.with_error(|e| e.is_some());
+            let loaded = health.with(|l| l.is_some());
+            match (failed, loaded) {
+                (false, false) => small(SharedString::from(Msg::Checking)).into_element(),
+                _ => {
+                    let state = status::program(!failed);
+                    status::glyph(state.glyph, state.role).into_element()
+                }
+            }
+        }))
+        .child(text(SharedString::from(Msg::Program(name))).ty(Type::Small).flex_1())
+        .child(small(move || {
+            health
+                .with(|l| l.map(|l| SharedString::from(l.data.version.clone())))
+                .unwrap_or_default()
+        }))
 }
 
-fn program_line(program: ProgramSources, context: Rc<Context>) -> View {
-    let health = program.health;
-    foot_row(program.program.label()).child(dynamic(move || {
-        let failed = health.with_error(|e| e.is_some());
-        let at = health.with(|l| l.map(|l| l.at));
-        let now = context.now.get();
-        untracked(move || {
-            let state = match (failed, at) {
-                (false, None) => return meta("检查中…").into_element(),
-                (failed, _) => status::program(!failed),
-            };
-            view()
-                .flex_1()
-                .flex_row()
-                .items_center()
-                .child(status::label(&state, Type::Meta))
-                .child(view().flex_1())
-                .child(meta(
-                    at.map(|at| time::ago(at, now))
-                        .unwrap_or_else(|| "从未成功".to_owned()),
-                ))
-                .into_element()
-        })
-    }))
-}
-
-fn rate_line(sources: Sources, context: Rc<Context>) -> View {
-    foot_row("GitHub API").child(dynamic(move || {
+fn rate_block(sources: Sources, context: Rc<Context>) -> View {
+    view().gap(len(Space1)).child(dynamic(move || {
         let threshold = context.attention.rate_limit_percent.get();
         let lowest = sources.rate.with(|rate| {
             rate.and_then(|loaded| {
@@ -514,29 +557,41 @@ fn rate_line(sources: Sources, context: Rc<Context>) -> View {
                     .buckets()
                     .into_iter()
                     .min_by_key(|(_, b)| b.remaining * 1000 / b.limit.max(1))
-                    .map(|(_, b)| (b.below(threshold), format!("{}/{}", b.remaining, b.limit)))
+                    .map(|(_, b)| b)
             })
         });
-        untracked(move || match lowest {
-            Some((low, left)) => view()
-                .flex_1()
-                .flex_row()
-                .items_center()
-                .gap(len(Space2))
-                .when(low, |row| {
-                    row.child(status::label(&status::rate_low(), Type::Meta))
-                })
-                .when(!low, |row| row.child(meta("余量")))
-                .child(view().flex_1())
-                .child(meta(left).tabular_nums())
-                .into_element(),
-            None => meta("未知").into_element(),
+        untracked(move || {
+            let Some(bucket) = lowest else {
+                return view()
+                    .flex_row()
+                    .child(text("GitHub API").ty(Type::Small).flex_1())
+                    .child(small(SharedString::from(Msg::Unknown)))
+                    .into_element();
+            };
+            let low = bucket.below(threshold);
+            let share = bucket.remaining as f32 / bucket.limit.max(1) as f32;
+            view()
+                .gap(len(Space1))
+                .child(
+                    view()
+                        .flex_row()
+                        .items_center()
+                        .gap(len(Space2))
+                        .child(text("GitHub API").ty(Type::Small).flex_1())
+                        .children(low.then(|| status::glyph(status::Glyph::Triangle, Role::Warn)))
+                        .child(small(Msg::Allowance(bucket.remaining, bucket.limit).to_string())),
+                )
+                .child(meter(share, if low { Role::Warn.ink() } else { Role::Ok.ink() }))
+                .child(small(
+                    Msg::Resets(time::hm(bucket.reset as f64 * 1000.0)).to_string(),
+                ))
+                .into_element()
         })
     }))
 }
 
-/// The pages as tabs, the API's allowance and the refresh button: the top
-/// of windows without the sidebar.
+/// The pages as tabs and the freshness: the top of windows without the
+/// sidebar.
 fn top_bar(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
     view()
         .flex_row()
@@ -545,59 +600,47 @@ fn top_bar(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
         .gap(len(Space2))
         .px(len(Space4))
         .py(len(Space2))
-        .bg(color(Card))
+        .bg(color(Sidebar))
         .border_b_1()
         .border_b_color(color(Border))
-        .child(
-            text("Quorum")
-                .ty(Type::Heading)
-                .font_weight(FontWeight::SEMIBOLD),
-        )
+        .child(text("Quorum").ty(Type::Heading))
         .child(
             view()
                 .flex_row()
                 .role(AccessibilityRole::Tablist)
                 .gap(len(Space1))
                 .children(Page::ALL.map(|page| {
+                    let context = context.clone();
                     let current = move || nav.page.get() == page;
                     button()
                         .on_press(move || nav.page.set(page))
-                        .accessibility_label(page.label())
+                        .accessibility_label(SharedString::from(page.title()))
                         .selected(current)
                         .role(Some(AccessibilityRole::Tab))
+                        .flex_row()
+                        .items_center()
+                        .gap(len(Space1))
+                        .h(len(Control))
                         .px(len(Space2))
-                        .py(len(Space1))
                         .rounded(len(RadiusControl))
-                        .bg(move || {
-                            if current() {
-                                color(Accent)
-                            } else {
-                                color(Card)
-                            }
-                        })
+                        .bg(move || if current() { color(NavSelected) } else { super::parts::clear() })
                         .cursor_pointer()
                         .child(
-                            text(page.label())
-                                .ty(Type::Dense)
-                                .font_weight(FontWeight::MEDIUM)
-                                .text_color(move || {
-                                    if current() {
-                                        color(Foreground)
-                                    } else {
-                                        color(Ink2)
-                                    }
-                                }),
+                            text(SharedString::from(page.title()))
+                                .ty(Type::Label)
+                                .text_color(move || if current() { color(Foreground) } else { color(Ink2) }),
                         )
+                        .child(dynamic(move || match count(sources, &context, page) {
+                            Some((n, failed)) => text(n.to_string())
+                                .ty(Type::Small)
+                                .text_color(if failed { Role::Fail.text() } else { color(Ink3) })
+                                .into_element(),
+                            None => nothing(),
+                        }))
                 })),
         )
         .child(view().flex_1())
-        .child(program_line(sources.council, context.clone()).min_w(len(SidebarWidth)))
-        .child(press(
-            format!("刷新 · 每 {} 秒", context.refresh_seconds),
-            Look::Plain,
-            true,
-            move || sources.refresh(),
-        ))
+        .child(icon_button(Icon::Search, Msg::SearchHint, move || nav.palette.set(true)))
 }
 
 /// The config could not be read: which file, which key and why. Drawn
@@ -619,31 +662,23 @@ pub fn config_error(error: &ConfigError) -> AnyElement {
                 .border_color(move || theme().destructive)
                 .bg(move || theme().card)
                 .child(
-                    text("配置错误")
+                    text(SharedString::from(Msg::ConfigError))
                         .font_weight(FontWeight::SEMIBOLD)
                         .text_color(move || theme().destructive),
                 )
                 .child(text(error.to_string()).text_sm().selectable(true))
                 .child(
-                    text(
-                        "PM_CONFIG_DIR 应指向 PM 配置目录（含 dashboard/dashboard.yaml、dashboard/theme.json、shared/repos.yaml、shared/project.yaml）；修正后重新启动。",
-                    )
-                    .text_xs()
-                    .text_color(move || theme().muted_foreground),
+                    text(SharedString::from(Msg::ConfigHint))
+                        .text_xs()
+                        .text_color(move || theme().muted_foreground),
                 ),
         )
         .into_element()
 }
 
-/// Spans of a summary sentence.
-pub(super) fn plain(text: impl Into<String>) -> Span {
-    Span::Plain(text.into())
-}
-
-pub(super) fn strong(text: impl ToString) -> Span {
-    Span::Strong(text.to_string())
-}
-
-pub(super) fn critical(text: impl Into<String>) -> Span {
-    Span::Critical(text.into())
+pub(super) fn keys_when_typing() -> KeyOptions {
+    KeyOptions {
+        when: When::Always,
+        repeat: true,
+    }
 }

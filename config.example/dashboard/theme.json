@@ -1,39 +1,48 @@
 {
   "cssVars": {
     "theme": {
-      "font-sans": "-apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Hiragino Sans GB\", system-ui, sans-serif",
-      "font-mono": "\"SF Mono\", ui-monospace, Menlo, monospace",
-      "radius": "8px", "radius-control": "6px",
-      "text-title": "20px", "text-heading": "15px", "text-body": "14px", "text-dense": "13px", "text-meta": "12px", "text-kpi": "26px",
-      "space-1": "4px", "space-2": "8px", "space-3": "12px", "space-4": "16px", "space-5": "24px", "space-6": "32px",
-      "row-dense": "36px", "row-attention": "60px", "sidebar-width": "220px",
-      "dag-node-width": "220px", "dag-node-height": "84px", "dag-layer-gap": "36px", "dag-node-gap": "24px"
+      "font-sans": "system-ui, -apple-system, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Noto Sans CJK SC\", sans-serif",
+      "font-mono": "ui-monospace, \"SF Mono\", \"Cascadia Mono\", \"JetBrains Mono\", Menlo, Consolas, monospace",
+      "text-title": "20px", "text-heading": "13px", "text-body": "13px", "text-small": "12px", "text-num": "22px", "text-mono": "12px",
+      "space-1": "4px", "space-2": "8px", "space-3": "12px", "space-4": "16px", "space-5": "20px", "space-6": "24px", "space-8": "32px",
+      "row": "32px", "row-log": "28px", "row-group": "56px", "control": "28px", "toolbar": "52px",
+      "sidebar-width": "224px", "inspector-width": "340px", "mark": "2px",
+      "radius-control": "6px", "radius-panel": "10px", "radius-chip": "4px",
+      "dag-node-width": "220px", "dag-node-height": "52px", "dag-column-gap": "80px", "dag-node-gap": "24px"
     },
     "light": {
-      "background": "#f7f7f5", "foreground": "#18181a", "card": "#ffffff", "card-foreground": "#18181a",
-      "popover": "#ffffff", "popover-foreground": "#18181a", "primary": "#18181a", "primary-foreground": "#ffffff",
-      "secondary": "#f1f1ef", "secondary-foreground": "#18181a", "muted": "#f1f1ef", "muted-foreground": "#6b6a65",
-      "accent": "#eceae6", "accent-foreground": "#18181a", "destructive": "#d03b3b", "border": "#e4e3de", "input": "#d6d5cf", "ring": "#2a78d6",
-      "ink-2": "#4f4e4a", "border-strong": "#cfcec8", "selection": "#2a78d6",
-      "critical": "#d03b3b", "critical-text": "#b42828", "critical-subtle": "#fdecec",
-      "warning": "#d99a00", "warning-text": "#8a5d00", "warning-subtle": "#fdf3dc",
-      "good": "#12805c", "good-text": "#0d6b4c", "good-subtle": "#e3f4ed",
-      "active": "#2a78d6", "active-text": "#1d5fb8", "active-subtle": "#e8f0fc",
-      "neutral": "#8f8e89", "neutral-text": "#5c5b57", "neutral-subtle": "#f1f1ef",
-      "edge": "#b9b8b2", "canvas-dot": "#e2e1dc"
+      "background": "#ffffff", "foreground": "#18181b", "card": "#ffffff", "card-foreground": "#18181b",
+      "popover": "#ffffff", "popover-foreground": "#18181b", "primary": "#0a66e4", "primary-foreground": "#ffffff",
+      "secondary": "#f4f4f5", "secondary-foreground": "#18181b", "muted": "#f8f8f9", "muted-foreground": "#8e8e96",
+      "accent": "#f2f2f4", "accent-foreground": "#18181b", "destructive": "#d93036", "border": "#e7e7ea", "input": "#d4d4d8", "ring": "#0a66e4",
+      "sidebar": "#f4f4f5", "sunken": "#f8f8f9", "selected": "#e8f0fe", "nav-selected": "#e4e4e7", "selection": "#0a66e4",
+      "ink-2": "#52525b", "ink-3": "#8e8e96", "ink-4": "#c4c4cb", "border-strong": "#d4d4d8",
+      "fail": "#d93036", "fail-text": "#b4232a", "fail-subtle": "#fdecec",
+      "warn": "#e58a00", "warn-text": "#9a5b00", "warn-subtle": "#fdf3e1",
+      "ok": "#12805c", "ok-text": "#0d6b4c", "ok-subtle": "#e3f4ed",
+      "run": "#0a66e4", "run-text": "#0a55c0", "run-subtle": "#e8f0fe",
+      "wait": "#8e8e96", "wait-text": "#52525b", "wait-subtle": "#f2f2f4",
+      "done": "#a1a1aa",
+      "human": "#b04ad0", "human-text": "#8a2fa8", "human-subtle": "#f6e9fb",
+      "diff-add": "#e6f5ec", "diff-add-text": "#1f7a43", "diff-del": "#fdecec", "diff-del-text": "#b4232a",
+      "canvas-dot": "#e4e4e7"
     },
     "dark": {
-      "background": "#0f0f11", "foreground": "#ededec", "card": "#17171a", "card-foreground": "#ededec",
-      "popover": "#1f1f23", "popover-foreground": "#ededec", "primary": "#ededec", "primary-foreground": "#17171a",
-      "secondary": "#26262a", "secondary-foreground": "#ededec", "muted": "#1f1f23", "muted-foreground": "#94938e",
-      "accent": "#26262a", "accent-foreground": "#ededec", "destructive": "#d03b3b", "border": "#2a2a2f", "input": "#3a3a40", "ring": "#3b82f6",
-      "ink-2": "#c2c1bc", "border-strong": "#3a3a40", "selection": "#3b82f6",
-      "critical": "#d03b3b", "critical-text": "#ff7b7b", "critical-subtle": "#3a1a1c",
-      "warning": "#e2a336", "warning-text": "#f0b84a", "warning-subtle": "#33270e",
-      "good": "#16a085", "good-text": "#3cc79b", "good-subtle": "#10302a",
-      "active": "#3b82f6", "active-text": "#78a9ff", "active-subtle": "#172a47",
-      "neutral": "#7d7c78", "neutral-text": "#a8a7a2", "neutral-subtle": "#26262a",
-      "edge": "#4a4a50", "canvas-dot": "#232328"
+      "background": "#1c1c1f", "foreground": "#f2f2f3", "card": "#1c1c1f", "card-foreground": "#f2f2f3",
+      "popover": "#232327", "popover-foreground": "#f2f2f3", "primary": "#3b82f6", "primary-foreground": "#0b1220",
+      "secondary": "#232327", "secondary-foreground": "#f2f2f3", "muted": "#212124", "muted-foreground": "#85858e",
+      "accent": "#2a2a2e", "accent-foreground": "#f2f2f3", "destructive": "#d33a3c", "border": "#313136", "input": "#44444b", "ring": "#3b82f6",
+      "sidebar": "#232327", "sunken": "#212124", "selected": "#1d3354", "nav-selected": "#34343a", "selection": "#3b82f6",
+      "ink-2": "#b4b4bb", "ink-3": "#85858e", "ink-4": "#55555c", "border-strong": "#44444b",
+      "fail": "#d33a3c", "fail-text": "#ff8589", "fail-subtle": "#3a1d20",
+      "warn": "#c58501", "warn-text": "#ffc266", "warn-subtle": "#3a2c14",
+      "ok": "#16a085", "ok-text": "#3cc79b", "ok-subtle": "#10302a",
+      "run": "#3b82f6", "run-text": "#8ab8ff", "run-subtle": "#1d3354",
+      "wait": "#85858e", "wait-text": "#b4b4bb", "wait-subtle": "#2a2a2e",
+      "done": "#6b6b73",
+      "human": "#d17cf0", "human-text": "#e2a6f7", "human-subtle": "#35213f",
+      "diff-add": "#173325", "diff-add-text": "#6fd897", "diff-del": "#3a1d20", "diff-del-text": "#ff8589",
+      "canvas-dot": "#2c2c31"
     }
   }
 }

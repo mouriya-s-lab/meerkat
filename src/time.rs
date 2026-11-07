@@ -37,19 +37,59 @@ pub fn short(text: &str) -> String {
     }
 }
 
-/// How long before `now` (Unix milliseconds) `at` was: `刚刚`, `12 秒前`,
-/// `5 分钟前`, `3 小时前`, `2 天前`.
-pub fn ago(at: f64, now: f64) -> String {
+/// How long before `now` (Unix milliseconds) `at` was, in the largest
+/// whole unit (the UI words it: 「刚刚」, 「12 秒前」, 「3 小时」).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Ago {
+    /// Under five seconds.
+    Now,
+    Seconds(u64),
+    Minutes(u64),
+    Hours(u64),
+    Days(u64),
+}
+
+pub fn ago(at: f64, now: f64) -> Ago {
     let seconds = ((now - at) / 1000.0).max(0.0) as u64;
     match seconds {
-        0..5 => "刚刚".to_owned(),
-        5..60 => format!("{seconds} 秒前"),
-        60..3600 => format!("{} 分钟前", seconds / 60),
-        3600..86400 => format!("{} 小时前", seconds / 3600),
-        _ => format!("{} 天前", seconds / 86400),
+        0..5 => Ago::Now,
+        5..60 => Ago::Seconds(seconds),
+        60..3600 => Ago::Minutes(seconds / 60),
+        3600..86400 => Ago::Hours(seconds / 3600),
+        _ => Ago::Days(seconds / 86400),
     }
 }
 
+/// `HH:MM` of a time in Unix milliseconds.
+pub fn hm(ms: f64) -> String {
+    Timestamp::from_millisecond(ms as i64)
+        .map(|at| at.to_zoned(TimeZone::system()).strftime("%H:%M").to_string())
+        .unwrap_or_default()
+}
+
+/// `MM-DD HH:MM:SS` of an RFC 3339 timestamp, or the text as it is.
+pub fn seconds(text: &str) -> String {
+    match parse(text) {
+        Some(at) => at
+            .to_zoned(TimeZone::system())
+            .strftime("%m-%d %H:%M:%S")
+            .to_string(),
+        None => text.to_owned(),
+    }
+}
+
+/// How many of `times` (Unix milliseconds) fall in each of the `hours`
+/// hours up to `now`, oldest first.
+pub fn hourly(times: impl IntoIterator<Item = f64>, now: f64, hours: usize) -> Vec<u32> {
+    let mut counts = vec![0; hours];
+    for at in times {
+        let back = ((now - at) / 3_600_000.0).floor();
+        if back >= 0.0 && (back as usize) < hours {
+            counts[hours - 1 - back as usize] += 1;
+        }
+    }
+    counts
+}
 /// A duration in milliseconds as the logs show it: `0.4s`, `8s`,
 /// `4m 51s`, `1h 05m`.
 pub fn span(ms: f64) -> String {

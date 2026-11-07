@@ -1,845 +1,838 @@
-//! The overview (C4 `overviewView`), top to bottom: five KPIs, what needs
-//! a person (failures first, each with its action), the queue's progress,
-//! the programs, and the recent LLM errors. Each part shows its own
-//! sources' trouble; a failing source leaves the others as they are.
+//! 「概览」(C4 `overviewView`, #9 「概览的构成」): on the left a sentence
+//! on the programs and what waits for you, 「需要你处理」 with the failed
+//! sessions grouped by program and kind in the order of their
+//! consequences, and the council's queue; on the right the programs, the
+//! sessions of the attention window, the guardian bases and the sessions'
+//! errors.
 
 use std::rc::Rc;
 
+use nsh_base::button;
 use nsh_core::prelude::*;
 
 use super::{
-    guardians::rewarm_button,
+    icons::{Icon, icon},
+    issues::{self, deps, progress},
     parts::{
-        Look, Span, body_row, card, card_head, chip, head_row, ink2, meta, nothing, press,
-        source_trouble, th,
+        Look, Span, action, badge, error_text, meter, mono, nothing, panel, panel_head,
+        press, row, section_head, sentence, small, source_bar,
     },
-    sessions::{self, OpenSession},
-    shell::{Context, Nav, Page, critical, plain, strong},
-    status::{self, Role, Status},
+    runtime::{base_name, rewarm_button},
+    sessions::{self, OpenSession, histogram},
+    shell::{Context, Nav, Page},
+    status::{self, Role},
+    text::Msg,
     tokens::{Type, Typeset, color, len},
 };
 use crate::{
-    attention::{Concern, api_label, first_line},
+    attention::{Cause, Concern, Need, SessionGroup, first_line},
     config::{ColorToken::*, LengthToken::*},
-    gh::project::{Kind, ProjectItem, Status as ProjectStatus},
-    programs::{BaseState, Program, QueueEntry, QueueState, Session},
+    gh::IssueRef,
+    programs::{BaseState, Program, QueueState, SessionState},
     sources::{ProgramSources, Sources},
     time,
 };
 
-/// The overview page's content.
-pub fn overview(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
-    view()
-        .gap(len(Space5))
-        .px(len(Space6))
-        .pt(len(Space5))
-        .pb(len(Space6))
-        .child(kpis(sources, context.clone()))
-        .child(queue_card(sources, context.clone(), nav))
-        .child(
-            view()
-                .flex_row()
-                .flex_wrap()
-                .gap(len(Space5))
-                .child(
-                    progress_card(sources, nav)
-                        .flex_grow(1.4)
-                        .basis(Points::ZERO)
-                        .min_w(len(DagNodeWidth)),
-                )
-                .child(
-                    programs_card(sources, context.clone())
-                        .flex_grow(1.0)
-                        .basis(Points::ZERO)
-                        .min_w(len(DagNodeWidth)),
-                ),
-        )
-        .child(errors_card(sources, context, nav))
-}
-
-/// The page's sentence: how much needs a person and how much of it
-/// failed, whether both programs answer, whether the API runs low.
-pub fn summary(sources: Sources, context: &Context) -> Vec<Span> {
-    let concerns = context.concerns.get();
-    let failed = concerns.iter().filter(|c| c.failure()).count();
-    let mut spans = if concerns.is_empty() {
-        vec![plain("没有需要你处理的事。")]
-    } else {
-        vec![
-            critical(format!("{} 件事", concerns.len())),
-            plain("需要你处理，其中 "),
-            strong(failed),
-            plain(" 件失败。"),
-        ]
-    };
-    let down: Vec<&str> = [sources.council, sources.guardians]
-        .into_iter()
-        .filter(|p| p.health.with_error(|e| e.is_some()))
-        .map(|p| p.program.label())
-        .collect();
-    spans.push(match down.as_slice() {
-        [] => plain("议会与守护都在线"),
-        down => critical(format!("{}不可达", down.join("与"))),
-    });
-    let low = concerns
-        .iter()
-        .any(|c| matches!(c, Concern::RateLow { .. }));
-    spans.push(plain(if low {
-        "；GitHub API 余量偏低。"
-    } else {
-        "。"
-    }));
-    spans
+/// The overview.
+pub fn page(sources: Sources, context: Rc<Context>, nav: Nav) -> impl IntoElement {
+    scroll().flex_1().child(
+        view()
+            .flex_row()
+            .items_start()
+            .gap(len(Space6))
+            .px(len(Space6))
+            .py(len(Space5))
+            .child(
+                view()
+                    .flex_1()
+                    .min_w(Points::ZERO)
+                    .gap(len(Space6))
+                    .child(status_sentence(sources, context.clone()))
+                    .child(needs_section(sources, context.clone(), nav))
+                    .child(queue_section(sources, context.clone(), nav)),
+            )
+            .child(
+                view()
+                    .w(len(InspectorWidth) + len(Space8))
+                    .flex_shrink_0()
+                    .gap(len(Space4))
+                    .child(programs_panel(sources, context.clone()))
+                    .child(sessions_panel(sources, context.clone(), nav))
+                    .child(bases_panel(sources, context.clone(), nav))
+                    .child(errors_panel(sources, context)),
+            ),
+    )
 }
 
 // ---------------------------------------------------------------------------
-// KPI
+// The sentence
 
-fn kpi(label: impl Into<SharedString>, value: AnyElement, foot: Vec<Span>) -> View {
+/// Whether the programs answer and the queue moves, then what waits for
+/// you within the window.
+fn status_sentence(sources: Sources, context: Rc<Context>) -> View {
+    let hours = context.hours();
     view()
-        .flex_grow(1.0)
-        .basis(Points::ZERO)
-        .min_w(Points::ZERO)
-        .gap(len(Space1))
-        .px(len(Space4))
-        .py(len(Space3))
-        .child(meta(label.into()))
-        .child(value)
-        .child(
-            super::parts::sentence(foot)
-                .ty(Type::Meta)
-                .number_of_lines(1),
-        )
-}
-
-fn big(value: impl ToString, role: Option<Role>) -> Text {
-    text(value.to_string())
-        .ty(Type::Kpi)
-        .font_weight(FontWeight::SEMIBOLD)
-        .tabular_nums()
-        .text_color(role.map_or(color(Foreground), Role::text))
-}
-
-fn count_of(n: usize, word: &str, role: Role) -> Span {
-    if n == 0 {
-        plain(format!("{n} {word}"))
-    } else {
-        match role {
-            Role::Critical => critical(format!("{n} {word}")),
-            _ => strong(format!("{n} {word}")),
-        }
-    }
-}
-
-fn kpis(sources: Sources, context: Rc<Context>) -> View {
-    let cells = dynamic(move || {
-        let concerns = context.concerns.get();
-        let queue = sources.queue.get().map(|l| l.data);
-        let items = sources.project.get().map(|l| l.data);
-        let escalations = sources.escalations.with(|l| l.map(|l| l.data.len()));
-        let bases = sources.bases.get().map(|l| l.data);
-        let errors = recent_errors(sources, &context);
-        let context = context.clone();
-        untracked(move || {
-            let failed = concerns.iter().filter(|c| c.failure()).count();
-            let unknown = || big("—", None).into_element();
-            let attention = kpi(
-                "需要处理",
-                big(concerns.len(), (failed > 0).then_some(Role::Critical)).into_element(),
-                vec![
-                    count_of(failed, "失败", Role::Critical),
-                    plain(" · "),
-                    count_of(concerns.len() - failed, "待查看", Role::Warning),
-                ],
-            );
-            let agenda = match &queue {
-                Some(queue) => {
-                    let n = |s: QueueState| queue.iter().filter(|e| e.state == s).count();
-                    kpi(
-                        "议题",
-                        big(queue.len(), None).into_element(),
-                        vec![
-                            plain(format!(
-                                "在审 {} · 可召集 {} · ",
-                                n(QueueState::Deliberating),
-                                n(QueueState::Ready)
-                            )),
-                            count_of(n(QueueState::Failed), "失败", Role::Critical),
-                        ],
-                    )
-                }
-                None => kpi("议题", unknown(), vec![plain("议会队列未读到")]),
-            };
-            let implementations = match &items {
-                Some(items) => {
-                    let all: Vec<&ProjectItem> = items
-                        .iter()
-                        .filter(|i| i.kind == Some(Kind::Implementation))
-                        .collect();
-                    let doing = all
-                        .iter()
-                        .filter(|i| i.status == Some(ProjectStatus::InProgress))
-                        .count();
-                    kpi(
-                        "实现 issue",
-                        big(all.len(), None).into_element(),
-                        vec![plain(format!(
-                            "进行中 {doing} · 询问待答 {}",
-                            escalations.map_or("—".to_owned(), |n| n.to_string())
-                        ))],
-                    )
-                }
-                None => kpi("实现 issue", unknown(), vec![plain("Project 未读到")]),
-            };
-            let bases_kpi = match &bases {
-                Some(bases) => {
-                    let ready = bases.iter().filter(|b| b.state == BaseState::Ready).count();
-                    let failed = bases
-                        .iter()
-                        .filter(|b| b.state == BaseState::Failed)
-                        .count();
-                    let stale = bases.iter().filter(|b| b.stale).count();
-                    kpi(
-                        "守护基座",
-                        view()
-                            .flex_row()
-                            .items_baseline()
-                            .gap(len(Space1))
-                            .child(big(ready, None))
-                            .child(ink2(format!("/ {} 就绪", bases.len()), Type::Heading))
-                            .into_element(),
-                        vec![
-                            count_of(failed, "失败", Role::Critical),
-                            plain(" · "),
-                            count_of(stale, "过期", Role::Warning),
-                        ],
-                    )
-                }
-                None => kpi("守护基座", unknown(), vec![plain("基座未读到")]),
-            };
-            let latest = errors.first().map(|(_, s)| {
-                format!(
-                    "最近 {} · {}",
-                    time::parse_ms(&s.started_at)
-                        .map(time::clock)
-                        .unwrap_or_default(),
-                    first_line(s.error.as_deref().unwrap_or_default())
-                )
+        .flex_row()
+        .items_start()
+        .gap(len(Space2))
+        .child(dynamic(move || {
+            let council = !sources.council.health.with_error(|e| e.is_some());
+            let guardians = !sources.guardians.health.with_error(|e| e.is_some());
+            let state = status::program(council && guardians);
+            status::glyph(state.glyph, state.role).mt(len(Space1) / 2.0).into_element()
+        }))
+        .child(dynamic(move || {
+            let council = !sources.council.health.with_error(|e| e.is_some());
+            let guardians = !sources.guardians.health.with_error(|e| e.is_some());
+            let moving = sources.queue.with(|q| {
+                q.is_some_and(|q| q.data.iter().any(|e| e.state == QueueState::Deliberating))
             });
-            let llm = kpi(
-                format!(
-                    "LLM 异常 · {} 小时",
-                    context.attention.session_failure_hours
-                ),
-                big(errors.len(), None).into_element(),
-                vec![plain(latest.unwrap_or_else(|| "没有".to_owned()))],
-            );
-            view()
-                .flex_row()
-                .flex_wrap()
-                .children(
-                    [attention, agenda, implementations, bases_kpi, llm]
-                        .into_iter()
-                        .enumerate()
-                        .map(|(i, cell)| {
-                            cell.when(i > 0, |c| c.border_l_1().border_l_color(color(Border)))
-                        }),
-                )
-                .into_element()
-        })
-    });
-    card().child(cells)
+            let needs = context.needs.get();
+            let failures = needs.iter().filter(|n| n.failure()).count();
+            let asks = needs
+                .iter()
+                .filter(|n| matches!(n, Need::One(Concern::EscalationOpen(_))))
+                .count();
+            let stale = needs
+                .iter()
+                .filter(|n| matches!(n, Need::One(Concern::BaseStale(_))))
+                .count();
+            let low = needs
+                .iter()
+                .filter(|n| matches!(n, Need::One(Concern::RateLow { .. })))
+                .count();
+            let mut spans = vec![if council && guardians {
+                Span::Strong(Msg::RunningWell.to_string())
+            } else {
+                Span::Fail(Msg::ProgramsDown { council, guardians }.to_string())
+            }];
+            spans.push(Span::Plain(
+                Msg::ProgramsLine {
+                    council,
+                    guardians,
+                    moving,
+                }
+                .to_string(),
+            ));
+            let mut items: Vec<Span> = Vec::new();
+            if failures > 0 {
+                items.push(Span::Fail(Msg::FailureKinds(failures).to_string()));
+            }
+            if asks > 0 {
+                items.push(Span::Plain(Msg::AsksWaiting(asks).to_string()));
+            }
+            if stale > 0 {
+                items.push(Span::Plain(Msg::StaleBases(stale).to_string()));
+            }
+            if low > 0 {
+                items.push(Span::Plain(Msg::RateLow.to_string()));
+            }
+            if items.is_empty() {
+                spans.push(Span::Plain(Msg::NothingNeedsYou.to_string()));
+            } else {
+                spans.push(Span::Plain(Msg::WithinHours(hours).to_string()));
+                let n = items.len();
+                for (i, item) in items.into_iter().enumerate() {
+                    if i > 0 {
+                        spans.push(Span::Plain(Msg::ListSep { last: i + 1 == n }.to_string()));
+                    }
+                    spans.push(item);
+                }
+                spans.push(Span::Plain(Msg::WaitForYou.to_string()));
+            }
+            sentence(spans).flex_1().into_element()
+        }))
 }
 
 // ---------------------------------------------------------------------------
-// 需要人处理
+// 需要你处理
 
-/// A concern as a queue row shows it.
-struct Row {
-    status: Status,
-    category: &'static str,
+fn needs_section(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
+    let count = {
+        let context = context.clone();
+        move || {
+            let n = context.needs.get().len();
+            SharedString::from(if n > 0 { n.to_string() } else { String::new() })
+        }
+    };
+    view()
+        .gap(len(Space2))
+        .child(section_head(Msg::NeedsYou, count, Vec::new()))
+        .child(dynamic(move || {
+            let needs = context.needs.get();
+            let context = context.clone();
+            untracked(move || {
+                if needs.is_empty() {
+                    return small(SharedString::from(Msg::NothingNeedsYouLine)).into_element();
+                }
+                panel()
+                    .children(
+                        needs
+                            .iter()
+                            .map(|need| need_row(need.clone(), sources, context.clone(), nav)),
+                    )
+                    .into_element()
+            })
+        }))
+}
+
+/// The issue's agenda number, else `#n`.
+fn agenda(context: &Context, issue: &IssueRef) -> String {
+    issues::agenda_of(context, issue)
+}
+
+/// The text of one need's row: its glyph and title, a count for a group,
+/// the line under the title, when it happened.
+struct Line {
+    status: status::Status,
     title: String,
-    reason: String,
+    count: Option<usize>,
+    meta: Vec<AnyElement>,
     at: Option<f64>,
 }
 
-fn base_title(base: &crate::programs::Base) -> String {
-    format!("守护 · {} · {} · {}", base.guardian, base.repo, base.model)
-}
-
-fn project_item<'a>(
-    items: Option<&'a [ProjectItem]>,
-    issue: &crate::gh::IssueRef,
-) -> Option<&'a ProjectItem> {
-    items?.iter().find(|item| item.issue == *issue)
-}
-
-fn row_of(concern: &Concern, items: Option<&[ProjectItem]>, context: &Context) -> Row {
-    let at = concern.at_ms();
-    match concern {
-        Concern::BaseFailed(base) => Row {
-            status: status::base(BaseState::Failed),
-            category: "基座失败",
-            title: base_title(base),
-            reason: base
-                .error
-                .as_deref()
-                .map(first_line)
-                .unwrap_or("没有错误原文")
-                .to_owned(),
-            at,
-        },
-        Concern::BaseStale(base) => Row {
-            status: status::stale(),
-            category: "基座过期",
-            title: base_title(base),
-            reason: base.stale_reason.clone(),
-            at,
-        },
-        Concern::SessionFailed { program, session } => Row {
-            status: status::session(session.state),
-            category: "会话失败",
-            title: format!("{} · {}", program.label(), sessions::title(session)),
-            reason: format!(
-                "{}（{}）",
-                session
-                    .error
-                    .as_deref()
-                    .map(first_line)
-                    .unwrap_or("没有错误原文"),
-                session.model
-            ),
-            at,
-        },
-        Concern::AgendaFailed(entry) => {
-            let item = project_item(items, &entry.reference);
-            Row {
-                status: status::queue(entry.state),
-                category: "议题失败",
-                title: format!(
-                    "#{}{}{}",
-                    entry.reference.number,
-                    entry
-                        .agenda
-                        .as_deref()
-                        .map(|a| format!(" {a}"))
-                        .unwrap_or_default(),
-                    item.map(|i| format!(" {}", i.title)).unwrap_or_default()
-                ),
-                reason: entry
-                    .notes
-                    .first()
-                    .cloned()
-                    .unwrap_or_else(|| "议会队列判为失败".to_owned()),
-                at,
-            }
-        }
-        Concern::EscalationOpen(escalation) => Row {
-            status: status::escalated(),
-            category: "询问已提为议题",
-            title: format!(
-                "{} 的询问 {} → #{}",
-                escalation.issue, escalation.ask, escalation.agenda.number
-            ),
-            reason: format!("尚无答复或取代；议会尚未定案 #{}", escalation.agenda.number),
-            at,
-        },
-        Concern::Unreachable {
-            program,
-            error,
-            last_success,
-        } => Row {
-            status: status::program(false),
-            category: "程序不可达",
-            title: format!(
-                "{}程序 · {}",
-                program.label(),
-                context.program(*program).base.as_str()
-            ),
-            reason: format!(
-                "{}（{}）",
-                first_line(error),
-                last_success
-                    .map(|at| format!("上次成功 {}", time::clock(at)))
-                    .unwrap_or_else(|| "从未成功".to_owned())
-            ),
-            at,
-        },
-        Concern::RateLow { api, bucket } => Row {
-            status: status::rate_low(),
-            category: "API 余量低",
-            title: format!(
-                "GitHub {} 剩 {} / {}",
-                api_label(*api),
-                bucket.remaining,
-                bucket.limit
-            ),
-            reason: format!(
-                "{} 重置；刷新间隔 {} 秒",
-                time::clock(bucket.reset as f64 * 1000.0),
-                context.refresh_seconds
-            ),
-            at,
-        },
-    }
-}
-
-/// What a person does about `concern`, as a button.
-fn concern_action(
-    concern: &Concern,
-    items: Option<&[ProjectItem]>,
-    sources: Sources,
-    context: Rc<Context>,
-    nav: Nav,
-) -> AnyElement {
-    let open = |label: String, url: Option<String>| match url {
-        Some(url) => press(label, Look::Plain, true, move || {
-            drop(open_url(url.clone()))
-        })
-        .into_element(),
-        None => nothing(),
+fn need_row(need: Need, sources: Sources, context: Rc<Context>, nav: Nav) -> AnyElement {
+    let line = line_of(&need, &context);
+    let action = need_action(&need, sources, context.clone(), nav);
+    let group = match &need {
+        Need::Sessions(group) if group.sessions.len() > 1 => Some(group.clone()),
+        _ => None,
     };
-    match concern {
-        Concern::BaseFailed(base) | Concern::BaseStale(base) => {
-            rewarm_button(base.clone(), sources, context).into_element()
-        }
-        Concern::SessionFailed { program, session } => {
-            let session = OpenSession {
-                program: *program,
-                id: session.id.clone(),
-            };
-            press("查看会话", Look::Plain, true, move || {
-                nav.open_session(session.clone())
-            })
-            .into_element()
-        }
-        Concern::AgendaFailed(entry) => open(
-            "打开议题".to_owned(),
-            project_item(items, &entry.reference).map(|i| i.url.clone()),
-        ),
-        Concern::EscalationOpen(escalation) => open(
-            format!("打开 #{}", escalation.agenda.number),
-            Some(
-                project_item(items, &escalation.agenda)
-                    .map(|i| i.url.clone())
-                    .unwrap_or_else(|| escalation.url.clone()),
-            ),
-        ),
-        Concern::Unreachable { .. } | Concern::RateLow { .. } => nothing(),
-    }
-}
-
-fn queue_card(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
-    let rows = dynamic(move || {
-        let concerns = context.concerns.get();
-        let items = sources.project.get().map(|l| l.data);
-        let now = context.now.get();
-        let context = context.clone();
-        untracked(move || {
-            if concerns.is_empty() {
-                return view()
-                    .px(len(Space4))
-                    .pb(len(Space4))
-                    .child(status::label(
-                        &Status {
-                            role: Role::Good,
-                            glyph: status::Glyph::Good,
-                            word: "没有需要处理的事".into(),
-                        },
-                        Type::Body,
-                    ))
-                    .into_element();
-            }
+    let open = signal(false);
+    let now = context.now;
+    let spark = group.as_ref().map(|group| {
+        let times: Vec<f64> = group
+            .sessions
+            .iter()
+            .filter_map(|s| time::parse_ms(s.ended_at.as_deref().unwrap_or(&s.started_at)))
+            .collect();
+        spark(time::hourly(times, time::now_ms(), 24))
+    });
+    let head = view()
+        .flex_row()
+        .items_center()
+        .gap(len(Space3))
+        .min_h(len(RowGroup))
+        .px(len(Space4))
+        .py(len(Space2))
+        .child(match &group {
+            Some(_) => button()
+                .on_press(move || open.update(|o| *o = !*o))
+                .accessibility_label(SharedString::from(Msg::Expand))
+                .selected(move || open.get())
+                .size(len(Space4))
+                .items_center()
+                .justify_center()
+                .cursor_pointer()
+                .child(dynamic(move || {
+                    icon(
+                        if open.get() { Icon::ChevronDown } else { Icon::ChevronRight },
+                        || color(Ink3),
+                    )
+                    .into_element()
+                }))
+                .into_element(),
+            None => view().w(len(Space4)).into_element(),
+        })
+        .child(status::glyph(line.status.glyph, line.status.role))
+        .child(
             view()
-                .children(concerns.iter().map(|concern| {
-                    let row = row_of(concern, items.as_deref(), &context);
-                    let action =
-                        concern_action(concern, items.as_deref(), sources, context.clone(), nav);
+                .flex_1()
+                .min_w(Points::ZERO)
+                .gap(len(Space1) / 2.0)
+                .child(
                     view()
                         .flex_row()
                         .items_center()
-                        .gap(len(Space3))
-                        .px(len(Space4))
-                        .py(len(Space2))
-                        .min_h(len(RowAttention))
-                        .border_t_1()
-                        .border_t_color(color(Border))
-                        .hover(|s| s.bg(color(Muted)))
-                        .child(status::icon_box(&row.status))
-                        .child(
-                            view()
-                                .flex_1()
-                                .min_w(Points::ZERO)
-                                .gap(Points::ZERO)
+                        .gap(len(Space2))
+                        .child(text(line.title.clone()).ty(Type::BodyStrong).number_of_lines(1))
+                        .children(line.count.map(|n| badge(n, Role::Fail))),
+                )
+                .child(
+                    view()
+                        .flex_row()
+                        .items_center()
+                        .gap(len(Space2))
+                        .min_w(Points::ZERO)
+                        .children(line.meta),
+                ),
+        )
+        .children(spark)
+        .child(small(move || {
+            line.at
+                .map(|at| SharedString::from(Msg::Ago(time::ago(at, now.get()))))
+                .unwrap_or_default()
+        }).w(len(Space8) + len(Space6)).text_right())
+        .child(action);
+    view()
+        .border_b_1()
+        .border_b_color(color(Border))
+        .child(head)
+        .child(dynamic(move || match (&group, open.get()) {
+            (Some(group), true) => causes(group, &context, now).into_element(),
+            _ => nothing(),
+        }))
+        .into_element()
+}
+
+/// A group's 24 hours, one bar an hour.
+fn spark(counts: Vec<u32>) -> View {
+    let most = counts.iter().copied().max().unwrap_or(0).max(1) as f32;
+    view()
+        .flex_row()
+        .items_end()
+        .gap(len(Space1) / 4.0)
+        .h(len(Space5))
+        .flex_shrink_0()
+        .children(counts.into_iter().map(move |n| {
+            view()
+                .w(len(Space1) / 2.0)
+                .h(relative(if n == 0 { 0.08 } else { n as f32 / most }))
+                .bg(if n == 0 { color(Ink4) } else { Role::Fail.ink() })
+        }))
+}
+
+/// A group's causes: each error's first line, how often, about which
+/// issues, the latest.
+fn causes(group: &SessionGroup, context: &Context, now: Signal<f64>) -> View {
+    view()
+        .pl(len(Space8) + len(Space4))
+        .pr(len(Space4))
+        .pb(len(Space3))
+        .children(group.causes.iter().map(|cause| cause_row(cause, context, now)))
+}
+
+fn cause_row(cause: &Cause, context: &Context, now: Signal<f64>) -> View {
+    let about = cause
+        .issues
+        .iter()
+        .map(|(issue, n)| Msg::IssueTimes(agenda(context, issue), *n).to_string())
+        .collect::<Vec<_>>()
+        .join(" · ");
+    let at = cause.last_ms;
+    view()
+        .flex_row()
+        .items_center()
+        .gap(len(Space3))
+        .h(len(RowLog))
+        .border_t_1()
+        .border_t_color(color(Border))
+        .child(mono(cause.line.clone()).text_color(color(Foreground)).flex_1().min_w(Points::ZERO).number_of_lines(1))
+        .child(mono(Msg::Times(cause.count).to_string()).w(len(Space8)))
+        .child(small(about).w(len(InspectorWidth) / 2.0).number_of_lines(1))
+        .child(small(move || {
+            at.map(|at| SharedString::from(Msg::Ago(time::ago(at, now.get()))))
+                .unwrap_or_default()
+        }))
+}
+
+fn line_of(need: &Need, context: &Context) -> Line {
+    let at = need.at_ms();
+    let sep = || small("·").into_element();
+    match need {
+        Need::One(Concern::AgendaFailed(entry)) => {
+            let note = entry.notes.first().map(|n| first_line(n).to_owned());
+            let title = context
+                .all_issues
+                .get_untracked()
+                .and_then(|g| g.nodes.iter().find(|n| n.issue == entry.reference).map(|n| n.title.clone()));
+            Line {
+                status: status::queue(entry.state),
+                title: Msg::AgendaFailed(agenda(context, &entry.reference)).to_string(),
+                count: None,
+                meta: [title.map(|t| small(t).into_element()), note.map(|n| mono(n).number_of_lines(1).into_element())]
+                    .into_iter()
+                    .flatten()
+                    .collect(),
+                at,
+            }
+        }
+        Need::One(Concern::Unreachable {
+            program,
+            error,
+            last_success,
+        }) => Line {
+            status: status::program(false),
+            title: Msg::ProgramUnreachable(*program).to_string(),
+            count: None,
+            meta: vec![
+                error_text(first_line(error).to_owned()).number_of_lines(1).into_element(),
+                sep(),
+                small(Msg::LastLoaded(last_success.map(time::clock)).to_string()).into_element(),
+            ],
+            at,
+        },
+        Need::One(Concern::BaseFailed(base)) => Line {
+            status: status::base(BaseState::Failed),
+            title: Msg::BaseFailedTitle(base_name(base)).to_string(),
+            count: None,
+            meta: vec![error_text(first_line(base.error.as_deref().unwrap_or_default()).to_owned())
+                .number_of_lines(1)
+                .into_element()],
+            at,
+        },
+        Need::Sessions(group) if group.sessions.len() == 1 => {
+            let session = &group.sessions[0];
+            let about = session.reference.as_ref().map(|r| agenda(context, r));
+            Line {
+                status: status::session(SessionState::Failed),
+                title: Msg::SessionFailedOne {
+                    program: group.program,
+                    kind: group.kind.clone(),
+                    about,
+                }
+                .to_string(),
+                count: None,
+                meta: vec![
+                    error_text(crate::attention::error_line(session).to_owned())
+                        .number_of_lines(1)
+                        .into_element(),
+                    sep(),
+                    mono(session.model.clone()).into_element(),
+                ],
+                at,
+            }
+        }
+        Need::Sessions(group) => {
+            let issues = group
+                .issues()
+                .iter()
+                .map(|(issue, n)| Msg::IssueTimes(agenda(context, issue), *n).to_string())
+                .collect::<Vec<_>>()
+                .join(" ");
+            Line {
+                status: status::session(SessionState::Failed),
+                title: Msg::SessionsFailed {
+                    program: group.program,
+                    kind: group.kind.clone(),
+                }
+                .to_string(),
+                count: Some(group.sessions.len()),
+                meta: vec![
+                    small(issues).into_element(),
+                    sep(),
+                    mono(group.models().join(", ")).number_of_lines(1).into_element(),
+                ],
+                at,
+            }
+        }
+        Need::One(Concern::SessionFailed { session, .. }) => Line {
+            status: status::session(SessionState::Failed),
+            title: session.label.clone(),
+            count: None,
+            meta: Vec::new(),
+            at,
+        },
+        Need::One(Concern::EscalationOpen(escalation)) => Line {
+            status: status::escalated(),
+            title: Msg::EscalationTitle(agenda(context, &escalation.agenda)).to_string(),
+            count: None,
+            meta: vec![small(Msg::EscalationFrom(escalation.issue.to_string(), escalation.ask).to_string()).into_element()],
+            at,
+        },
+        Need::One(Concern::BaseStale(base)) => Line {
+            status: status::stale(),
+            title: Msg::BaseStaleTitle(base_name(base)).to_string(),
+            count: None,
+            meta: vec![
+                mono(base.stale_reason.clone()).number_of_lines(1).into_element(),
+                sep(),
+                small(
+                    base.warmed_at
+                        .as_deref()
+                        .and_then(time::parse_ms)
+                        .map(|at| Msg::WarmedAgo(time::ago(at, time::now_ms())).to_string())
+                        .unwrap_or_default(),
+                )
+                .into_element(),
+            ],
+            at,
+        },
+        Need::One(Concern::RateLow { api, bucket }) => Line {
+            status: status::rate_low(),
+            title: Msg::RateLowTitle(crate::attention::api_label(*api)).to_string(),
+            count: None,
+            meta: vec![small(
+                Msg::RateLeft {
+                    remaining: bucket.remaining,
+                    limit: bucket.limit,
+                    reset: time::hm(bucket.reset as f64 * 1000.0),
+                }
+                .to_string(),
+            )
+            .into_element()],
+            at,
+        },
+    }
+}
+
+/// What you do about `need`, as a button.
+fn need_action(need: &Need, sources: Sources, context: Rc<Context>, nav: Nav) -> AnyElement {
+    let open_issue = |issue: IssueRef, look: Look, label: Msg| {
+        let context = context.clone();
+        press(label, look, move || context.open_issue(nav, issue.clone())).into_element()
+    };
+    match need {
+        Need::One(Concern::AgendaFailed(entry)) => {
+            open_issue(entry.reference.clone(), Look::Primary, Msg::OpenIssue)
+        }
+        Need::One(Concern::Unreachable { program, .. }) => {
+            let program = match program {
+                Program::Council => sources.council,
+                Program::Guardians => sources.guardians,
+            };
+            press(Msg::Retry, Look::Plain, move || program.health.refetch()).into_element()
+        }
+        Need::One(Concern::BaseFailed(base)) | Need::One(Concern::BaseStale(base)) => {
+            rewarm_button(base.clone(), sources, context.clone()).into_element()
+        }
+        Need::Sessions(group) if group.sessions.len() == 1 => {
+            let open = OpenSession {
+                program: group.program,
+                id: group.sessions[0].id.clone(),
+            };
+            press(Msg::ViewSession, Look::Plain, move || nav.open_session(open.clone())).into_element()
+        }
+        Need::Sessions(group) => {
+            let (program, kind) = (group.program, group.kind.clone());
+            let sessions = context.sessions;
+            press(Msg::ViewSessions(group.sessions.len()), Look::Plain, move || {
+                batch(|| {
+                    sessions.focus_failed(program, kind.clone());
+                    nav.page.set(Page::Sessions);
+                })
+            })
+            .into_element()
+        }
+        Need::One(Concern::SessionFailed { program, session }) => {
+            let open = OpenSession {
+                program: *program,
+                id: session.id.clone(),
+            };
+            press(Msg::ViewSession, Look::Plain, move || nav.open_session(open.clone())).into_element()
+        }
+        Need::One(Concern::EscalationOpen(escalation)) => open_issue(
+            escalation.agenda.clone(),
+            Look::Plain,
+            Msg::OpenAgenda(agenda(&context, &escalation.agenda)),
+        ),
+        Need::One(Concern::RateLow { .. }) => nothing(),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 议会队列
+
+fn queue_section(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
+    let note = {
+        let context = context.clone();
+        move || {
+            context
+                .all_issues
+                .get()
+                .map(|g| {
+                    SharedString::from(Msg::OpenCount(g.nodes.iter().filter(|n| !n.state.closed()).count()))
+                })
+                .unwrap_or_default()
+        }
+    };
+    let link = action(Msg::AllIssues, Some(Icon::ArrowRight), Look::Link, || false, move || {
+        nav.page.set(Page::Issues)
+    })
+    .into_element();
+    view()
+        .gap(len(Space2))
+        .child(section_head(Msg::CouncilQueue, note, vec![link]))
+        .child(
+            panel()
+                .child(source_bar(sources.queue, 4))
+                .child(source_bar(sources.project, 0))
+                .child(dynamic(move || {
+                    let Some(graph) = context.all_issues.get() else {
+                        return nothing();
+                    };
+                    let now = context.now;
+                    let context = context.clone();
+                    untracked(move || {
+                        let open: Vec<usize> =
+                            (0..graph.nodes.len()).filter(|&i| !graph.nodes[i].state.closed()).collect();
+                        if open.is_empty() {
+                            return super::parts::empty(Msg::QueueEmpty).into_element();
+                        }
+                        view()
+                            .children(open.into_iter().map(|i| {
+                                let node = graph.nodes[i].clone();
+                                let state = status::node(&node.state, &context.issues_settings.fields);
+                                let issue = node.issue.clone();
+                                let context2 = context.clone();
+                                let updated = time::parse_ms(&node.updated_at);
+                                row(|| false, node.title.clone(), move || {
+                                    context2.open_issue(nav, issue.clone())
+                                })
+                                .child(status::glyph(state.glyph, state.role))
+                                .child(
+                                    small(node.agenda.clone().unwrap_or_default())
+                                        .w(len(Space8) + len(Space2)),
+                                )
                                 .child(
                                     view()
                                         .flex_row()
                                         .items_center()
                                         .gap(len(Space2))
-                                        .child(
-                                            text(row.title)
-                                                .ty(Type::Body)
-                                                .font_weight(FontWeight::SEMIBOLD)
-                                                .truncate()
-                                                .flex_shrink(1.0),
-                                        )
-                                        .child(status::tag(row.category, row.status.role)),
+                                        .flex_1()
+                                        .min_w(Points::ZERO)
+                                        .child(text(node.title.clone()).ty(Type::Body).number_of_lines(1))
+                                        .children(issues::human_tag(&node)),
                                 )
-                                .child(ink2(row.reason, Type::Dense).truncate().selectable(true)),
-                        )
-                        .child(meta(
-                            row.at.map(|at| time::ago(at, now)).unwrap_or_default(),
-                        ))
-                        .child(action)
-                        .into_element()
-                }))
-                .into_element()
-        })
-    });
-    card()
-        .child(card_head(
-            "需要人处理",
-            "先失败、后待查看；同级按时间从新到旧",
-            Vec::new(),
-        ))
-        .child(rows)
-}
-
-// ---------------------------------------------------------------------------
-// 议题进度
-
-fn progress_card(sources: Sources, nav: Nav) -> View {
-    let body = dynamic(move || {
-        let Some(queue) = sources.queue.get().map(|l| l.data) else {
-            return nothing();
-        };
-        untracked(move || progress(&queue))
-    });
-    let sub = move || {
-        let text = sources
-            .queue
-            .with(|q| q.map(|q| format!("议会队列的判定 · 共 {}", q.data.len())))
-            .unwrap_or_else(|| "议会队列的判定".to_owned());
-        SharedString::from(text)
-    };
-    card()
-        .child(card_head(
-            "议题进度",
-            sub,
-            vec![
-                press("打开议题图 →", Look::Ghost, true, move || {
-                    nav.page.set(Page::Issues)
-                })
-                .into_element(),
-            ],
-        ))
-        .child(source_trouble("议会队列", sources.queue))
-        .child(body)
-}
-
-fn progress(queue: &[QueueEntry]) -> AnyElement {
-    let count = |state: QueueState| queue.iter().filter(|e| e.state == state).count();
-    let fill = |state: QueueState| match state {
-        QueueState::Superseded => color(BorderStrong),
-        state => status::queue(state).role.ink(),
-    };
-    let bar = view()
-        .flex_row()
-        .gap(px(len(Space1).0 / 2.0))
-        .h(len(Space2))
-        .mx(len(Space4))
-        .mt(len(Space1))
-        .children(
-            status::QUEUE_STATES
-                .into_iter()
-                .filter(|s| count(*s) > 0)
-                .map(|state| {
-                    view()
-                        .flex_grow(count(state) as f32)
-                        .basis(Points::ZERO)
-                        .rounded(len(Space1))
-                        .bg(fill(state))
-                }),
-        );
-    let legend = view()
-        .gap(len(Space2))
-        .px(len(Space4))
-        .pt(len(Space3))
-        .pb(len(Space4))
-        .children(status::QUEUE_STATES.chunks(4).map(|states| {
-            view()
-                .flex_row()
-                .gap(len(Space4))
-                .children(states.iter().map(|&state| {
-                    view()
-                        .flex_row()
-                        .items_center()
-                        .flex_grow(1.0)
-                        .basis(Points::ZERO)
-                        .min_w(Points::ZERO)
-                        .child(status::label(&status::queue(state), Type::Dense))
-                        .child(view().flex_1())
-                        .child(
-                            text(count(state).to_string())
-                                .ty(Type::Dense)
-                                .font_weight(FontWeight::SEMIBOLD)
-                                .tabular_nums(),
-                        )
-                }))
-        }));
-    view().child(bar).child(legend).into_element()
-}
-
-// ---------------------------------------------------------------------------
-// 程序
-
-fn programs_card(sources: Sources, context: Rc<Context>) -> View {
-    card()
-        .child(card_head(
-            "程序",
-            format!("健康端点 · 每 {} 秒", context.refresh_seconds),
-            Vec::new(),
-        ))
-        .child(
-            view()
-                .px(len(Space4))
-                .pb(len(Space4))
-                .gap(len(Space2))
-                .child(program(sources.council, sources, context.clone()))
-                .child(view().border_t_1().border_t_color(color(Border)))
-                .child(program(sources.guardians, sources, context)),
+                                .child(view().w(len(InspectorWidth) / 1.5).child(progress(&graph, i)))
+                                .child(view().w(len(Space8) * 2.5).child(deps(&graph, i)))
+                                .child(small(move || {
+                                    updated
+                                        .map(|at| SharedString::from(Msg::Span(time::ago(at, now.get()))))
+                                        .unwrap_or_default()
+                                })
+                                .w(len(Space8) + len(Space4)).text_right())
+                                .into_element()
+                            }))
+                            .into_element()
+                    })
+                })),
         )
 }
 
-/// `host:port` of a base URL: where the program answers.
-fn port(url: &str) -> String {
-    let rest = url.split_once("://").map_or(url, |(_, rest)| rest);
-    let host = rest.split('/').next().unwrap_or(rest);
-    match host.rsplit_once(':') {
-        Some((_, port)) => format!(":{port}"),
-        None => host.to_owned(),
-    }
-}
-
-fn program(program: ProgramSources, sources: Sources, context: Rc<Context>) -> View {
-    let health = program.health;
-    view().child(dynamic(move || {
-        let failed = health.with_error(|e| e.is_some());
-        let loaded = health.get().map(|l| l.data);
-        let error = health.error();
-        let detail = match program.program {
-            Program::Council => sources
-                .queue
-                .with(|q| q.map(|q| format!("队列 {} 项", q.data.len()))),
-            Program::Guardians => sources.bases.with(|b| {
-                b.map(|b| {
-                    let ready = b
-                        .data
-                        .iter()
-                        .filter(|b| b.state == BaseState::Ready)
-                        .count();
-                    format!("基座 {ready}/{} 就绪", b.data.len())
-                })
-            }),
-        };
-        let now = context.now.get();
-        let address = port(context.program(program.program).base.as_str());
-        untracked(move || {
-            let state = status::program(!failed && loaded.is_some());
-            let second = match (&error, &loaded) {
-                (Some(error), _) => first_line(error).to_owned(),
-                (None, Some(health)) => [
-                    Some(format!("启动于 {}", time::short(&health.started_at))),
-                    time::parse_ms(&health.started_at)
-                        .map(|at| format!("运行 {}", time::ago(at, now).trim_end_matches('前'))),
-                    detail,
-                ]
-                .into_iter()
-                .flatten()
-                .collect::<Vec<_>>()
-                .join(" · "),
-                (None, None) => "检查中…".to_owned(),
-            };
-            view()
-                .gap(Points::ZERO)
-                .child(
-                    view()
-                        .flex_row()
-                        .items_center()
-                        .gap(len(Space3))
-                        .child(
-                            text(program.program.label())
-                                .ty(Type::Body)
-                                .font_weight(FontWeight::SEMIBOLD),
-                        )
-                        .child(status::label(&state, Type::Dense))
-                        .child(view().flex_1())
-                        .child(
-                            text(
-                                loaded
-                                    .as_ref()
-                                    .map(|h| h.version.clone())
-                                    .unwrap_or_default(),
-                            )
-                            .ty(Type::Meta)
-                            .mono()
-                            .text_color(color(Ink2))
-                            .truncate()
-                            .flex_shrink(1.0),
-                        ),
-                )
-                .child(
-                    view()
-                        .flex_row()
-                        .gap(len(Space3))
-                        .child(
-                            text(second)
-                                .ty(Type::Meta)
-                                .text_color(if error.is_some() {
-                                    Role::Critical.text()
-                                } else {
-                                    color(Ink2)
-                                })
-                                .flex_1()
-                                .number_of_lines(2),
-                        )
-                        .child(text(address).ty(Type::Meta).mono().text_color(color(Ink2))),
-                )
-                .into_element()
-        })
-    }))
-}
-
 // ---------------------------------------------------------------------------
-// 最近 LLM 异常
+// The rail
 
-/// How many errored sessions the table lists.
-const ERRORS_SHOWN: usize = 8;
-
-/// The sessions with an error that started within the attention window,
-/// newest first.
-fn recent_errors(sources: Sources, context: &Context) -> Vec<(Program, Session)> {
-    let window = f64::from(context.attention.session_failure_hours.get()) * 3_600_000.0;
-    let now = time::now_ms();
-    let mut errored: Vec<(Program, Session)> = [sources.council, sources.guardians]
-        .into_iter()
-        .flat_map(|p| {
-            p.sessions
-                .get()
-                .map(|l| l.data)
-                .unwrap_or_default()
-                .into_iter()
-                .filter(|s| {
-                    s.error.is_some()
-                        && time::parse_ms(&s.started_at).is_some_and(|at| now - at <= window)
-                })
-                .map(move |s| (p.program, s))
-        })
-        .collect();
-    errored.sort_by(|a, b| {
-        time::parse_ms(&b.1.started_at)
-            .partial_cmp(&time::parse_ms(&a.1.started_at))
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
-    errored
+fn rail_link(nav: Nav, page: Page) -> AnyElement {
+    action(Msg::View, Some(Icon::ArrowRight), Look::Link, || false, move || nav.page.set(page))
+        .into_element()
 }
 
-/// The table's columns' shares: time, program, session, model, error, link.
-const SHARES: [f32; 6] = [1.2, 0.8, 3.0, 2.2, 4.5, 0.8];
+fn programs_panel(sources: Sources, context: Rc<Context>) -> View {
+    panel()
+        .child(panel_head(Msg::Programs, "", Vec::new()))
+        .child(source_bar(sources.council.health, 0))
+        .child(source_bar(sources.guardians.health, 0))
+        .child(program_row(sources, sources.council, context.clone()))
+        .child(program_row(sources, sources.guardians, context))
+}
 
-fn cell(share: usize) -> View {
+/// A program: its state, how long it runs, its work, its version.
+fn program_row(sources: Sources, program: ProgramSources, context: Rc<Context>) -> View {
+    let now = context.now;
     view()
-        .flex_grow(SHARES[share])
-        .basis(Points::ZERO)
-        .min_w(Points::ZERO)
+        .flex_row()
+        .items_center()
+        .gap(len(Space2))
+        .h(len(Row) + len(Space2))
+        .px(len(Space4))
+        .child(dynamic(move || {
+            let failed = program.health.with_error(|e| e.is_some());
+            let state = status::program(!failed);
+            status::glyph(state.glyph, state.role).into_element()
+        }))
+        .child(text(SharedString::from(Msg::Program(program.program))).ty(Type::BodyStrong))
+        .child(small(move || {
+            let failed = program.health.with_error(|e| e.is_some());
+            let up = program
+                .health
+                .with(|l| l.and_then(|l| time::parse_ms(&l.data.started_at)))
+                .map(|at| time::ago(at, now.get()));
+            let work = match program.program {
+                Program::Council => Msg::Deliberating(sources.queue.with(|q| {
+                    q.map(|q| q.data.iter().filter(|e| e.state == QueueState::Deliberating).count())
+                })),
+                Program::Guardians => Msg::AsksRunning(running_asks(program)),
+            };
+            SharedString::from(Msg::ProgramLine {
+                online: !failed,
+                up,
+                work: Box::new(work),
+            })
+        }).flex_1().number_of_lines(1))
+        .child(small(move || {
+            program
+                .health
+                .with(|l| l.map(|l| SharedString::from(l.data.version.clone())))
+                .unwrap_or_default()
+        }))
 }
 
-fn errors_card(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
-    let sub = format!(
-        "{} 小时 · 最新在前",
-        context.attention.session_failure_hours
-    );
-    let rows = dynamic(move || {
-        let errors = recent_errors(sources, &context);
-        untracked(move || {
-            if errors.is_empty() {
-                return meta("没有带异常的会话")
-                    .px(len(Space4))
-                    .pb(len(Space4))
-                    .into_element();
-            }
-            view()
-                .child(head_row(
-                    ["时间", "程序", "会话", "模型", "错误", ""]
-                        .into_iter()
-                        .enumerate()
-                        .map(|(i, l)| cell(i).child(th(l)).into_element())
-                        .collect(),
-                ))
-                .children(
-                    errors
-                        .into_iter()
-                        .take(ERRORS_SHOWN)
-                        .map(|(program, session)| {
-                            let open = OpenSession {
-                                program,
-                                id: session.id.clone(),
-                            };
-                            body_row()
-                                .child(
-                                    cell(0).child(
-                                        text(
-                                            time::parse_ms(&session.started_at)
-                                                .map(time::clock)
-                                                .unwrap_or_default(),
-                                        )
-                                        .ty(Type::Meta)
-                                        .mono(),
-                                    ),
-                                )
-                                .child(cell(1).child(text(program.label()).ty(Type::Dense)))
-                                .child(cell(2).child(
-                                    text(sessions::title(&session)).ty(Type::Dense).truncate(),
-                                ))
-                                .child(cell(3).flex_row().child(chip(session.model.clone())))
-                                .child(
-                                    cell(4).child(
-                                        text(
-                                            first_line(
-                                                session.error.as_deref().unwrap_or_default(),
-                                            )
-                                            .to_owned(),
-                                        )
-                                        .ty(Type::Meta)
-                                        .mono()
-                                        .text_color(Role::Critical.text())
-                                        .truncate()
-                                        .selectable(true),
-                                    ),
-                                )
-                                .child(cell(5).flex_row().justify_end().child(press(
-                                    "会话 →",
-                                    Look::Ghost,
-                                    true,
-                                    move || nav.open_session(open.clone()),
-                                )))
-                        }),
-                )
-                .into_element()
+/// The guardians' ask sessions under way (`query` sessions running).
+pub fn running_asks(guardians: ProgramSources) -> Option<usize> {
+    guardians.sessions.with(|l| {
+        l.map(|l| {
+            l.data
+                .iter()
+                .filter(|s| s.kind == "query" && s.state == SessionState::Running)
+                .count()
         })
-    });
-    card()
-        .child(card_head(
-            "最近 LLM 异常",
-            sub,
-            vec![
-                press("全部会话 →", Look::Ghost, true, move || {
-                    nav.page.set(Page::Sessions)
+    })
+}
+
+fn sessions_panel(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
+    let hours = context.hours();
+    panel()
+        .child(panel_head(Msg::PageSessions, SharedString::from(Msg::Hours(hours)), vec![rail_link(nav, Page::Sessions)]))
+        .child(source_bar(sources.council.sessions, 0))
+        .child(source_bar(sources.guardians.sessions, 0))
+        .child(dynamic(move || {
+            let since = time::now_ms() - f64::from(hours) * 3_600_000.0;
+            let recent: Vec<_> = sessions::all(sources)
+                .into_iter()
+                .filter(|(_, s)| time::parse_ms(&s.started_at).is_some_and(|at| at >= since))
+                .collect();
+            untracked(move || {
+                let count = |state| recent.iter().filter(|(_, s)| s.state == state).count();
+                let figure = |n: usize, label: Msg, role: Option<Role>| {
+                    view()
+                        .flex_1()
+                        .child(
+                            text(n.to_string())
+                                .ty(Type::Num)
+                                .text_color(role.map_or(color(Foreground), Role::text)),
+                        )
+                        .child(small(SharedString::from(label)))
+                };
+                let failed = count(SessionState::Failed);
+                view()
+                    .px(len(Space4))
+                    .py(len(Space3))
+                    .gap(len(Space3))
+                    .child(
+                        view()
+                            .flex_row()
+                            .child(figure(recent.len(), Msg::Total, None))
+                            .child(figure(count(SessionState::Running), Msg::Session(SessionState::Running), None))
+                            .child(figure(failed, Msg::Session(SessionState::Failed), (failed > 0).then_some(Role::Fail))),
+                    )
+                    .child(histogram(&recent, hours as usize, len(Space8) + len(Space4)))
+                    .into_element()
+            })
+        }))
+}
+
+fn bases_panel(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
+    let note = move || {
+        sources
+            .bases
+            .with(|b| {
+                b.map(|b| {
+                    let ready = b.data.iter().filter(|b| b.state == BaseState::Ready).count();
+                    let stale = b.data.iter().filter(|b| b.stale).count();
+                    SharedString::from(Msg::BasesNote {
+                        ready,
+                        total: b.data.len(),
+                        stale,
+                    })
                 })
-                .into_element(),
-            ],
+            })
+            .unwrap_or_default()
+    };
+    panel()
+        .child(panel_head(Msg::Bases, note, vec![rail_link(nav, Page::Runtime)]))
+        .child(source_bar(sources.bases, 3))
+        .child(dynamic(move || {
+            let Some(bases) = sources.bases.get().map(|l| l.data) else {
+                return nothing();
+            };
+            let now = context.now;
+            untracked(move || {
+                if bases.is_empty() {
+                    return super::parts::empty(Msg::NoBases).into_element();
+                }
+                view()
+                    .children(bases.into_iter().map(|base| {
+                        let state = if base.stale { status::stale() } else { status::base(base.state) };
+                        let warmed = base.warmed_at.as_deref().and_then(time::parse_ms);
+                        view()
+                            .flex_row()
+                            .items_center()
+                            .gap(len(Space2))
+                            .h(len(Row) + len(Space1))
+                            .px(len(Space4))
+                            .border_t_1()
+                            .border_t_color(color(Border))
+                            .child(status::glyph(state.glyph, state.role))
+                            .child(
+                                text(super::runtime::short_repo(&base.repo))
+                                    .ty(Type::Body)
+                                    .number_of_lines(1),
+                            )
+                            .child(
+                                small(Msg::ModelNote {
+                                    model: super::runtime::short_model(&base.model),
+                                    stale: base.stale,
+                                }
+                                .to_string())
+                                .flex_1()
+                                .number_of_lines(1),
+                            )
+                            .child(small(move || {
+                                warmed
+                                    .map(|at| SharedString::from(Msg::Ago(time::ago(at, now.get()))))
+                                    .unwrap_or_default()
+                            }))
+                            .into_element()
+                    }))
+                    .into_element()
+            })
+        }))
+}
+
+/// The sessions with an error in the window, counted by the error's first
+/// line, the most first.
+fn errors_panel(sources: Sources, context: Rc<Context>) -> View {
+    let hours = context.hours();
+    let errors = move || {
+        let since = time::now_ms() - f64::from(hours) * 3_600_000.0;
+        let mut counts: Vec<(String, usize)> = Vec::new();
+        let mut total = 0;
+        for (_, session) in sessions::all(sources) {
+            let Some(error) = session.error.as_deref() else {
+                continue;
+            };
+            if !time::parse_ms(&session.started_at).is_some_and(|at| at >= since) {
+                continue;
+            }
+            total += 1;
+            let line = first_line(error).to_owned();
+            match counts.iter_mut().find(|(l, _)| *l == line) {
+                Some((_, n)) => *n += 1,
+                None => counts.push((line, 1)),
+            }
+        }
+        counts.sort_by_key(|c| std::cmp::Reverse(c.1));
+        (counts, total)
+    };
+    panel()
+        .child(panel_head(
+            Msg::SessionErrors,
+            move || SharedString::from(Msg::ErrorsNote { hours, sessions: errors().1 }),
+            Vec::new(),
         ))
-        .child(source_trouble("议会会话", sources.council.sessions))
-        .child(source_trouble("守护会话", sources.guardians.sessions))
-        .child(rows)
+        .child(dynamic(move || {
+            let (counts, _) = errors();
+            untracked(move || {
+                if counts.is_empty() {
+                    return super::parts::empty(Msg::NoErrors).into_element();
+                }
+                let most = counts[0].1.max(1) as f32;
+                view()
+                    .py(len(Space2))
+                    .children(counts.into_iter().take(8).map(|(line, n)| {
+                        view()
+                            .flex_row()
+                            .items_center()
+                            .gap(len(Space3))
+                            .h(len(RowLog))
+                            .px(len(Space4))
+                            .child(mono(line).text_color(color(Foreground)).flex_1().min_w(Points::ZERO).number_of_lines(1))
+                            .child(view().w(len(Space8) * 2.0).child(meter(n as f32 / most, color(Ink3))))
+                            .child(small(n.to_string()).w(len(Space5)).text_right())
+                            .into_element()
+                    }))
+                    .into_element()
+            })
+        }))
 }

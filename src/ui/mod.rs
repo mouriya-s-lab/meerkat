@@ -1,14 +1,16 @@
-//! The dashboard's screens, its design tokens, status vocabulary and its
+//! Quorum's screens, its design tokens, status vocabulary, words and its
 //! own component library.
 
-mod guardians;
+mod command;
 mod icons;
 mod issues;
 mod overview;
 mod parts;
+mod runtime;
 mod sessions;
 mod shell;
 mod status;
+mod text;
 mod tokens;
 
 pub use shell::{app, config_error};

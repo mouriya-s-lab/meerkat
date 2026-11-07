@@ -87,7 +87,6 @@ pub struct Dashboard {
     pub refresh_seconds: NonZeroU32,
     pub attention: Attention,
     pub digest: Digest,
-    pub list: List,
     pub filters: Filters,
 }
 
@@ -214,80 +213,14 @@ impl TryFrom<String> for HexColor {
     }
 }
 
-/// The 「议题」 table: its columns, left to right, and its order before
-/// the user sorts it.
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(try_from = "ListText")]
-pub struct List {
-    pub columns: Vec<ListColumn>,
-    pub default_sort: ListSort,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-struct ListText {
-    columns: Vec<ListColumn>,
-    default_sort: ListSort,
-}
-
-impl TryFrom<ListText> for List {
-    type Error = String;
-
-    fn try_from(list: ListText) -> Result<Self, String> {
-        if list.columns.is_empty() {
-            return Err("columns is empty".to_owned());
-        }
-        if let Some((i, column)) = list
-            .columns
-            .iter()
-            .enumerate()
-            .find(|(i, column)| list.columns[..*i].contains(column))
-        {
-            return Err(format!("columns[{i}]: {column:?} is listed twice"));
-        }
-        if !list.columns.contains(&list.default_sort.column) {
-            return Err(format!(
-                "defaultSort.column: {:?} is not one of the columns",
-                list.default_sort.column
-            ));
-        }
-        Ok(Self {
-            columns: list.columns,
-            default_sort: list.default_sort,
-        })
-    }
-}
-
-/// A column of the 「议题」 table.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum ListColumn {
-    Agenda,
-    Title,
-    Kind,
-    State,
-    Proposer,
-    BlockedBy,
-    Progress,
-}
-
-/// What the table is sorted by.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ListSort {
-    pub column: ListColumn,
-    pub descending: bool,
-}
-
-/// The filters of the 「议题」 page when it opens; the user toggles them
-/// there. They apply to the DAG and the table alike.
+/// The filters of the 「议题」 page when it opens; the user changes them
+/// there. They apply to the list and the DAG alike.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Filters {
-    /// Hide decided issues.
+    /// Fold the decided and superseded issues (the list's latest three
+    /// and a line for the rest, the DAG's fold); else show them all.
     pub hide_decided: bool,
-    /// Hide superseded issues.
-    pub hide_superseded: bool,
     /// Show only human issues and the issues they block, transitively.
     pub human_only: bool,
 }

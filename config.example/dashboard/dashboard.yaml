@@ -33,10 +33,6 @@ digest:
     - find
   showAssistantText: true
   maxBytes: 8000000
-list:
-  columns: [agenda, title, kind, state, proposer, blockedBy, progress]
-  defaultSort: { column: agenda, descending: false }
 filters:
   hideDecided: true
-  hideSuperseded: false
   humanOnly: false

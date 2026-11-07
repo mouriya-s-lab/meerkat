@@ -1,15 +1,19 @@
-//! The status vocabulary (issue #9 「状态词表」): every state the pages
-//! show is a role, a glyph and a word, always together, so no state rests
-//! on color alone. The roles' colors are the theme's (`critical`,
-//! `critical-text`, `critical-subtle`, …); the glyphs are drawn here with
-//! a `Painter`, the same on macOS and the web.
+//! The status vocabulary (#9 「状态词表」): every state the pages show is
+//! a role, a glyph and a word, always together, so no state rests on color
+//! alone. The roles' colors are the theme's (`fail`, `fail-text`,
+//! `fail-subtle`, …); the glyphs are drawn here with a `Painter`, the same
+//! on macOS and the web. Red is for failures a person still has to act on;
+//! what is settled is the quiet `done` grey.
 
 use nsh_core::{
     canvas::{LineCap, LineJoin},
     prelude::*,
 };
 
-use super::tokens::{Type, Typeset, color, len};
+use super::{
+    text::Msg,
+    tokens::{Type, Typeset, color, len},
+};
 use crate::{
     config::{ColorToken, Fields, LengthToken},
     dag::{Fallback, NodeState},
@@ -17,13 +21,24 @@ use crate::{
     programs::{BaseState, QueueState, SessionState},
 };
 
-/// What a state means for a person: the five roles of the vocabulary.
+/// What a state means for a person.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Role {
-    Critical,
-    Warning,
-    Good,
-    Active,
+    /// Failed, and a person has to act.
+    Fail,
+    /// Needs a look: interrupted, stale, low.
+    Warn,
+    /// Working as it should.
+    Ok,
+    /// Under way.
+    Run,
+    /// Waits for something else.
+    Wait,
+    /// Settled: decided, superseded.
+    Done,
+    /// Waits for a person's decision.
+    Human,
+    /// Nothing to say: ready, a Project `Status`.
     Neutral,
 }
 
@@ -31,56 +46,63 @@ impl Role {
     /// The glyph's color.
     pub fn ink(self) -> AdaptiveColor {
         color(match self {
-            Role::Critical => ColorToken::Critical,
-            Role::Warning => ColorToken::Warning,
-            Role::Good => ColorToken::Good,
-            Role::Active => ColorToken::Active,
-            Role::Neutral => ColorToken::Neutral,
+            Role::Fail => ColorToken::Fail,
+            Role::Warn => ColorToken::Warn,
+            Role::Ok => ColorToken::Ok,
+            Role::Run => ColorToken::Run,
+            Role::Wait => ColorToken::Wait,
+            Role::Done => ColorToken::Done,
+            Role::Human => ColorToken::Human,
+            Role::Neutral => ColorToken::Ink3,
         })
     }
 
     /// Its words' color.
     pub fn text(self) -> AdaptiveColor {
         color(match self {
-            Role::Critical => ColorToken::CriticalText,
-            Role::Warning => ColorToken::WarningText,
-            Role::Good => ColorToken::GoodText,
-            Role::Active => ColorToken::ActiveText,
-            Role::Neutral => ColorToken::NeutralText,
+            Role::Fail => ColorToken::FailText,
+            Role::Warn => ColorToken::WarnText,
+            Role::Ok => ColorToken::OkText,
+            Role::Run => ColorToken::RunText,
+            Role::Wait => ColorToken::WaitText,
+            Role::Done | Role::Neutral => ColorToken::Ink3,
+            Role::Human => ColorToken::HumanText,
         })
     }
 
-    /// The tint behind it (pills, icon boxes, banners).
+    /// The tint behind it (an error bar, a count badge).
     pub fn subtle(self) -> AdaptiveColor {
         color(match self {
-            Role::Critical => ColorToken::CriticalSubtle,
-            Role::Warning => ColorToken::WarningSubtle,
-            Role::Good => ColorToken::GoodSubtle,
-            Role::Active => ColorToken::ActiveSubtle,
-            Role::Neutral => ColorToken::NeutralSubtle,
+            Role::Fail => ColorToken::FailSubtle,
+            Role::Warn => ColorToken::WarnSubtle,
+            Role::Ok => ColorToken::OkSubtle,
+            Role::Run => ColorToken::RunSubtle,
+            Role::Wait | Role::Done | Role::Neutral => ColorToken::WaitSubtle,
+            Role::Human => ColorToken::HumanSubtle,
         })
     }
 }
 
-/// The eight geometric glyphs (the mock's `G`).
+/// The eight geometric glyphs; each alone tells the queue's eight states
+/// apart.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Glyph {
     /// A filled circle with a cross.
-    Critical,
+    Cross,
     /// A filled triangle with an exclamation mark.
-    Warning,
+    Triangle,
     /// A filled circle with a check.
-    Good,
+    Check,
     /// A ring, half filled.
-    Active,
+    Half,
     /// A ring.
-    Ready,
+    Ring,
     /// A dashed ring.
-    Blocked,
+    Dashed,
     /// A ring with two bars.
-    Held,
+    Bars,
     /// A ring struck through.
-    Superseded,
+    Struck,
 }
 
 /// A state as the pages show it.
@@ -92,67 +114,49 @@ pub struct Status {
 }
 
 impl Status {
-    fn of(role: Role, glyph: Glyph, word: impl Into<SharedString>) -> Self {
+    fn of(role: Role, glyph: Glyph, word: Msg) -> Self {
         Self {
             role,
             glyph,
             word: word.into(),
         }
     }
-
-    /// `self` with `note` after its word (`已定案（议会不可达）`).
-    fn noted(mut self, note: &str) -> Self {
-        self.word = format!("{}（{note}）", self.word).into();
-        self
-    }
 }
 
 /// A verdict of the council's queue.
 pub fn queue(state: QueueState) -> Status {
     let (role, glyph) = match state {
-        QueueState::Failed => (Role::Critical, Glyph::Critical),
-        QueueState::Interrupted => (Role::Warning, Glyph::Warning),
-        QueueState::Deliberating => (Role::Active, Glyph::Active),
-        QueueState::Ready => (Role::Neutral, Glyph::Ready),
-        QueueState::Blocked => (Role::Neutral, Glyph::Blocked),
-        QueueState::Held => (Role::Neutral, Glyph::Held),
-        QueueState::Decided => (Role::Good, Glyph::Good),
-        QueueState::Superseded => (Role::Neutral, Glyph::Superseded),
+        QueueState::Failed => (Role::Fail, Glyph::Cross),
+        QueueState::Interrupted => (Role::Warn, Glyph::Triangle),
+        QueueState::Deliberating => (Role::Run, Glyph::Half),
+        QueueState::Ready => (Role::Neutral, Glyph::Ring),
+        QueueState::Blocked => (Role::Wait, Glyph::Dashed),
+        QueueState::Held => (Role::Human, Glyph::Bars),
+        QueueState::Decided => (Role::Done, Glyph::Check),
+        QueueState::Superseded => (Role::Done, Glyph::Struck),
     };
-    Status::of(role, glyph, state.label())
+    Status::of(role, glyph, Msg::Queue(state))
 }
-
-/// The queue's states in the legend's order.
-pub const QUEUE_STATES: [QueueState; 8] = [
-    QueueState::Decided,
-    QueueState::Deliberating,
-    QueueState::Ready,
-    QueueState::Blocked,
-    QueueState::Held,
-    QueueState::Interrupted,
-    QueueState::Failed,
-    QueueState::Superseded,
-];
 
 /// A Project `Status` shown in place of a verdict: neutral, the glyph of
 /// the state it amounts to, its option's name and why.
 pub fn project(status: &Option<ProjectStatus>, why: Fallback, fields: &Fields) -> Status {
     let options = &fields.status.options;
     let (glyph, word) = match status {
-        Some(ProjectStatus::Todo) => (Glyph::Ready, options.todo.to_string()),
-        Some(ProjectStatus::InProgress) => (Glyph::Active, options.in_progress.to_string()),
-        Some(ProjectStatus::Done) => (Glyph::Good, options.done.to_string()),
-        Some(ProjectStatus::Superseded) => (Glyph::Superseded, options.superseded.to_string()),
-        Some(ProjectStatus::Other(name)) => (Glyph::Ready, name.clone()),
-        None => (Glyph::Ready, format!("{} 未设置", fields.status.name)),
+        Some(ProjectStatus::Todo) => (Glyph::Ring, options.todo.to_string()),
+        Some(ProjectStatus::InProgress) => (Glyph::Half, options.in_progress.to_string()),
+        Some(ProjectStatus::Done) => (Glyph::Check, options.done.to_string()),
+        Some(ProjectStatus::Superseded) => (Glyph::Struck, options.superseded.to_string()),
+        Some(ProjectStatus::Other(name)) => (Glyph::Ring, name.clone()),
+        None => (
+            Glyph::Ring,
+            Msg::StatusUnset(fields.status.name.to_string()).to_string(),
+        ),
     };
-    Status::of(Role::Neutral, glyph, word).noted(match why {
-        Fallback::Unreachable => "议会不可达",
-        Fallback::Unlisted => "议会队列未列出",
-    })
+    Status::of(Role::Neutral, glyph, Msg::Fallback { word, why })
 }
 
-/// A DAG node's state: its verdict, or its Project `Status`.
+/// A node's state: its verdict, or its Project `Status`.
 pub fn node(state: &NodeState, fields: &Fields) -> Status {
     match state {
         NodeState::Queue(state) => queue(*state),
@@ -162,57 +166,59 @@ pub fn node(state: &NodeState, fields: &Fields) -> Status {
 
 /// A session's state.
 pub fn session(state: SessionState) -> Status {
-    match state {
-        SessionState::Running => Status::of(Role::Active, Glyph::Active, "运行中"),
-        SessionState::Done => Status::of(Role::Good, Glyph::Good, "完成"),
-        SessionState::Failed => Status::of(Role::Critical, Glyph::Critical, "失败"),
-    }
+    let (role, glyph) = match state {
+        SessionState::Running => (Role::Run, Glyph::Half),
+        SessionState::Done => (Role::Ok, Glyph::Check),
+        SessionState::Failed => (Role::Fail, Glyph::Cross),
+    };
+    Status::of(role, glyph, Msg::Session(state))
 }
 
 /// A base's state.
 pub fn base(state: BaseState) -> Status {
-    match state {
-        BaseState::Warming => Status::of(Role::Active, Glyph::Active, "预热中"),
-        BaseState::Ready => Status::of(Role::Good, Glyph::Good, "就绪"),
-        BaseState::Failed => Status::of(Role::Critical, Glyph::Critical, "失败"),
-    }
+    let (role, glyph) = match state {
+        BaseState::Warming => (Role::Run, Glyph::Half),
+        BaseState::Ready => (Role::Ok, Glyph::Check),
+        BaseState::Failed => (Role::Fail, Glyph::Cross),
+    };
+    Status::of(role, glyph, Msg::Base(state))
 }
 
 /// A base whose repository moved on since it was warmed.
 pub fn stale() -> Status {
-    Status::of(Role::Warning, Glyph::Warning, "过期")
+    Status::of(Role::Warn, Glyph::Triangle, Msg::Stale)
 }
 
 /// A program by its health check.
 pub fn program(reachable: bool) -> Status {
     if reachable {
-        Status::of(Role::Good, Glyph::Good, "在线")
+        Status::of(Role::Ok, Glyph::Check, Msg::Online)
     } else {
-        Status::of(Role::Critical, Glyph::Critical, "不可达")
+        Status::of(Role::Fail, Glyph::Cross, Msg::Unreachable)
     }
 }
 
 /// An implementation's ask that became an agenda issue no answer settled
-/// yet: waiting, as the mock draws it.
+/// yet: a person decides.
 pub fn escalated() -> Status {
-    Status::of(Role::Warning, Glyph::Held, "询问已提为议题")
+    Status::of(Role::Human, Glyph::Bars, Msg::Escalated)
 }
 
 /// A GitHub API allowance below the `attention` threshold.
 pub fn rate_low() -> Status {
-    Status::of(Role::Warning, Glyph::Warning, "余量低")
+    Status::of(Role::Warn, Glyph::Triangle, Msg::RateLow)
 }
 
 // ---------------------------------------------------------------------------
 // Drawing
 
-/// A glyph's size in points (the issue's 14 pt); its geometry is laid out
-/// on a 14-unit grid, as the mock's SVGs are.
+/// A glyph's size in points (#9's 14 pt); its geometry is laid out on a
+/// 14-unit grid.
 pub const GLYPH: f32 = 14.0;
 
-/// `glyph` in `role`'s color, its cut-outs in the card's color.
+/// `glyph` in `role`'s color, its cut-outs in the page's color.
 pub fn glyph(glyph: Glyph, role: Role) -> CanvasView {
-    let (ink, cut) = (role.ink(), color(ColorToken::Card));
+    let (ink, cut) = (role.ink(), color(ColorToken::Background));
     canvas(move || {
         let pick = |c: AdaptiveColor| if dark() { c.dark } else { c.light };
         paint(glyph, pick(ink), pick(cut))
@@ -247,20 +253,20 @@ fn paint(glyph: Glyph, ink: Hsla, cut: Hsla) -> Painter {
     };
     let p = Painter::new();
     match glyph {
-        Glyph::Critical => disc(p)
+        Glyph::Cross => disc(p)
             .begin_path()
             .move_to(u(4.6), u(4.6))
             .line_to(u(9.4), u(9.4))
             .move_to(u(9.4), u(4.6))
             .line_to(u(4.6), u(9.4))
             .stroke(),
-        Glyph::Good => disc(p)
+        Glyph::Check => disc(p)
             .begin_path()
             .move_to(u(4.3), u(7.2))
             .line_to(u(6.2), u(9.1))
             .line_to(u(9.8), u(5.3))
             .stroke(),
-        Glyph::Warning => p
+        Glyph::Triangle => p
             .fill_color(ink)
             .stroke_color(ink)
             .line_width(u(1.0))
@@ -283,15 +289,15 @@ fn paint(glyph: Glyph, ink: Hsla, cut: Hsla) -> Painter {
             .begin_path()
             .arc(u(7.0), u(10.1), u(0.9), 0.0, TAU)
             .fill(),
-        Glyph::Active => ring(p)
+        Glyph::Half => ring(p)
             .fill_color(ink)
             .begin_path()
             .arc(u(7.0), u(7.0), u(5.3), -FRAC_PI_2, FRAC_PI_2)
             .close_path()
             .fill(),
-        Glyph::Ready => ring(p),
-        Glyph::Blocked => ring(p.line_dash(&[u(2.2), u(2.0)])),
-        Glyph::Held => ring(p)
+        Glyph::Ring => ring(p),
+        Glyph::Dashed => ring(p.line_dash(&[u(2.2), u(2.0)])),
+        Glyph::Bars => ring(p)
             .line_cap(LineCap::Round)
             .begin_path()
             .move_to(u(5.6), u(4.8))
@@ -299,7 +305,7 @@ fn paint(glyph: Glyph, ink: Hsla, cut: Hsla) -> Painter {
             .move_to(u(8.4), u(4.8))
             .line_to(u(8.4), u(9.2))
             .stroke(),
-        Glyph::Superseded => ring(p)
+        Glyph::Struck => ring(p)
             .begin_path()
             .move_to(u(3.4), u(10.6))
             .line_to(u(10.6), u(3.4))
@@ -307,59 +313,18 @@ fn paint(glyph: Glyph, ink: Hsla, cut: Hsla) -> Painter {
     }
 }
 
-/// Glyph and word in the role's text color (`.st` of the mock), at the
-/// size of `ty`.
+/// Glyph and word in the role's text color, at the size of `ty`.
 pub fn label(status: &Status, ty: Type) -> View {
-    let role = status.role;
     view()
         .flex_row()
         .items_center()
-        .gap(len(LengthToken::Space1))
+        .gap(len(LengthToken::Space2))
         .flex_shrink_0()
-        .child(glyph(status.glyph, role))
+        .child(glyph(status.glyph, status.role))
         .child(
             text(status.word.clone())
                 .ty(ty)
-                .font_weight(FontWeight::MEDIUM)
-                .text_color(role.text())
+                .text_color(status.role.text())
                 .number_of_lines(1),
         )
-}
-
-/// Glyph and word on the role's tint, rounded (`.pill`).
-pub fn pill(status: &Status) -> View {
-    label(status, Type::Meta)
-        .px(len(LengthToken::Space2))
-        .py(Points::ZERO)
-        .rounded_full()
-        .bg(status.role.subtle())
-}
-
-/// A word on the role's tint without a glyph: a category next to a
-/// glyph that already shows the state (the attention queue's).
-pub fn tag(word: impl Into<SharedString>, role: Role) -> View {
-    view()
-        .flex_shrink_0()
-        .px(len(LengthToken::Space2))
-        .rounded_full()
-        .bg(role.subtle())
-        .child(
-            text(word.into())
-                .ty(Type::Meta)
-                .font_weight(FontWeight::MEDIUM)
-                .text_color(role.text())
-                .number_of_lines(1),
-        )
-}
-
-/// The glyph in a square of the role's tint (`.ico`): a queue row's lead.
-pub fn icon_box(status: &Status) -> View {
-    view()
-        .size(len(LengthToken::Space6))
-        .flex_shrink_0()
-        .items_center()
-        .justify_center()
-        .rounded(len(LengthToken::Radius))
-        .bg(status.role.subtle())
-        .child(glyph(status.glyph, status.role))
 }

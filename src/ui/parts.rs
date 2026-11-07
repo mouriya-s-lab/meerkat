@@ -1,15 +1,18 @@
-//! The dashboard's own controls, styled once from the theme's tokens:
-//! cards and their heads, buttons, segmented choices, check boxes, chips,
-//! key–value chips, table heads and group rows, a source's trouble line,
-//! summary sentences.
+//! Quorum's own controls, styled once from the theme's tokens: panels and
+//! their heads, buttons, segmented choices, filter tokens, a search field,
+//! table heads, selectable rows and group headers, inline error bars,
+//! skeleton rows, key–value lines, meters and the summary sentence.
 
-use nsh_base::button;
+use std::rc::Rc;
+
+use nsh_base::{button, input};
 use nsh_core::prelude::*;
 
 use super::{
     icons::{Icon, icon},
     status::Role,
-    tokens::{MARK, Type, Typeset, color, len},
+    text::Msg,
+    tokens::{DIM, Type, Typeset, color, len, mark},
 };
 use crate::{
     config::{ColorToken::*, LengthToken::*},
@@ -17,10 +20,15 @@ use crate::{
     time,
 };
 
-/// A card: the theme's card surface, border and radius.
-pub fn card() -> View {
+/// Nothing: a color no surface shows (an unselected row's leading bar).
+pub fn clear() -> AdaptiveColor {
+    color(Background).opacity(0.0)
+}
+
+/// A panel: the card surface, its border and radius.
+pub fn panel() -> View {
     view()
-        .rounded(len(Radius))
+        .rounded(len(RadiusPanel))
         .border_1()
         .border_color(color(Border))
         .bg(color(Card))
@@ -28,69 +36,83 @@ pub fn card() -> View {
         .overflow_hidden()
 }
 
-/// A card's head: its title, a note after it, and controls at the right.
-pub fn card_head(
+/// A panel's head: its title, a note after it, and controls at the right,
+/// ruled under.
+pub fn panel_head(
     title: impl Into<SharedString>,
-    sub: impl IntoReactive<SharedString>,
+    note: impl IntoReactive<SharedString>,
     right: Vec<AnyElement>,
 ) -> View {
     view()
         .flex_row()
-        .flex_wrap()
         .items_center()
         .gap(len(Space2))
+        .min_h(len(RowGroup) - len(Space3))
         .px(len(Space4))
-        .pt(len(Space3))
-        .pb(len(Space2))
-        .child(
-            text(title.into())
-                .ty(Type::Heading)
-                .font_weight(FontWeight::SEMIBOLD),
-        )
-        .child(meta(sub).flex_shrink(1.0))
+        .border_b_1()
+        .border_b_color(color(Border))
+        .child(text(title.into()).ty(Type::Heading).number_of_lines(1))
+        .child(small(note).flex_shrink(1.0).number_of_lines(1))
         .child(view().flex_1())
         .children(right)
 }
 
-/// Muted caption text.
-pub fn meta(content: impl IntoReactive<SharedString>) -> Text {
-    text(content)
-        .ty(Type::Meta)
-        .text_color(color(MutedForeground))
+/// A section's head on a page: its title and a note, a link at the right.
+pub fn section_head(
+    title: impl Into<SharedString>,
+    note: impl IntoReactive<SharedString>,
+    right: Vec<AnyElement>,
+) -> View {
+    view()
+        .flex_row()
+        .items_center()
+        .gap(len(Space2))
+        .min_h(len(Control))
+        .child(text(title.into()).ty(Type::Heading))
+        .child(small(note))
+        .child(view().flex_1())
+        .children(right)
 }
 
-/// Secondary text in the second ink.
-pub fn ink2(content: impl IntoReactive<SharedString>, ty: Type) -> Text {
-    text(content).ty(ty).text_color(color(Ink2))
+/// Captions and meta lines: small, in the third ink.
+pub fn small(content: impl IntoReactive<SharedString>) -> Text {
+    text(content).ty(Type::Small).text_color(color(Ink3))
+}
+
+/// Monospaced text in the second ink: ids, models, times.
+pub fn mono(content: impl IntoReactive<SharedString>) -> Text {
+    text(content).ty(Type::Mono).text_color(color(Ink2))
+}
+
+/// An error's text: monospaced, in `fail-text`.
+pub fn error_text(content: impl IntoReactive<SharedString>) -> Text {
+    text(content).ty(Type::Mono).text_color(Role::Fail.text())
 }
 
 /// How a button looks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Look {
-    /// Bordered, on the card.
+    /// Bordered.
     Plain,
-    /// The main action: filled.
+    /// The page's main action: filled.
     Primary,
-    /// No border, no fill.
-    Ghost,
+    /// Text in the primary color, no frame.
+    Link,
 }
 
-/// A button of `look`, small or not; `disabled` dims it and stops presses.
+/// A button of `look` with an optional leading icon; `disabled` dims it
+/// and stops presses.
 pub fn action(
     label: impl IntoReactive<SharedString>,
+    lead: Option<Icon>,
     look: Look,
-    small: bool,
     disabled: impl Fn() -> bool + Clone + 'static,
     on_press: impl Fn() + 'static,
 ) -> impl IntoElement {
     let (fill, ink, edge) = match look {
-        Look::Plain => (color(Card), color(Foreground), color(Input)),
+        Look::Plain => (color(Background), color(Foreground), color(Input)),
         Look::Primary => (color(Primary), color(PrimaryForeground), color(Primary)),
-        Look::Ghost => (
-            color(Card).opacity(0.0),
-            color(Ink2),
-            color(Card).opacity(0.0),
-        ),
+        Look::Link => (clear(), color(Primary), clear()),
     };
     let dim = disabled.clone();
     let label = label.into_reactive();
@@ -103,304 +125,411 @@ pub fn action(
         .items_center()
         .justify_center()
         .gap(len(Space1))
-        .px(len(if small { Space2 } else { Space3 }))
-        .py(len(Space1))
+        .h(len(Control))
+        .px(len(if look == Look::Link { Space1 } else { Space3 }))
         .rounded(len(RadiusControl))
         .border_1()
         .border_color(edge)
         .bg(fill)
-        .opacity(move || if dim() { 0.5_f32 } else { 1.0 })
-        .hover(|s| s.opacity(0.85))
-        .active(|s| s.opacity(0.7))
-        .focus(|s| s.outline(px(MARK)).outline_color(color(Ring)))
+        .opacity(move || if dim() { DIM } else { 1.0 })
+        .hover(move |s| match look {
+            Look::Plain => s.bg(color(Accent)),
+            Look::Primary | Look::Link => s.opacity(0.85),
+        })
+        .focus(|s| s.outline(mark()).outline_color(color(Ring)).outline_offset(mark()))
         .cursor_pointer()
-        .child(
-            text(label)
-                .ty(if small { Type::Meta } else { Type::Dense })
-                .font_weight(FontWeight::MEDIUM)
-                .text_color(ink)
-                .number_of_lines(1),
-        )
+        .children(lead.map(|lead| icon(lead, move || ink)))
+        .child(text(label).ty(Type::Label).text_color(ink).number_of_lines(1))
 }
 
-/// [`action`] that is never disabled.
+/// [`action`] that is never disabled and has no icon.
 pub fn press(
     label: impl IntoReactive<SharedString>,
     look: Look,
-    small: bool,
     on_press: impl Fn() + 'static,
 ) -> impl IntoElement {
-    action(label, look, small, || false, on_press)
+    action(label, None, look, || false, on_press)
 }
 
-/// The refresh button: an icon and its label.
-pub fn refresh_button(
-    label: impl IntoReactive<SharedString>,
-    on_press: impl Fn() + 'static,
-) -> impl IntoElement {
-    let label = label.into_reactive();
+/// A square button holding an icon only, `label` for screen readers.
+pub fn icon_button(icon_: Icon, label: Msg, on_press: impl Fn() + 'static) -> impl IntoElement {
     button()
         .on_press(on_press)
-        .accessibility_label(label.clone().map(Some))
-        .flex_row()
+        .accessibility_label(SharedString::from(label))
+        .size(len(Control))
+        .flex_shrink_0()
         .items_center()
         .justify_center()
-        .gap(len(Space2))
-        .py(len(Space1))
         .rounded(len(RadiusControl))
-        .border_1()
-        .border_color(color(Input))
-        .bg(color(Card))
         .hover(|s| s.bg(color(Accent)))
-        .focus(|s| s.outline(px(MARK)).outline_color(color(Ring)))
+        .focus(|s| s.outline(mark()).outline_color(color(Ring)).outline_offset(mark()))
         .cursor_pointer()
-        .child(icon(Icon::Refresh, || color(Foreground)))
-        .child(text(label).ty(Type::Dense).font_weight(FontWeight::MEDIUM))
+        .child(icon(icon_, || color(Ink2)))
 }
 
-/// One choice of [`segmented`]: its label, whether it is the current
-/// one, and what pressing it does.
-pub type Choice = (SharedString, Box<dyn Fn() -> bool>, Box<dyn Fn()>);
+/// One choice of [`segmented`]: its label, a count after it, whether it is
+/// the current one, and what pressing it does.
+pub struct Choice {
+    pub label: SharedString,
+    pub lead: Option<Icon>,
+    pub count: Option<Box<dyn Fn() -> Option<usize>>>,
+    pub selected: Rc<dyn Fn() -> bool>,
+    pub on_press: Box<dyn Fn()>,
+}
 
-/// A row of choices in one frame (`.seg`): each a tab, marked while
-/// `selected`.
+impl Choice {
+    pub fn new(
+        label: impl Into<SharedString>,
+        selected: impl Fn() -> bool + 'static,
+        on_press: impl Fn() + 'static,
+    ) -> Self {
+        Self {
+            label: label.into(),
+            lead: None,
+            count: None,
+            selected: Rc::new(selected),
+            on_press: Box::new(on_press),
+        }
+    }
+
+    pub fn lead(mut self, icon: Icon) -> Self {
+        self.lead = Some(icon);
+        self
+    }
+
+    pub fn count(mut self, count: impl Fn() -> Option<usize> + 'static) -> Self {
+        self.count = Some(Box::new(count));
+        self
+    }
+}
+
+/// Choices side by side on a sunken track; the current one raised.
 pub fn segmented(choices: Vec<Choice>) -> View {
-    let count = choices.len();
     view()
-        .flex_row()
-        .flex_shrink_0()
-        .role(AccessibilityRole::Tablist)
-        .rounded(len(RadiusControl))
-        .border_1()
-        .border_color(color(Input))
-        .bg(color(Card))
-        .overflow_hidden()
-        .children(
-            choices
-                .into_iter()
-                .enumerate()
-                .map(|(i, (label, selected, on_press))| {
-                    let selected: std::rc::Rc<dyn Fn() -> bool> = selected.into();
-                    let (a, b, c) = (selected.clone(), selected.clone(), selected.clone());
-                    button()
-                        .on_press(on_press)
-                        .accessibility_label(Some(label.clone()))
-                        .role(Some(AccessibilityRole::Tab))
-                        .selected(move || a())
-                        .justify_center()
-                        .px(len(Space3))
-                        .py(len(Space1))
-                        .when(i + 1 < count, |b| {
-                            b.border_r_1().border_r_color(color(Input))
-                        })
-                        .bg(move || if b() { color(Accent) } else { color(Card) })
-                        .hover(|s| s.bg(color(Accent)))
-                        .cursor_pointer()
-                        .child(
-                            text(label)
-                                .ty(Type::Dense)
-                                .font_weight(if c() {
-                                    FontWeight::SEMIBOLD
-                                } else {
-                                    FontWeight::NORMAL
-                                })
-                                .text_color(
-                                    move || if c() { color(Foreground) } else { color(Ink2) },
-                                ),
-                        )
-                }),
-        )
-}
-
-/// A check box with its label, as a button screen readers hear as
-/// selected while `checked`; a press asks for the other value.
-pub fn toggle(
-    label: &'static str,
-    checked: impl Fn() -> bool + Copy + 'static,
-    on_change: impl Fn(bool) + 'static,
-) -> impl IntoElement {
-    button()
-        .on_press(move || on_change(!checked()))
-        .accessibility_label(label)
-        .selected(checked)
         .flex_row()
         .flex_shrink_0()
         .items_center()
-        .gap(len(Space2))
+        .gap(len(Space1) / 2.0)
+        .p(len(Space1) / 2.0)
+        .h(len(Control) + len(Space1))
+        .role(AccessibilityRole::Tablist)
+        .rounded(len(RadiusControl))
+        .bg(color(Secondary))
+        .children(choices.into_iter().map(|choice| {
+            let Choice {
+                label,
+                lead,
+                count,
+                selected,
+                on_press,
+            } = choice;
+            let (a, b, c, d) = (selected.clone(), selected.clone(), selected.clone(), selected);
+            button()
+                .on_press(on_press)
+                .accessibility_label(Some(label.clone()))
+                .role(Some(AccessibilityRole::Tab))
+                .selected(move || a())
+                .flex_row()
+                .items_center()
+                .gap(len(Space2))
+                .h(len(Control) - len(Space1))
+                .px(len(Space3))
+                .rounded(len(RadiusControl) - len(Space1) / 2.0)
+                .border_1()
+                .border_color(move || if b() { color(Border) } else { clear() })
+                .bg(move || if c() { color(Background) } else { clear() })
+                .cursor_pointer()
+                .children(lead.map(|lead| {
+                    let d = d.clone();
+                    icon(lead, move || if d() { color(Foreground) } else { color(Ink2) })
+                }))
+                .child(text(label).ty(Type::Label).text_color({
+                    let d = d.clone();
+                    move || if d() { color(Foreground) } else { color(Ink2) }
+                }))
+                .children(count.map(|count| {
+                    text(move || count().map(|n| n.to_string()).unwrap_or_default())
+                        .ty(Type::Small)
+                        .text_color(color(Ink3))
+                }))
+        }))
+}
+
+/// A filter token: its key and current value in a pill; a press steps the
+/// value.
+pub fn token(
+    key: Msg,
+    value: impl Fn() -> SharedString + 'static,
+    on_press: impl Fn() + 'static,
+) -> impl IntoElement {
+    let key = SharedString::from(key);
+    button()
+        .on_press(on_press)
+        .accessibility_label(key.clone())
+        .flex_row()
+        .flex_shrink_0()
+        .items_center()
+        .gap(len(Space1))
+        .h(len(Control))
         .px(len(Space3))
-        .py(len(Space1))
+        .rounded_full()
+        .border_1()
+        .border_color(color(Input))
+        .bg(color(Background))
+        .hover(|s| s.bg(color(Accent)))
+        .focus(|s| s.outline(mark()).outline_color(color(Ring)).outline_offset(mark()))
+        .cursor_pointer()
+        .child(text(Msg::TokenKey(key.to_string()).to_string()).ty(Type::Small).text_color(color(Ink2)))
+        .child(text(value).ty(Type::Label))
+}
+
+/// A text field with a search icon; what is typed goes into `value`.
+pub fn search_field(value: Signal<String>, placeholder: Msg) -> View {
+    view()
+        .flex_row()
+        .items_center()
+        .gap(len(Space2))
+        .h(len(Control))
+        .px(len(Space2))
         .rounded(len(RadiusControl))
         .border_1()
         .border_color(color(Input))
-        .bg(color(Card))
-        .hover(|s| s.bg(color(Accent)))
-        .focus(|s| s.outline(px(MARK)).outline_color(color(Ring)))
-        .cursor_pointer()
+        .bg(color(Background))
+        .child(icon(Icon::Search, || color(Ink3)))
         .child(
-            view()
-                .size(len(Space3))
-                .rounded(len(Space1))
-                .border_1()
-                .border_color(move || {
-                    if checked() {
-                        color(Primary)
-                    } else {
-                        color(BorderStrong)
-                    }
-                })
-                .bg(move || {
-                    if checked() {
-                        color(Primary)
-                    } else {
-                        color(Card)
-                    }
-                }),
+            input()
+                .flex_1()
+                .min_w(Points::ZERO)
+                .value(move || value.get())
+                .on_change(move |text: &str| value.set(text.to_owned()))
+                .placeholder(placeholder.to_string())
+                .placeholder_color(move || pick(color(Ink3)))
+                .text_size(len(TextBody))
+                .text_color(color(Foreground)),
         )
-        .child(ink2(label, Type::Dense))
 }
 
-/// A monospaced value in a thin frame (`.chip`): a model, an id, a number.
-pub fn chip(value: impl Into<SharedString>) -> View {
+/// `c` in the current appearance.
+pub fn pick(c: AdaptiveColor) -> Hsla {
+    if dark() { c.dark } else { c.light }
+}
+
+/// A key's name in a frame: `⌘K`, `esc`.
+pub fn kbd(key: impl Into<SharedString>) -> View {
     view()
         .flex_shrink_0()
         .px(len(Space1))
-        .rounded(len(Space1))
+        .rounded(len(RadiusChip))
         .border_1()
         .border_color(color(Border))
-        .child(
-            text(value.into())
-                .ty(Type::Meta)
-                .mono()
-                .text_color(color(Ink2))
-                .truncate(),
-        )
+        .bg(color(Background))
+        .child(text(key.into()).ty(Type::Small).text_color(color(Ink3)))
 }
 
-/// A word on the secondary surface (`.tag`): a kind, a program.
-pub fn tag(value: impl Into<SharedString>) -> View {
+/// A word on a role's tint: the 「人类」 tag.
+pub fn tag(word: impl Into<SharedString>, role: Role) -> View {
     view()
         .flex_shrink_0()
         .px(len(Space1))
-        .rounded(len(Space1))
-        .bg(color(Secondary))
-        .child(
-            text(value.into())
-                .ty(Type::Meta)
-                .text_color(color(Ink2))
-                .number_of_lines(1),
-        )
+        .rounded(len(RadiusChip))
+        .bg(role.subtle())
+        .child(text(word.into()).ty(Type::Label).text_color(role.text()).number_of_lines(1))
 }
 
-/// A key and its value side by side in one frame (`.kvchip`).
-pub fn kv_chip(key: &'static str, value: impl Into<SharedString>) -> View {
+/// A count on a role's tint (a group's size beside its title).
+pub fn badge(count: usize, role: Role) -> View {
     view()
-        .flex_row()
         .flex_shrink_0()
-        .rounded(len(RadiusControl))
-        .border_1()
-        .border_color(color(Border))
-        .overflow_hidden()
-        .child(
-            view()
-                .justify_center()
-                .px(len(Space2))
-                .bg(color(Muted))
-                .border_r_1()
-                .border_r_color(color(Border))
-                .child(meta(key)),
-        )
-        .child(
-            view().justify_center().px(len(Space2)).child(
-                text(value.into())
-                    .ty(Type::Meta)
-                    .mono()
-                    .font_weight(FontWeight::MEDIUM)
-                    .selectable(true),
-            ),
-        )
+        .px(len(Space1))
+        .min_w(len(Space4))
+        .items_center()
+        .rounded_full()
+        .bg(role.subtle())
+        .child(text(count.to_string()).ty(Type::Label).text_color(role.text()))
 }
 
 /// A table's header cell text.
 pub fn th(label: impl Into<SharedString>) -> Text {
     text(label.into())
-        .ty(Type::Meta)
-        .font_weight(FontWeight::MEDIUM)
-        .text_color(color(MutedForeground))
+        .ty(Type::Label)
+        .text_color(color(Ink3))
         .number_of_lines(1)
 }
 
-/// A table's head row: `cells` at the head's height, a rule under it.
+/// A table's head: `cells` on the sunken surface, ruled under; it sticks to
+/// the top of the scroll view around it.
 pub fn head_row(cells: Vec<AnyElement>) -> View {
     view()
+        .sticky()
+        .top(Points::ZERO)
+        .z_index(1)
         .flex_row()
         .items_center()
         .gap(len(Space3))
+        .h(len(Row))
         .px(len(Space4))
-        .py(len(Space2))
+        .bg(color(Background))
         .border_b_1()
         .border_b_color(color(Border))
         .children(cells)
 }
 
-/// A table's body row of `row-dense` height, ruled above.
-pub fn body_row() -> View {
-    view()
+/// A selectable row of `row` height: hover tints it, the selection gives
+/// it the `selected` surface and a leading `selection` bar.
+pub fn row(
+    selected: impl Fn() -> bool + Clone + 'static,
+    label: impl Into<SharedString>,
+    on_press: impl Fn() + 'static,
+) -> nsh_base::ButtonElement {
+    let (a, b, c) = (selected.clone(), selected.clone(), selected);
+    button()
+        .on_press(on_press)
+        .accessibility_label(label.into())
+        .selected(a)
         .flex_row()
         .items_center()
         .gap(len(Space3))
-        .px(len(Space4))
-        .min_h(len(RowDense))
-        .border_t_1()
-        .border_t_color(color(Border))
+        .min_h(len(Row))
+        .pr(len(Space4))
+        .pl(len(Space4) - mark())
+        .border_l(mark())
+        .border_l_color(move || if b() { color(Selection) } else { clear() })
+        .border_b_1()
+        .border_b_color(color(Border))
+        .bg(move || if c() { color(Selected) } else { clear() })
+        .hover(|s| s.bg(color(Accent)))
+        .cursor_pointer()
 }
 
-/// A group's label row in a table (`tr.group`).
-pub fn group_row(label: impl IntoReactive<SharedString>) -> View {
+/// A group's header in a table: its glyph, title and count on the sunken
+/// surface; a press opens or closes it when it can.
+pub fn group_header(lead: AnyElement, title: impl Into<SharedString>, count: usize) -> View {
     view()
+        .flex_row()
+        .items_center()
+        .gap(len(Space2))
+        .h(len(Row))
         .px(len(Space4))
-        .py(len(Space1))
-        .bg(color(Muted))
-        .border_t_1()
-        .border_t_color(color(Border))
-        .child(
-            text(label)
-                .ty(Type::Meta)
-                .font_weight(FontWeight::SEMIBOLD)
-                .text_color(color(Ink2)),
-        )
+        .bg(color(Sunken))
+        .border_b_1()
+        .border_b_color(color(Border))
+        .child(lead)
+        .child(text(title.into()).ty(Type::Label))
+        .child(small(count.to_string()))
 }
 
-/// What is wrong with `source`, if anything: its error with when it last
-/// loaded, or that its first load is under way. Nothing while it is fine.
-pub fn source_trouble<T: 'static>(label: &'static str, source: Source<T>) -> AnyElement {
+/// An inline error bar over a panel whose source failed: the glyph, why,
+/// when it last loaded, and 「重试」.
+pub fn error_bar(error: String, last: Option<f64>, retry: impl Fn() + 'static) -> View {
+    view()
+        .flex_row()
+        .items_center()
+        .gap(len(Space2))
+        .min_h(len(Row))
+        .px(len(Space4))
+        .bg(Role::Fail.subtle())
+        .border_b_1()
+        .border_b_color(color(Border))
+        .child(super::status::glyph(super::status::Glyph::Cross, Role::Fail))
+        .child(
+            text(crate::attention::first_line(&error).to_owned())
+                .ty(Type::Body)
+                .text_color(Role::Fail.text())
+                .flex_1()
+                .min_w(Points::ZERO)
+                .number_of_lines(1)
+                .selectable(true),
+        )
+        .child(small(Msg::LastLoaded(last.map(time::clock)).to_string()))
+        .child(press(Msg::Retry, Look::Plain, retry))
+}
+
+/// What `source` lacks: an error bar while its last load failed, skeleton
+/// rows while its first load is on its way; nothing while it is fine.
+pub fn source_bar<T: 'static>(source: Source<T>, rows: usize) -> AnyElement {
     dynamic(move || {
         let at = source.with(|loaded| loaded.map(|loaded| loaded.at));
-        let line = match (source.error(), at) {
-            (Some(error), _) => Some((
-                format!(
-                    "{label}：{error}（{}）",
-                    at.map(|at| format!("上次成功 {}", time::clock(at)))
-                        .unwrap_or_else(|| "从未成功".to_owned())
-                ),
-                Role::Critical.text(),
-            )),
-            (None, None) if source.state() == ResourceState::Unresolved => {
-                Some((format!("{label}：等待前置数据"), color(MutedForeground)))
-            }
-            (None, None) => Some((format!("{label}：加载中…"), color(MutedForeground))),
-            (None, Some(_)) => None,
-        };
-        match line {
-            Some((line, ink)) => text(line)
-                .ty(Type::Meta)
-                .text_color(ink)
-                .selectable(true)
-                .number_of_lines(2)
-                .into_element(),
-            None => nothing(),
+        match (source.error(), at) {
+            (Some(error), at) => error_bar(error, at, move || source.refetch()).into_element(),
+            (None, None) => skeleton(rows).into_element(),
+            (None, Some(_)) => nothing(),
         }
     })
     .into_element()
+}
+
+/// `rows` placeholder rows at the final row height, while data loads.
+pub fn skeleton(rows: usize) -> View {
+    view().children((0..rows).map(|i| {
+        view()
+            .h(len(Row))
+            .px(len(Space4))
+            .justify_center()
+            .border_b_1()
+            .border_b_color(color(Border))
+            .child(
+                view()
+                    .h(len(Space2))
+                    .w(relative(if i % 2 == 0 { 0.6 } else { 0.4 }))
+                    .rounded(len(RadiusChip))
+                    .bg(color(Secondary)),
+            )
+    }))
+}
+
+/// An empty panel's one grey line.
+pub fn empty(message: Msg) -> View {
+    view()
+        .px(len(Space4))
+        .py(len(Space3))
+        .child(small(SharedString::from(message)))
+}
+
+/// An inspector's key–value line: the key in a fixed column.
+pub fn kv(key: Msg, value: impl IntoElement) -> View {
+    view()
+        .flex_row()
+        .items_start()
+        .gap(len(Space3))
+        .min_h(len(Row) - len(Space2))
+        .child(
+            small(SharedString::from(key))
+                .w(len(Space8) + len(Space6))
+                .flex_shrink_0(),
+        )
+        .child(view().flex_1().min_w(Points::ZERO).child(value))
+}
+
+/// A thin bar `share` (0–1) full of `ink`.
+pub fn meter(share: f32, ink: AdaptiveColor) -> View {
+    view()
+        .h(len(Space1))
+        .w_full()
+        .rounded_full()
+        .bg(color(Secondary))
+        .overflow_hidden()
+        .child(
+            view()
+                .h_full()
+                .w(relative(share.clamp(0.0, 1.0)))
+                .rounded_full()
+                .bg(ink),
+        )
+}
+
+/// A panel's seats: one block per seat, voted in `ink-2`, pending empty.
+pub fn votes_bar(voted: usize, total: usize) -> View {
+    view()
+        .flex_row()
+        .flex_shrink_0()
+        .gap(len(Space1) / 2.0)
+        .children((0..total).map(|i| {
+            view()
+                .w(len(Space3))
+                .h(len(Space1) + len(Space1) / 2.0)
+                .rounded(len(RadiusChip) / 2.0)
+                .bg(if i < voted { color(Ink3) } else { color(Secondary) })
+        }))
 }
 
 /// An element that takes no room, not even a gap of its parent's: what a
@@ -409,13 +538,13 @@ pub fn nothing() -> AnyElement {
     view().hidden().into_element()
 }
 
-/// Text with its numbers in bold and its failures in `critical-text`:
-/// the summary sentences.
+/// Text with its numbers in `foreground` and its failures in `fail-text`:
+/// the status sentence.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Span {
     Plain(String),
     Strong(String),
-    Critical(String),
+    Fail(String),
 }
 
 /// A sentence of `spans` in the second ink.
@@ -423,15 +552,9 @@ pub fn sentence(spans: Vec<Span>) -> Text {
     text("")
         .ty(Type::Body)
         .text_color(color(Ink2))
-        .children(spans.into_iter().map(|span| {
-            match span {
-                Span::Plain(s) => text(s),
-                Span::Strong(s) => text(s)
-                    .font_weight(FontWeight::SEMIBOLD)
-                    .text_color(color(Foreground)),
-                Span::Critical(s) => text(s)
-                    .font_weight(FontWeight::SEMIBOLD)
-                    .text_color(Role::Critical.text()),
-            }
+        .children(spans.into_iter().map(|span| match span {
+            Span::Plain(s) => text(s),
+            Span::Strong(s) => text(s).ty(Type::BodyStrong).text_color(color(Foreground)),
+            Span::Fail(s) => text(s).ty(Type::BodyStrong).text_color(Role::Fail.text()),
         }))
 }

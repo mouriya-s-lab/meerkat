@@ -89,16 +89,15 @@ repositories.
 | `digest.foldTools` | Tools whose consecutive calls the decision log shows as one count (the file-reading tools) |
 | `digest.showAssistantText` | Whether the decision log shows the assistant's text |
 | `digest.maxBytes` | A session record longer than this many bytes is parsed from its tail only, and the decision log says it is cut |
-| `list.columns` | The table's columns, left to right, each once: `agenda`, `title`, `kind`, `state`, `proposer`, `blockedBy`, `progress` |
-| `list.defaultSort` | `{column, descending}`: the table's order when the page opens; `column` is one of `list.columns` |
-| `filters.hideDecided`, `filters.hideSuperseded`, `filters.humanOnly` | The filters' values when the app starts (`humanOnly`: human issues and the issues they block, transitively) |
+| `filters.hideDecided` | The 「已定案」 filter when the app starts: `true` folds the decided and superseded issues (the list shows the latest three, the DAG one line), `false` shows them all |
+| `filters.humanOnly` | The 「仅人类议题及其后继」 filter when the app starts: human issues and the issues they block, transitively |
 
 `dashboard/theme.json` holds the design tokens: `cssVars.theme` (fonts
 and lengths), `cssVars.light` and `cssVars.dark` (colors), each with
 exactly the tokens of `config.example/dashboard/theme.json`. Colors are
 `#rrggbb`, lengths `<n>px`, fonts CSS family lists. A missing token, an
 unknown one or a value that does not parse is an error that names the
-file, the token's key path (`cssVars.light.good-text`) and what is wrong;
+file, the token's key path (`cssVars.light.ok-text`) and what is wrong;
 the web build checks the same file when it is built.
 
 Addresses are absolute `http(s)` URLs without a query; NSH's `fetch` takes
