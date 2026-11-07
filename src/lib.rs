@@ -23,12 +23,16 @@ fn native(registry: &mut Registry) {
     registry.register::<App>();
 }
 
-/// The app's root: the overview for the config this build reads, or what
-/// is wrong with that config.
+/// The app's root: the overview for the config this build reads, drawn
+/// with its theme's tokens, or what is wrong with that config.
 #[component]
 pub fn App() -> impl IntoElement {
     let content = match config::load() {
-        Ok(config) => ui::shell(config),
+        Ok(config) => {
+            let tokens = ui::tokens(&config.theme);
+            set_tokens(tokens.clone());
+            ui::app(config, tokens)
+        }
         Err(error) => ui::config_error(&error),
     };
     view()

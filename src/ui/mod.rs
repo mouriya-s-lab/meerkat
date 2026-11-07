@@ -1,11 +1,15 @@
-//! The dashboard's screens and its own component library.
+//! The dashboard's screens, its design tokens, status vocabulary and its
+//! own component library.
 
 mod guardians;
+mod icons;
 mod issues;
 mod overview;
 mod parts;
 mod sessions;
 mod shell;
-pub mod theme;
+mod status;
+mod tokens;
 
-pub use shell::{config_error, shell};
+pub use shell::{app, config_error};
+pub use tokens::of as tokens;

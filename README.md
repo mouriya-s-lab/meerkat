@@ -40,14 +40,21 @@ and a button that refreshes everything now.
 
 The second page, 「议题」, draws the agenda issues (Project `Kind` human or
 agenda in the PM repository) as a DAG of their GitHub "Blocked by"
-relations beside a table of the same issues. A node's state is the
-council's `/v1/queue` verdict; while the council is unreachable it is the
-Project's `Status`, marked 「议会不可达」. Layers follow the longest chain of
-human prerequisites; a "Blocked by" on a non-human issue is drawn dashed and
-the strip under the page shows the council's notes on it. Filters apply to
-both halves; a node or a row opens the issue on GitHub. Drag pans the DAG;
-the buttons, Control + wheel and trackpad pinches zoom it. Windows narrower
-than 900 pt show the DAG and the table as tabs.
+relations, or, switched with 图/列表, as a table of the same issues. A
+node's state is the council's `/v1/queue` verdict; while the council is
+unreachable it is the Project's `Status`, marked 「议会不可达」. Layers run
+left to right along the longest chain of prerequisites; a "Blocked by" the
+council does not count is drawn dashed. Issues with no prerequisite
+relation at all sit in a grid under the drawing, in agenda order. Pressing
+a node selects it: its prerequisites and what it blocks stay, the rest
+dims, and the panel beside the drawing shows its panel, votes and
+relations with a button that opens it on GitHub; a table row selects and
+opens it. Drag pans the DAG; the buttons, Control + wheel and trackpad
+pinches zoom it.
+
+Every page draws from one design system: the colors, type sizes,
+spacings, radii and DAG lengths of `dashboard/theme.json`, and one
+vocabulary of state words and glyphs shared by all pages.
 
 ## Configuration
 
@@ -57,6 +64,7 @@ pm-council and pm-guardians):
 ```
 <config dir>/
   dashboard/dashboard.yaml
+  dashboard/theme.json
   shared/repos.yaml
   shared/project.yaml
 ```
@@ -81,12 +89,17 @@ repositories.
 | `digest.foldTools` | Tools whose consecutive calls the decision log shows as one count (the file-reading tools) |
 | `digest.showAssistantText` | Whether the decision log shows the assistant's text |
 | `digest.maxBytes` | A session record longer than this many bytes is parsed from its tail only, and the decision log says it is cut |
-| `dag.colors.<state>` | A node's color, `#rrggbb`, for each queue state (`decided`, `superseded`, `blocked`, `held`, `deliberating`, `interrupted`, `failed`, `ready`) and `unreachable`; a Project `Status` shown instead colors Done as `decided`, Superseded as `superseded`, the rest as `unreachable` |
-| `dag.layerGap`, `dag.nodeGap` | Points between two layers, and between two nodes of a layer (and around the drawing) |
-| `dag.nodeWidth`, `dag.nodeHeight` | A node's size in points (at zoom 1) |
 | `list.columns` | The table's columns, left to right, each once: `agenda`, `title`, `kind`, `state`, `proposer`, `blockedBy`, `progress` |
 | `list.defaultSort` | `{column, descending}`: the table's order when the page opens; `column` is one of `list.columns` |
 | `filters.hideDecided`, `filters.hideSuperseded`, `filters.humanOnly` | The filters' values when the app starts (`humanOnly`: human issues and the issues they block, transitively) |
+
+`dashboard/theme.json` holds the design tokens: `cssVars.theme` (fonts
+and lengths), `cssVars.light` and `cssVars.dark` (colors), each with
+exactly the tokens of `config.example/dashboard/theme.json`. Colors are
+`#rrggbb`, lengths `<n>px`, fonts CSS family lists. A missing token, an
+unknown one or a value that does not parse is an error that names the
+file, the token's key path (`cssVars.light.good-text`) and what is wrong;
+the web build checks the same file when it is built.
 
 Addresses are absolute `http(s)` URLs without a query; NSH's `fetch` takes
 absolute URLs only, so the web addresses name the proxy's origin.
