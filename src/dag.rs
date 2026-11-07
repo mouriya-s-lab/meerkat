@@ -1,4 +1,4 @@
-//! The 「议题」 page's model (C4 `issueDag`): the agenda issues of the PM
+//! The 「议题」 page's model (C4 `dagView`): the agenda issues of the PM
 //! repository with their GitHub "Blocked by" relations, the list's groups
 //! and the DAG's columns. Pure: it reads the Project's items and the
 //! council's queue as the sources last loaded them.

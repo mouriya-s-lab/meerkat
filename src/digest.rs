@@ -454,7 +454,7 @@ mod tests {
         };
         Rules {
             keep_tools: names(&["pm_return_facts", "pm_base_ready", "pm_vote"]),
-            fold_tools: names(&["read", "grep", "glob", "find"]),
+            fold_tools: names(&["read", "grep", "glob"]),
             show_assistant_text: true,
             max_bytes: NonZeroU32::new(max_bytes).unwrap(),
         }
@@ -549,7 +549,7 @@ mod tests {
             .collect();
         assert_eq!(
             folded,
-            [("find", 1), ("glob", 1), ("grep", 1), ("read", 2), ("glob", 1)]
+            [("glob", 1), ("grep", 1), ("read", 2), ("glob", 1)]
         );
         assert!(matches!(items[1], DigestItem::Opening(_)));
         let DigestItem::ToolCall { name, result, .. } = items.last().unwrap() else {
