@@ -32,8 +32,9 @@ use std::{
 use base64::Engine as _;
 use quorum::{
     Lang, Msg, QueueMotion,
-    config,
+    config::{self, ConfigError, Problem},
     dag::{self, Closed, Group},
+    failure::{self, Failure, NoCredential},
     gh,
     programs::{BaseState, Program, QueueState, SessionState},
     time::{self, Ago},
@@ -102,7 +103,8 @@ fn language_follows_locale_change() -> Result<(), String> {
 }
 
 /// Opens every page in `lang` and checks each text on it, then starts on
-/// an invalid config and checks the configuration error page.
+/// an invalid config and checks the configuration error page, then starts
+/// with no GitHub credential and checks the panels that read GitHub.
 fn every_page(lang: Lang) -> Result<(), String> {
     let _serial = serial();
     // The credential comes from `GH_TOKEN`: no `gh` runs.
@@ -156,11 +158,55 @@ fn every_page(lang: Lang) -> Result<(), String> {
     let mut broken = Fixture::start_in(lang, &invalid, Vec::new());
     broken.wait_for(&broken.say(&Msg::ConfigError), SHOWN)?;
     let error = quorum::config::load().err().ok_or("the invalid config loads")?;
-    let data = Data::of(&invalid, &[error.file, error.path, error.message]);
+    let Problem::Said(said) = error.message else {
+        return Err(format!("the invalid config's problem is not the parser's: {:?}", error.message));
+    };
+    let data = Data::of(&invalid, &[error.file, error.path, said]);
     let errors = check_page(&Union::new(lang, &data), "configuration error", &broken.texts()).err();
+    drop(broken);
 
-    let failures: Vec<String> = failures.into_iter().chain(errors).collect();
+    let missing = without_credential(lang)?;
+
+    let failures: Vec<String> = failures.into_iter().chain(errors).chain(missing).collect();
     if failures.is_empty() { Ok(()) } else { Err(failures.join("\n")) }
+}
+
+/// #23's `gh_missing`: no `GH_TOKEN` and no `gh` on `PATH`. The overview's
+/// and the issues page's GitHub panels say why there is no credential; each
+/// text on them is checked. The reason holds the system's error running
+/// `gh`, which is data: the test asks the system for it the same way.
+fn without_credential(lang: Lang) -> Result<Option<String>, String> {
+    let path = std::env::var_os("PATH");
+    let sandbox = support::Sandbox::new("i18n-gh-missing");
+    support::path_without_gh(sandbox.dir());
+    support::clear_github_token();
+    let system = std::process::Command::new("gh")
+        .args(["auth", "token"])
+        .output()
+        .err()
+        .ok_or("`gh` runs though PATH has none")?
+        .to_string();
+    let checked = (|| {
+        let mut quorum = Fixture::start(lang);
+        let reason = quorum.say(&Msg::Failure(Failure::NoCredential(NoCredential::GhCannotRun(system.clone()))));
+        let data = Data::of(&support::config_dir(), std::slice::from_ref(&system));
+        let union = Union::new(lang, &data);
+        quorum.wait_for_containing(&reason, SHOWN)?;
+        let overview = quorum.texts();
+        quorum.open(Msg::PageIssues)?;
+        quorum.wait_for_containing(&reason, SHOWN)?;
+        let issues = quorum.texts();
+        let failures: Vec<String> = [("overview, no credential", overview), ("issues, no credential", issues)]
+            .iter()
+            .filter_map(|(page, texts)| check_page(&union, page, texts).err())
+            .collect();
+        Ok::<_, String>((!failures.is_empty()).then(|| failures.join("\n")))
+    })();
+    if let Some(path) = path {
+        // SAFETY: the tests run one at a time ([`serial`]).
+        unsafe { std::env::set_var("PATH", path) };
+    }
+    checked
 }
 
 /// Waits for the overview's council, guardians and GitHub data.
@@ -349,6 +395,8 @@ fn template(msg: &Msg, lang: Lang) -> Vec<Part> {
     let worded = msg
         .in_lang(lang)
         .to_string()
+        // A placeholder written with `{:?}`.
+        .replace("\\u{e000}", S)
         .replace("9,000,001", &NUMBER.to_string())
         .replace(&N.to_string(), &NUMBER.to_string());
     #[derive(PartialEq)]
@@ -394,6 +442,61 @@ fn template(msg: &Msg, lang: Lang) -> Vec<Part> {
         i += 1;
     }
     parts
+}
+
+/// What is wrong with a config file, each of Quorum's findings and others'
+/// words.
+fn problems() -> Vec<Problem> {
+    let mut problems = vec![
+        Problem::Said(s()),
+        Problem::NotUtf8(s()),
+        Problem::DirUnset,
+        Problem::NotJson(s()),
+        Problem::NotString(s()),
+        Problem::NotFontList(s()),
+        Problem::NotLength(s()),
+        Problem::NotColor(s()),
+        Problem::NotObject(s()),
+        Problem::MissingToken,
+        Problem::UnknownToken,
+    ];
+    problems.extend(direct_failures().into_iter().map(|why| Problem::Unreachable(Box::new(why))));
+    problems
+}
+
+/// A config error of each problem, with a key path and without.
+fn config_errors() -> Vec<ConfigError> {
+    problems()
+        .into_iter()
+        .flat_map(|message| {
+            [String::new(), s()].map(|path| ConfigError { file: s(), path, message: message.clone() })
+        })
+        .collect()
+}
+
+/// Why something did not come, but for a config error.
+fn direct_failures() -> Vec<Failure> {
+    vec![
+        Failure::Said(s()),
+        Failure::Unparsable { url: s(), error: s() },
+        Failure::CredentialPending,
+        Failure::NoCredential(NoCredential::GhFailed(s())),
+        Failure::NoCredential(NoCredential::GhSilent),
+        Failure::NoCredential(NoCredential::GhCannotRun(s())),
+        Failure::GraphQlNoData,
+        Failure::ProjectNotFound { owner: s(), number: N },
+        Failure::TreeTruncated { repo: s(), head: s() },
+        Failure::Encoding { path: s(), encoding: s() },
+        Failure::NotUtf8 { path: s() },
+        Failure::ParseStopped(s()),
+    ]
+}
+
+/// Why something did not come: each [`failure::Failure`].
+fn failures() -> Vec<Failure> {
+    let mut all = direct_failures();
+    all.extend(config_errors().into_iter().map(failure::Failure::Config));
+    all
 }
 
 fn s() -> String {
@@ -514,6 +617,9 @@ fn instances() -> Vec<Msg> {
 
     // -- parts
     all.push(TokenKey(s()));
+    all.extend(failures().into_iter().map(Msg::Failure));
+    all.extend(config_errors().into_iter().map(ConfigFailure));
+    all.extend(problems().into_iter().map(Msg::Problem));
     all.extend(maybe(&[s()]).into_iter().map(LastLoaded));
 
     // -- overview
@@ -571,7 +677,7 @@ fn instances() -> Vec<Msg> {
     all.extend(pairs.iter().map(|(hours, sessions)| ErrorsNote { hours: *hours as u32, sessions: *sessions as usize }));
 
     // -- runtime
-    all.push(RewarmFailed(s()));
+    all.extend(failures().into_iter().map(RewarmFailed));
     all.push(RewarmDetail { guardian: s(), repo: s(), model: s() });
     all.extend(pairs.iter().map(|(a, b)| Fraction(*a as usize, *b as usize)));
     all.extend(n.map(|h| ForksInHours(h as u32)));
@@ -591,8 +697,7 @@ fn instances() -> Vec<Msg> {
 
     // -- sessions
     all.extend(kinds().into_iter().map(Kind));
-    all.push(ParseStopped(s()));
-    all.push(RecordFailed(s()));
+    all.extend(failures().into_iter().map(RecordFailed));
     for kind in kinds() {
         all.extend(programs().map(|program| ProgramKind(kind.clone(), program)));
     }
@@ -661,7 +766,7 @@ fn instances() -> Vec<Msg> {
         all.extend(n.map(|removed| ChangedLines { added: vec![N as usize; shown], removed: removed as usize }));
     }
     all.push(SaveTo(s()));
-    all.push(SaveFailed(s()));
+    all.extend(failures().into_iter().map(SaveFailed));
     all.push(Committed(s()));
     all.push(Conflict(s()));
     all.extend(n.map(|k| ReaderCount(k as usize)));

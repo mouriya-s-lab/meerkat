@@ -181,6 +181,13 @@ impl Fixture {
             .wait_until(&format!("`{text}` showing"), timeout, |screen| screen.shows(text))
     }
 
+    /// Waits for a text that contains `part`.
+    pub fn wait_for_containing(&mut self, part: &str, timeout: Duration) -> Result<(), String> {
+        self.app.wait_until(&format!("a text containing `{part}`"), timeout, |screen| {
+            screen.texts().iter().any(|text| text.contains(part))
+        })
+    }
+
     /// Waits for the window to show every text of `texts`.
     pub fn wait_for_all(&mut self, texts: &[String], timeout: Duration) -> Result<(), String> {
         self.app
