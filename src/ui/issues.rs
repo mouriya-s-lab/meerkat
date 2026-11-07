@@ -367,7 +367,7 @@ fn visible_rows(graph: &Graph, state: IssuesState) -> Vec<usize> {
 /// The list's column widths: glyph, agenda, (title), progress, deps,
 /// updated.
 fn widths() -> [Points; 5] {
-    [len(Space4), len(Space8) + len(Space4), len(InspectorWidth) * 0.75, len(Space8) * 2.5, len(Space8) * 2.0]
+    [len(Space4), len(Space8) + len(Space4), len(Space8) * 5.0, len(Space8) * 2.5, len(Space8) * 2.0]
 }
 
 /// A group's glyph in its header.
@@ -385,12 +385,12 @@ fn list_view(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: Issu
     let [glyph, agenda_w, progress_w, deps_w, updated_w] = widths();
     view()
         .child(head_row(vec![
-            view().w(glyph).into_element(),
-            th(Msg::Agenda).w(agenda_w).into_element(),
-            th(Msg::Title).flex_1().into_element(),
-            th(Msg::Progress).w(progress_w).into_element(),
-            th(Msg::Deps).w(deps_w).into_element(),
-            th(Msg::UpdatedColumn).w(updated_w).text_right().into_element(),
+            view().w(glyph).flex_shrink_0().into_element(),
+            th(Msg::Agenda).w(agenda_w).flex_shrink_0().into_element(),
+            th(Msg::Title).flex_1().min_w(Points::ZERO).into_element(),
+            th(Msg::Progress).w(progress_w).flex_shrink_0().into_element(),
+            th(Msg::Deps).w(deps_w).flex_shrink_0().into_element(),
+            th(Msg::UpdatedColumn).w(updated_w).flex_shrink_0().text_right().into_element(),
         ]))
         .child(dynamic(move || {
             let Some(graph) = graph.get() else {
@@ -458,11 +458,12 @@ fn list_row(graph: &Rc<Graph>, i: usize, settings: &Settings, state: IssuesState
     let title = text(node.title.clone())
         .ty(Type::Body)
         .text_color(if closed { color(Ink3) } else { color(Foreground) })
+        .flex_shrink(1.0)
         .number_of_lines(1);
     let title = if node.state.superseded() { title.line_through() } else { title };
     row(selected, node.title.clone(), move || state.selected.set(Some(issue.clone())))
-        .child(view().w(glyph).child(status::glyph(st.glyph, st.role)))
-        .child(small(agenda(node)).w(agenda_w))
+        .child(view().w(glyph).flex_shrink_0().child(status::glyph(st.glyph, st.role)))
+        .child(small(agenda(node)).w(agenda_w).flex_shrink_0())
         .child(
             view()
                 .flex_row()
@@ -470,14 +471,15 @@ fn list_row(graph: &Rc<Graph>, i: usize, settings: &Settings, state: IssuesState
                 .gap(len(Space2))
                 .flex_1()
                 .min_w(Points::ZERO)
+                .overflow_hidden()
                 .child(title)
                 .children(human_tag(node)),
         )
-        .child(view().w(progress_w).child(progress(graph, i)))
-        .child(view().w(deps_w).child(deps(graph, i)))
+        .child(view().w(progress_w).flex_shrink_0().overflow_hidden().child(progress(graph, i)))
+        .child(view().w(deps_w).flex_shrink_0().overflow_hidden().child(deps(graph, i)))
         .child(
             small(move || updated.map(|at| SharedString::from(Msg::Span(time::ago(at, time::now_ms())))).unwrap_or_default())
-                .w(updated_w).text_right(),
+                .w(updated_w).flex_shrink_0().text_right(),
         )
 }
 

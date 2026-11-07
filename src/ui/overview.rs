@@ -239,6 +239,7 @@ fn need_row(need: Need, sources: Sources, context: Rc<Context>, nav: Nav) -> Any
             view()
                 .flex_1()
                 .min_w(Points::ZERO)
+                .overflow_hidden()
                 .gap(len(Space1) / 2.0)
                 .child(
                     view()
@@ -581,11 +582,12 @@ fn queue_section(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
                                         .gap(len(Space2))
                                         .flex_1()
                                         .min_w(Points::ZERO)
-                                        .child(text(node.title.clone()).ty(Type::Body).number_of_lines(1))
+                                        .overflow_hidden()
+                                        .child(text(node.title.clone()).ty(Type::Body).flex_shrink(1.0).number_of_lines(1))
                                         .children(issues::human_tag(&node)),
                                 )
-                                .child(view().w(len(InspectorWidth) / 1.5).child(progress(&graph, i)))
-                                .child(view().w(len(Space8) * 2.5).child(deps(&graph, i)))
+                                .child(view().w(len(Space8) * 4.0).flex_shrink_0().overflow_hidden().child(progress(&graph, i)))
+                                .child(view().w(len(Space8) * 2.0).flex_shrink_0().overflow_hidden().child(deps(&graph, i)))
                                 .child(small(move || {
                                     updated
                                         .map(|at| SharedString::from(Msg::Span(time::ago(at, now.get()))))

@@ -361,7 +361,7 @@ fn base_row(
             .flex_1()
             .min_w(Points::ZERO)
             .py(len(Space1))
-            .child(mono(base.model.clone()).text_color(color(Foreground)).number_of_lines(1))
+            .child(mono(short_model(&base.model)).text_color(color(Foreground)).number_of_lines(1))
             .children(under)
             .child(answer),
     )

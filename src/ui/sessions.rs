@@ -273,7 +273,7 @@ pub fn page(sources: Sources, context: Rc<Context>, nav: Nav) -> impl IntoElemen
         )
         .child(
             resizable_panel()
-                .size(len(InspectorWidth) + len(SidebarWidth))
+                .size(len(InspectorWidth) + len(Space8))
                 .size_range(len(InspectorWidth)..len(InspectorWidth) * 3.0)
                 .child(inspector(sources, context, nav)),
         )
@@ -307,7 +307,9 @@ fn filter_bar(recent: Memo<Rc<Vec<(Program, Session)>>>, state: SessionsState) -
         .flex_shrink_0()
         .items_center()
         .gap(len(Space2))
-        .h(len(Toolbar))
+        .flex_wrap()
+        .min_h(len(Toolbar))
+        .py(len(Space2))
         .px(len(Space6))
         .border_b_1()
         .border_b_color(color(Border))
@@ -408,8 +410,8 @@ fn session_row(program: Program, session: Session, nav: Nav) -> impl IntoElement
     };
     let state = status::session(session.state);
     row(current, title(&session), move || nav.session.set(Some(open.clone())))
-        .child(view().w(glyph).child(status::glyph(state.glyph, state.role)))
-        .child(mono(time::parse_ms(&session.started_at).map(time::clock).unwrap_or_default()).w(start))
+        .child(view().w(glyph).flex_shrink_0().child(status::glyph(state.glyph, state.role)))
+        .child(mono(time::parse_ms(&session.started_at).map(time::clock).unwrap_or_default()).w(start).flex_shrink_0())
         .child(
             view()
                 .flex_row()
@@ -417,8 +419,9 @@ fn session_row(program: Program, session: Session, nav: Nav) -> impl IntoElement
                 .gap(len(Space2))
                 .flex_1()
                 .min_w(Points::ZERO)
-                .child(small(Msg::Kind(session.kind.clone()).to_string()))
-                .child(text(subject(&session)).ty(Type::Body).flex_shrink_0().number_of_lines(1))
+                .overflow_hidden()
+                .child(small(Msg::Kind(session.kind.clone()).to_string()).flex_shrink_0())
+                .child(text(subject(&session)).ty(Type::Body).flex_shrink(1.0).number_of_lines(1))
                 .children(session.error.as_deref().map(|error| {
                     error_text(first_line(error).to_owned())
                         .flex_1()
@@ -426,8 +429,8 @@ fn session_row(program: Program, session: Session, nav: Nav) -> impl IntoElement
                         .number_of_lines(1)
                 })),
         )
-        .child(small(short_model(&session.model)).w(model).number_of_lines(1))
-        .child(mono(duration(&session)).w(took).text_right())
+        .child(small(short_model(&session.model)).w(model).flex_shrink_0().number_of_lines(1))
+        .child(mono(duration(&session)).w(took).flex_shrink_0().text_right())
 }
 
 // ---------------------------------------------------------------------------
