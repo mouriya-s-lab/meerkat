@@ -34,7 +34,7 @@ pub enum Role {
     Run,
     /// Waits for something else.
     Wait,
-    /// Settled: decided, superseded.
+    /// Settled: decided, superseded, closed.
     Done,
     /// Waits for a person's decision.
     Human,
@@ -84,7 +84,10 @@ impl Role {
 }
 
 /// The eight geometric glyphs; each alone tells the queue's eight states
-/// apart.
+/// of #9 apart. `closed` borrows the cross from `failed`: besides
+/// decided's check and superseded's strike it is the one glyph that reads
+/// as ended (the rings would pass for ready and blocked in the same grey),
+/// and its `done` grey and word tell it from the red failure.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Glyph {
     /// A filled circle with a cross.
@@ -134,6 +137,7 @@ pub fn queue(state: QueueState) -> Status {
         QueueState::Held => (Role::Human, Glyph::Bars),
         QueueState::Decided => (Role::Done, Glyph::Check),
         QueueState::Superseded => (Role::Done, Glyph::Struck),
+        QueueState::Closed => (Role::Done, Glyph::Cross),
     };
     Status::of(role, glyph, Msg::Queue(state))
 }

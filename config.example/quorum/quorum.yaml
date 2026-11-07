@@ -45,6 +45,7 @@ digest:
   showAssistantText: true
   maxBytes: 8000000
 filters:
+  # Folds every settled issue: decided, superseded and closed.
   hideDecided: true
   humanOnly: false
 appearance: system

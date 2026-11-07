@@ -33,7 +33,7 @@ use crate::{
     dag::{self, Council, Graph},
     gh::{Credential, GitHub, IssueRef},
     pmconfig::ConfigRepoClient,
-    programs::{BaseState, Program, ProgramClient, QueueState, SessionState},
+    programs::{BaseState, Program, ProgramClient, SessionState},
     sources::{ProgramSources, Sources},
     time,
 };
@@ -446,16 +446,9 @@ fn count(sources: Sources, context: &Context, page: Page) -> Option<(usize, Role
             let role = if needs.iter().any(Need::failure) { Role::Fail } else { Role::Neutral };
             (!needs.is_empty()).then(|| (needs.len(), role))
         }
-        Page::Issues => sources.queue.with(|q| {
-            q.map(|q| {
-                plain(
-                    q.data
-                        .iter()
-                        .filter(|e| !matches!(e.state, QueueState::Decided | QueueState::Superseded))
-                        .count(),
-                )
-            })
-        }),
+        Page::Issues => sources
+            .queue
+            .with(|q| q.map(|q| plain(q.data.iter().filter(|e| !e.state.settled()).count()))),
         Page::Sessions => {
             let running = [sources.council.sessions, sources.guardians.sessions]
                 .into_iter()

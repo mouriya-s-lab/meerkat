@@ -268,8 +268,10 @@ impl TryFrom<String> for HexColor {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Filters {
-    /// Fold the decided and superseded issues (the list's latest three
-    /// and a line for the rest, the DAG's fold); else show them all.
+    /// Fold every settled issue, decided, superseded or closed (the list's
+    /// latest three and a line for the rest, the DAG's fold); else show
+    /// them all. The key keeps its name from before closed issues
+    /// settled, so deployed configs still load.
     pub hide_decided: bool,
     /// Show only human issues and the issues they block, transitively.
     pub human_only: bool,

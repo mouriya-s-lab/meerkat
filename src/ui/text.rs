@@ -275,7 +275,7 @@ pub enum Msg {
     Deps,
     UpdatedColumn,
     NoIssues,
-    MoreClosed { decided: usize, superseded: usize },
+    MoreClosed { decided: usize, superseded: usize, closed: usize },
     ZoomOut,
     ZoomIn,
     Fit,
@@ -630,6 +630,7 @@ impl Msg {
             Msg::Queue(state) => f.write_str(match state {
                 QueueState::Decided => pick(lang, "已定案", "Decided"),
                 QueueState::Superseded => pick(lang, "已取代", "Superseded"),
+                QueueState::Closed => pick(lang, "已关闭", "Closed"),
                 QueueState::Blocked => pick(lang, "等前置", "Blocked"),
                 QueueState::Held => pick(lang, "被人类议题挂起", "Held by a human issue"),
                 QueueState::Deliberating => pick(lang, "在审", "Deliberating"),
@@ -843,12 +844,12 @@ impl Msg {
                 En => write!(f, "Open {agenda}"),
             },
             Msg::OpenCount(n) => match lang {
-                Zh => write!(f, "{n} 个未定案"),
-                En => write!(f, "{n} open"),
+                Zh => write!(f, "{n} 个未了结"),
+                En => write!(f, "{n} unsettled"),
             },
             Msg::AllIssues => say(f, "全部议题", "All issues"),
             Msg::CouncilQueue => say(f, "议会队列", "Council queue"),
-            Msg::QueueEmpty => say(f, "议会队列里没有未定案的议题", "No open agenda issue in the council queue"),
+            Msg::QueueEmpty => say(f, "议会队列里没有未了结的议题", "No unsettled agenda issue in the council queue"),
             Msg::Span(at) => span(f, *at, lang),
             Msg::View => say(f, "查看", "View"),
             Msg::Programs => say(f, "程序", "Programs"),
@@ -1143,9 +1144,9 @@ impl Msg {
                 Group::Deliberating => pick(lang, "在审", "Deliberating"),
                 Group::Ready => pick(lang, "可召集", "Ready to convene"),
                 Group::Waiting => pick(lang, "等待", "Waiting"),
-                Group::Closed => pick(lang, "已定案", "Decided"),
+                Group::Closed => pick(lang, "已了结", "Settled"),
             }),
-            Msg::FilterClosed => say(f, "已定案", "Decided"),
+            Msg::FilterClosed => say(f, "已了结", "Settled"),
             Msg::ClosedMode(closed) => f.write_str(match closed {
                 Closed::Fold => pick(lang, "折叠", "Fold"),
                 Closed::Show => pick(lang, "显示", "Show"),
@@ -1154,8 +1155,8 @@ impl Msg {
             Msg::FilterHuman => say(f, "仅人类议题", "Human issues only"),
             Msg::OnOff(on) => f.write_str(if *on { pick(lang, "开", "On") } else { pick(lang, "关", "Off") }),
             Msg::OpenOfTotal { open, total } => match lang {
-                Zh => write!(f, "{open} 个未定案 · 共 {total}"),
-                En => write!(f, "{open} open · {total} in all"),
+                Zh => write!(f, "{open} 个未了结 · 共 {total}"),
+                En => write!(f, "{open} unsettled · {total} in all"),
             },
             Msg::IssuesFilterHint => say(f, "筛选议程号或标题", "Filter by agenda number or title"),
             Msg::Agenda => say(f, "议程", "Agenda"),
@@ -1164,16 +1165,22 @@ impl Msg {
             Msg::Deps => say(f, "依赖", "Dependencies"),
             Msg::UpdatedColumn => say(f, "更新", "Updated"),
             Msg::NoIssues => say(f, "没有符合筛选的议题", "No issue matches the filters"),
-            Msg::MoreClosed { decided, superseded } => {
-                match lang {
-                    Zh => write!(f, "还有 {decided} 个已定案")?,
-                    En => write!(f, "{decided} more decided")?,
-                }
-                if *superseded > 0 {
-                    match lang {
-                        Zh => write!(f, "（其中 {superseded} 个已取代）")?,
-                        En => write!(f, " ({superseded} superseded)")?,
+            // The settled issues the fold hides, each kind with any.
+            Msg::MoreClosed { decided, superseded, closed } => {
+                let kinds = [
+                    (*decided, "已定案", "decided"),
+                    (*superseded, "已取代", "superseded"),
+                    (*closed, "已关闭", "closed"),
+                ];
+                let mut first = true;
+                for (n, zh, en) in kinds.into_iter().filter(|(n, _, _)| *n > 0) {
+                    match (first, lang) {
+                        (true, Zh) => write!(f, "还有 {n} 个{zh}")?,
+                        (true, En) => write!(f, "{n} more {en}")?,
+                        (false, Zh) => write!(f, "、{n} 个{zh}")?,
+                        (false, En) => write!(f, ", {n} {en}")?,
                     }
+                    first = false;
                 }
                 Ok(())
             }
@@ -1191,8 +1198,8 @@ impl Msg {
             },
             Msg::FoldedClosed { closed, chains } => {
                 match lang {
-                    Zh => write!(f, "{closed} 个已定案议题已折叠")?,
-                    En => write!(f, "{closed} decided {} folded", plural(*closed, "issue", "issues"))?,
+                    Zh => write!(f, "{closed} 个已了结议题已折叠")?,
+                    En => write!(f, "{closed} settled {} folded", plural(*closed, "issue", "issues"))?,
                 }
                 if !chains.is_empty() {
                     match lang {
