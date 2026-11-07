@@ -15,7 +15,7 @@ that file to the config repository's branch once all of them pass.
 
 Windows at least 900 pt wide show a sidebar: Quorum's name, a search field
 that opens the command bar, the pages with a count each (概览: what needs
-you; 议题: open agenda issues; 会话: running sessions; 运行状况: failed and
+you; 议题: unsettled agenda issues; 会话: running sessions; 运行状况: failed and
 stale bases; 配置: files a program runs an older version of than the
 branch has), and at its foot the two programs with their versions (a Go
 pseudo-version as its 12-digit commit, the full version in its tooltip)
@@ -36,27 +36,29 @@ The pages:
   unreachable programs, failed bases, failed sessions grouped by program
   and kind (expand a group for its errors, counted by first line), asks
   escalated to an agenda issue, stale bases and a low API allowance; each
-  with the action that settles it. Under it the council's queue of open
-  agenda issues; beside it panels for the programs, the last day's
-  sessions by hour, the guardian bases and the sessions' errors.
+  with the action that settles it. Under it the council's queue of
+  unsettled agenda issues; beside it panels for the programs, the last
+  day's sessions by hour, the guardian bases and the sessions' errors.
 - **议题** (agenda issues: Project `Kind` human or agenda in the PM
   repository), as a list or a dependency graph of the same issues,
-  filtered by state, by whether decided issues fold, show or hide, and by
-  human issues and what they block, and searched by agenda number or
-  title. A node's state is the council's `/v1/queue` verdict; while the
-  council is unreachable, or when its queue does not list the issue, it
-  is the Project's `Status`, marked 「议会不可达」 or 「议会队列未列出」.
+  filtered by state, by whether settled issues (decided, superseded or
+  closed undecided) fold, show or hide, and by human issues and what
+  they block, and searched by agenda number or title. A node's state is
+  the council's `/v1/queue` verdict; while the council is unreachable,
+  or when its queue does not list the issue, it is the Project's
+  `Status`, marked 「议会不可达」 or 「议会队列未列出」.
   The list groups issues with a verdict by what they need (需要处理, 在审,
-  可召集, 等待, 已定案) with their progress (votes of the round, share of
+  可召集, 等待, 已了结) with their progress (votes of the round, share of
   sub-issues done, a failure's note) and what they wait for or block; it
-  shows the latest three decided issues and a line for the rest. After
+  shows the latest three settled issues, each naming its state (已定案,
+  已取代 or 已关闭), and a line counting the rest by state. After
   them, the issues showing their Project `Status` group under the
   option's name, each row naming its `Status` and why; the state filter
   names only the verdict groups, so these show under 全部 alone. While
   the queue fails to load, the page shows its error above the list. The
-  graph puts the open issues in columns by the "Blocked by" relations the
-  council counts: 可推进 first, then each column waiting on the one
-  before; decided issues fold into one line naming their chains.
+  graph puts the unsettled issues in columns by the "Blocked by"
+  relations the council counts: 可推进 first, then each column waiting on
+  the one before; settled issues fold into one line naming their chains.
   Selecting an issue keeps it and the issues next to it bright, dims the
   rest when it has any, and the inspector shows its round, why it has
   not started, its prerequisites, what it blocks, the "Blocked by" the
@@ -171,7 +173,7 @@ repositories.
 | `digest.foldTools` | Tools whose consecutive calls the decision log shows as one count (the file-reading tools) |
 | `digest.showAssistantText` | Whether the decision log shows the assistant's text |
 | `digest.maxBytes` | A session record longer than this many bytes is parsed from its tail only, and the decision log says it is cut |
-| `filters.hideDecided` | The 「已定案」 filter when the app starts: `true` folds the decided and superseded issues (the list shows the latest three, the graph one line), `false` shows them all |
+| `filters.hideDecided` | The 「已了结」 filter when the app starts: `true` folds the settled issues, decided, superseded or closed (the list shows the latest three, the graph one line), `false` shows them all |
 | `filters.humanOnly` | The 「仅人类议题」 filter when the app starts: human issues and the issues they block, transitively |
 | `appearance` | `system` follows the system's light or dark appearance (the browser's on the web), `light` or `dark` keeps that one whatever the system's; the macOS window, title bar included, opens in it |
 
@@ -286,7 +288,7 @@ through too), and `SITE_DIR` is served for everything else.
 | `src/digest.rs` | The decision log: a session record reduced by the `digest` rules (tests over real session files in `tests/fixtures/`) |
 | `src/sources.rs` | One `resource` per source, refreshed together |
 | `src/attention.rs` | What needs a person, in order of consequence, failed sessions grouped by program and kind |
-| `src/dag.rs` | The 「议题」 model: the issue graph, its groups, readiness columns, folded decided issues and filters |
+| `src/dag.rs` | The 「议题」 model: the issue graph, its groups, readiness columns, folded settled issues and filters |
 | `src/time.rs` | Timestamps, "how long ago", durations and hourly counts |
 | `src/failure.rs` | Why something Quorum asked for did not come: its own reasons as variants (worded by `src/ui/text.rs`), others' words as they are |
 | `src/ui/shell.rs` | The sidebar or top bar, the toolbar, the shortcuts, a list beside its inspector or (narrow) the inspector full width under 返回, and the configuration error |

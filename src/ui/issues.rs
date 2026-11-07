@@ -453,7 +453,12 @@ fn list_view(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: Issu
                     }
                     if folded && rows.len() > LATEST_CLOSED {
                         let rest = &rows[LATEST_CLOSED..];
-                        let superseded = rest.iter().filter(|&&i| graph.nodes[i].state.superseded()).count();
+                        let count = |state: QueueState| rest.iter().filter(|&&i| graph.nodes[i].state == NodeState::Queue(state)).count();
+                        let more = Msg::MoreClosed {
+                            decided: count(QueueState::Decided),
+                            superseded: count(QueueState::Superseded),
+                            closed: count(QueueState::Closed),
+                        };
                         children.push(
                             view()
                                 .flex_row()
@@ -463,7 +468,7 @@ fn list_view(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: Issu
                                 .pl(len(Space8) + len(Space4))
                                 .border_b_1()
                                 .border_b_color(color(Border))
-                                .child(small(Msg::MoreClosed { decided: rest.len() - superseded, superseded }.to_string()))
+                                .child(small(more.to_string()))
                                 .child(press(Msg::Expand, Look::Link, move || state.closed.set(Closed::Show)))
                                 .into_element(),
                         );
@@ -504,18 +509,20 @@ fn list_row(graph: &Rc<Graph>, i: usize, settings: &Settings, state: IssuesState
         .number_of_lines(1);
     let title = if node.state.superseded() { title.line_through() } else { title };
     // A Project `Status` in place of a verdict says which and why; a
+    // settled verdict says which, its group holding three kinds; any other
     // verdict's word is its group's header. It shrinks with the title, so
     // a narrow list keeps a part of both.
-    let fallback = match node.state {
-        NodeState::Project { .. } => Some(
-            small(st.word.clone())
-                .text_color(st.role.text())
-                .flex_shrink(1.0)
-                .min_w(Points::ZERO)
-                .number_of_lines(1),
-        ),
-        NodeState::Queue(_) => None,
+    let says = match node.state {
+        NodeState::Project { .. } => true,
+        NodeState::Queue(state) => state.settled(),
     };
+    let word = says.then(|| {
+        small(st.word.clone())
+            .text_color(st.role.text())
+            .flex_shrink(1.0)
+            .min_w(Points::ZERO)
+            .number_of_lines(1)
+    });
     row(selected, node.title.clone(), move || state.selected.set(Some(issue.clone())))
         .child(view().w(glyph).flex_shrink_0().child(status::glyph(st.glyph, st.role)))
         .child(small(agenda(node)).w(agenda_w).flex_shrink_0())
@@ -529,7 +536,7 @@ fn list_row(graph: &Rc<Graph>, i: usize, settings: &Settings, state: IssuesState
                 .overflow_hidden()
                 .child(title)
                 .children(human_tag(node))
-                .children(fallback),
+                .children(word),
         )
         .child(view().w(progress_w).flex_shrink_0().overflow_hidden().child(progress(graph, i)))
         .child(view().w(deps_w).flex_shrink_0().overflow_hidden().child(deps(graph, i)))

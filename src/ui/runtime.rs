@@ -614,7 +614,7 @@ fn programs(sources: Sources, context: Rc<Context>) -> View {
                         let work = match program.program {
                             Program::Council => sources.queue.with(|q| {
                                 q.map(|q| Msg::QueueWork {
-                                    open: q.data.iter().filter(|e| !matches!(e.state, QueueState::Decided | QueueState::Superseded)).count(),
+                                    open: q.data.iter().filter(|e| !e.state.settled()).count(),
                                     deliberating: q.data.iter().filter(|e| e.state == QueueState::Deliberating).count(),
                                 })
                             }),

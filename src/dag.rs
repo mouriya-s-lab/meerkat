@@ -67,7 +67,7 @@ pub enum Group {
     Ready,
     /// Blocked or held.
     Waiting,
-    /// Decided or superseded.
+    /// Settled: decided, superseded or closed.
     Closed,
 }
 
@@ -91,23 +91,19 @@ impl NodeState {
                 QueueState::Deliberating => Group::Deliberating,
                 QueueState::Ready => Group::Ready,
                 QueueState::Blocked | QueueState::Held => Group::Waiting,
-                QueueState::Decided | QueueState::Superseded => Group::Closed,
+                QueueState::Decided | QueueState::Superseded | QueueState::Closed => Group::Closed,
             }),
             NodeState::Project { .. } => None,
         }
     }
 
-    /// Decided or superseded: by the council's verdict, or by the
-    /// Project's `Status` in place of one.
+    /// Settled: decided, superseded or closed by the council's verdict, or
+    /// done or superseded by the Project's `Status` in place of one.
     pub fn closed(&self) -> bool {
-        matches!(
-            self,
-            NodeState::Queue(QueueState::Decided | QueueState::Superseded)
-                | NodeState::Project {
-                    status: Some(Status::Done | Status::Superseded),
-                    ..
-                }
-        )
+        match self {
+            NodeState::Queue(state) => state.settled(),
+            NodeState::Project { status, .. } => matches!(status, Some(Status::Done | Status::Superseded)),
+        }
     }
 
     pub fn superseded(&self) -> bool {
@@ -361,7 +357,7 @@ pub fn agenda_number(agenda: &str) -> Option<u64> {
     agenda[agenda.len() - digits..].parse().ok()
 }
 
-/// What the 「已定案」 filter does with the decided and superseded issues.
+/// What the 「已了结」 filter does with the settled issues.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Closed {
     /// The list shows the latest [`LATEST_CLOSED`] and a line for the

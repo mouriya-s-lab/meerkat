@@ -210,6 +210,17 @@ impl Fixture {
         self.app.wait_for_within(&format!("text:/{pattern}/"), timeout)
     }
 
+    /// Waits until `done` holds of the texts the window shows, in tree
+    /// order; `what` names the wait in its error.
+    pub fn wait_until(
+        &mut self,
+        what: &str,
+        timeout: Duration,
+        done: impl Fn(&[&str]) -> bool + 'static,
+    ) -> Result<(), String> {
+        self.app.wait_until(what, timeout, move |screen| done(&screen.texts()))
+    }
+
     /// How many `method` requests for `url` Quorum made.
     pub fn requests(&self, method: &str, url: &str) -> usize {
         self.network

@@ -134,12 +134,30 @@ pub enum AgendaKind {
 pub enum QueueState {
     Decided,
     Superseded,
+    /// Closed in the PM repository, neither decided nor superseded.
+    Closed,
     Blocked,
     Held,
     Deliberating,
     Interrupted,
     Failed,
     Ready,
+}
+
+impl QueueState {
+    /// Decided, superseded or closed: the council neither convenes nor
+    /// resumes it again.
+    pub fn settled(self) -> bool {
+        match self {
+            QueueState::Decided | QueueState::Superseded | QueueState::Closed => true,
+            QueueState::Blocked
+            | QueueState::Held
+            | QueueState::Deliberating
+            | QueueState::Interrupted
+            | QueueState::Failed
+            | QueueState::Ready => false,
+        }
+    }
 }
 
 /// A panel's progress.

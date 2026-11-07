@@ -233,6 +233,7 @@ fn status_words() -> Vec<(Msg, &'static str, &'static str)> {
     vec![
         (Msg::Queue(QueueState::Decided), "已定案", "Decided"),
         (Msg::Queue(QueueState::Superseded), "已取代", "Superseded"),
+        (Msg::Queue(QueueState::Closed), "已关闭", "Closed"),
         (Msg::Queue(QueueState::Blocked), "等前置", "Blocked"),
         (Msg::Queue(QueueState::Held), "被人类议题挂起", "Held by a human issue"),
         (Msg::Queue(QueueState::Deliberating), "在审", "Deliberating"),
@@ -596,6 +597,7 @@ fn instances() -> Vec<Msg> {
         [
             QueueState::Decided,
             QueueState::Superseded,
+            QueueState::Closed,
             QueueState::Blocked,
             QueueState::Held,
             QueueState::Deliberating,
@@ -726,9 +728,10 @@ fn instances() -> Vec<Msg> {
     all.extend([Closed::Fold, Closed::Show, Closed::Hide].map(ClosedMode));
     all.extend(bools.map(OnOff));
     all.extend(pairs.iter().map(|(open, total)| OpenOfTotal { open: *open as usize, total: *total as usize }));
-    all.extend(pairs.iter().map(|(decided, superseded)| MoreClosed {
+    all.extend(triples.iter().map(|(decided, superseded, closed)| MoreClosed {
         decided: *decided as usize,
         superseded: *superseded as usize,
+        closed: *closed as usize,
     }));
     all.extend(n.map(|k| CanMove(k as usize)));
     all.extend(n.map(|k| WaitsColumn(k as usize)));
