@@ -1,6 +1,5 @@
-//! The three PM config files the dashboard reads, as types: what they may
-//! hold is what parses. `build.rs` includes this file too, so the web build
-//! rejects a config with the same messages the macOS app shows.
+//! The three PM config files Quorum reads, as types: what they may
+//! hold is what parses.
 //!
 //! Every error names the file and the key path (`targets.web.council`).
 
@@ -11,8 +10,8 @@ use std::{
 
 use serde::{Deserialize, de::DeserializeOwned};
 
-/// `dashboard/dashboard.yaml`, relative to the PM config directory.
-pub const DASHBOARD_FILE: &str = "dashboard/dashboard.yaml";
+/// `quorum/quorum.yaml`, relative to the PM config directory.
+pub const QUORUM_FILE: &str = "quorum/quorum.yaml";
 /// `shared/repos.yaml`, relative to the PM config directory.
 pub const REPOS_FILE: &str = "shared/repos.yaml";
 /// `shared/project.yaml`, relative to the PM config directory.
@@ -40,7 +39,7 @@ impl fmt::Display for ConfigError {
 /// The text of the three files.
 #[derive(Debug, Clone, Copy)]
 pub struct ConfigText<'a> {
-    pub dashboard: &'a str,
+    pub quorum: &'a str,
     pub repos: &'a str,
     pub project: &'a str,
 }
@@ -48,7 +47,7 @@ pub struct ConfigText<'a> {
 /// The three files, parsed.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Config {
-    pub dashboard: Dashboard,
+    pub quorum: Quorum,
     pub repos: Repos,
     pub project: Project,
 }
@@ -57,7 +56,7 @@ pub struct Config {
 /// path.
 pub fn parse(text: ConfigText<'_>) -> Result<Config, ConfigError> {
     Ok(Config {
-        dashboard: parse_file(DASHBOARD_FILE, text.dashboard)?,
+        quorum: parse_file(QUORUM_FILE, text.quorum)?,
         repos: parse_file(REPOS_FILE, text.repos)?,
         project: parse_file(PROJECT_FILE, text.project)?,
     })
@@ -84,12 +83,12 @@ fn parse_file<T: DeserializeOwned>(file: &str, text: &str) -> Result<T, ConfigEr
 }
 
 // ---------------------------------------------------------------------------
-// dashboard/dashboard.yaml
+// quorum/quorum.yaml
 
-/// `dashboard/dashboard.yaml`.
+/// `quorum/quorum.yaml`.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Dashboard {
+pub struct Quorum {
     pub targets: Targets,
     /// Seconds between two refreshes of every source.
     pub refresh_seconds: NonZeroU32,
@@ -410,19 +409,19 @@ impl TryFrom<String> for Name {
 mod tests {
     use super::*;
 
-    const DASHBOARD: &str = include_str!("../../config.example/dashboard/dashboard.yaml");
+    const QUORUM: &str = include_str!("../../config.example/quorum/quorum.yaml");
     const REPOS: &str = include_str!("../../config.example/shared/repos.yaml");
     const PROJECT: &str = include_str!("../../config.example/shared/project.yaml");
 
     /// The example config with its `appearance` line replaced by `line`.
     fn with_appearance(line: &str) -> Result<Config, ConfigError> {
-        let dashboard = DASHBOARD
+        let quorum = QUORUM
             .lines()
             .map(|l| if l.starts_with("appearance:") { line } else { l })
             .collect::<Vec<_>>()
             .join("\n");
         parse(ConfigText {
-            dashboard: &dashboard,
+            quorum: &quorum,
             repos: REPOS,
             project: PROJECT,
         })
@@ -431,27 +430,33 @@ mod tests {
     #[test]
     fn the_example_config_parses() {
         let config = parse(ConfigText {
-            dashboard: DASHBOARD,
+            quorum: QUORUM,
             repos: REPOS,
             project: PROJECT,
         })
         .unwrap();
-        assert_eq!(config.dashboard.appearance, Appearance::System);
+        assert_eq!(config.quorum.appearance, Appearance::System);
     }
 
     #[test]
     fn appearance_is_system_light_or_dark() {
-        let of = |value: &str| with_appearance(&format!("appearance: {value}")).map(|c| c.dashboard.appearance);
+        let of = |value: &str| {
+            with_appearance(&format!("appearance: {value}")).map(|c| c.quorum.appearance)
+        };
         assert_eq!(of("system"), Ok(Appearance::System));
         assert_eq!(of("light"), Ok(Appearance::Light));
         assert_eq!(of("dark"), Ok(Appearance::Dark));
         let error = of("dim").unwrap_err();
-        assert_eq!(error.file, DASHBOARD_FILE);
+        assert_eq!(error.file, QUORUM_FILE);
         assert_eq!(error.path, "appearance");
-        assert!(error.message.starts_with("unknown variant `dim`"), "{}", error.message);
+        assert!(
+            error.message.starts_with("unknown variant `dim`"),
+            "{}",
+            error.message
+        );
         assert_eq!(
             error.to_string(),
-            format!("{DASHBOARD_FILE}: appearance: {}", error.message)
+            format!("{QUORUM_FILE}: appearance: {}", error.message)
         );
         assert_eq!(of("Dark").unwrap_err().path, "appearance");
     }
@@ -459,7 +464,11 @@ mod tests {
     #[test]
     fn appearance_is_required() {
         let error = with_appearance("").unwrap_err();
-        assert_eq!(error.file, DASHBOARD_FILE);
-        assert!(error.message.contains("missing field `appearance`"), "{}", error.message);
+        assert_eq!(error.file, QUORUM_FILE);
+        assert!(
+            error.message.contains("missing field `appearance`"),
+            "{}",
+            error.message
+        );
     }
 }

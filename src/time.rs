@@ -1,4 +1,4 @@
-//! Times as the dashboard shows them: in the system's time zone (jiff's;
+//! Times as Quorum shows them: in the system's time zone (jiff's;
 //! in the browser it asks `Intl` through jiff's `js` feature, with the zone
 //! database bundled).
 

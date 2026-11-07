@@ -5,7 +5,7 @@ use serde::Deserialize;
 
 use super::GitHub;
 
-/// The two limits the dashboard spends.
+/// The two limits Quorum spends.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RateLimit {
     pub rest: Bucket,
