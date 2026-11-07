@@ -168,6 +168,52 @@ fn agenda_with_revision_and_ruling() -> Result<(), String> {
             None => assert!(row[field].is_null(), "the veto's {field} is neither text nor null"),
         }
     }
+
+    // A counterexample cell (oppose with a recorded counterexample) on
+    // the version it was cast on: pressing it closes the veto's reason and
+    // pops this row's own over — the text above the vote's marker, and the
+    // counterexample, citation and classification as the marker has them.
+    let (version, vote, row) = versions
+        .iter()
+        .find_map(|version| {
+            version.votes.iter().find_map(|vote| {
+                let row = vote.rows.iter().find(|r| stance(Some(r)) == Stance::Counterexample)?;
+                Some((version, vote, row))
+            })
+        })
+        .expect("a counterexample in the recording");
+    let counterexample = row["counterexample"].as_str().expect("the counterexample");
+    let draft = steps
+        .iter()
+        .find(|(title, _)| matches!(title, Msg::StepDraft { version: v, .. } if *v == version.number))
+        .expect("the counterexample's version's step");
+    quorum.press(&format!("label:{}", quorum.say(&draft.0)))?;
+    let cell = Cell {
+        seat: vote.seat.clone(),
+        row: row["row"].as_str().expect("a row").to_owned(),
+        stance: Stance::Counterexample,
+    };
+    quorum.press(&format!("label:{}", cell.label(&quorum)))?;
+    let reason = prose(&vote.body);
+    assert!(!reason.is_empty(), "the counterexample's comment has text above its marker");
+    quorum.wait_for(counterexample, SHOWN)?;
+    assert!(quorum.shows(&reason), "the counterexample's reason {reason:?} is not in its popup");
+    for (field, msg) in [
+        ("citation", Msg::Citation),
+        ("classification", Msg::Classification),
+    ] {
+        match row[field].as_str() {
+            Some(value) => {
+                assert!(quorum.shows(value), "the counterexample's {field} {value:?} is not in its reason");
+                assert!(quorum.shows(&quorum.say(&msg)), "the reason does not name its {field}");
+            }
+            None => assert!(row[field].is_null(), "the counterexample's {field} is neither text nor null"),
+        }
+    }
+    assert!(
+        quorum.shows(&quorum.say(&Msg::Counterexample)),
+        "the reason does not name its counterexample"
+    );
     Ok(())
 }
 
