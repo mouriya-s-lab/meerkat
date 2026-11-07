@@ -54,7 +54,7 @@ fn duration_ms(session: &Session) -> Option<f64> {
 
 /// How long a session ran, or has run so far.
 pub fn duration(session: &Session) -> String {
-    duration_ms(session).map(time::span).unwrap_or_default()
+    duration_ms(session).map(|ms| Msg::Took(time::took(ms)).to_string()).unwrap_or_default()
 }
 
 /// What a session was about, without its kind: its label with an issue
@@ -938,7 +938,7 @@ fn log_line(line: Line<'_>) -> AnyElement {
             let took = result
                 .as_ref()
                 .and_then(|r| Some(time::parse_ms(&r.at)? - time::parse_ms(&entry.at)?))
-                .map(time::span)
+                .map(|ms| Msg::Took(time::took(ms)).to_string())
                 .unwrap_or_else(|| Msg::NoResult.to_string());
             let failed = result.as_ref().is_some_and(|r| r.is_error);
             let (args_, result_) = (args.clone(), result.clone());

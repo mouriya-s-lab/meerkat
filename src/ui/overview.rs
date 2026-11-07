@@ -480,7 +480,7 @@ fn line_of(need: &Need, context: &Context) -> Line {
         },
         Need::One(Concern::RateLow { api, bucket }) => Line {
             status: status::rate_low(),
-            title: Msg::RateLowTitle(crate::attention::api_label(*api)).to_string(),
+            title: Msg::RateLowTitle(*api).to_string(),
             count: None,
             meta: vec![small(
                 Msg::RateLeft {

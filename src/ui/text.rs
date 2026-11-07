@@ -12,9 +12,10 @@ use nsh_core::prelude::SharedString;
 use super::lang::Lang::{self, En, Zh};
 use crate::{
     config::Reader,
+    gh::rate::Api,
     dag::{Closed, Fallback, Group},
     programs::{BaseState, Program, QueueState, SessionState},
-    time::Ago,
+    time::{Ago, Took},
 };
 
 /// What the status sentence says of the council's queue, when the council
@@ -54,6 +55,17 @@ pub enum Msg {
     ConfigError,
     ConfigHint,
     LoadingConfig,
+    /// The app's name, in every language (#11).
+    AppName,
+    /// The letter on the app's mark.
+    AppMark,
+    GitHubApi,
+    /// One of GitHub's allowances, by its API.
+    GitHubBucket(Api),
+    /// The sessions an LLM limited (an error with `429`).
+    Llm429,
+    /// A duration as the logs write it.
+    Took(Took),
 
     // -- status words -----------------------------------------------------
     Queue(QueueState),
@@ -124,7 +136,7 @@ pub enum Msg {
     EscalationFrom(String, u64),
     BaseStaleTitle(String),
     WarmedAgo(Ago),
-    RateLowTitle(&'static str),
+    RateLowTitle(Api),
     RateLeft { remaining: u64, limit: u64, reset: String },
     OpenIssue,
     ViewSession,
@@ -399,6 +411,14 @@ fn ago(f: &mut fmt::Formatter<'_>, at: Ago, lang: Lang) -> fmt::Result {
     }
 }
 
+/// A GitHub API's name, the same in both languages.
+fn api_name(api: Api) -> &'static str {
+    match api {
+        Api::Rest => "REST",
+        Api::GraphQl => "GraphQL",
+    }
+}
+
 fn program(p: Program, lang: Lang) -> &'static str {
     match p {
         Program::Council => pick(lang, "议会", "Council"),
@@ -488,6 +508,18 @@ impl Msg {
                 "The config directory must hold quorum/quorum.yaml, quorum/theme.json, shared/repos.yaml and shared/project.yaml; fix it and reload.",
             ),
             Msg::LoadingConfig => say(f, "正在读取配置…", "Loading the configuration…"),
+            Msg::AppName => f.write_str("Quorum"),
+            Msg::AppMark => f.write_str("Q"),
+            Msg::GitHubApi => f.write_str("GitHub API"),
+            Msg::GitHubBucket(api) => write!(f, "GitHub {}", api_name(*api)),
+            Msg::Llm429 => f.write_str("LLM 429"),
+            // The logs' notation, the same in both languages.
+            Msg::Took(took) => match took {
+                Took::Tenths(tenths) => write!(f, "{}.{}s", tenths / 10, tenths % 10),
+                Took::Seconds(s) => write!(f, "{s}s"),
+                Took::Minutes(m, s) => write!(f, "{m}m {s:02}s"),
+                Took::Hours(h, m) => write!(f, "{h}h {m:02}m"),
+            },
 
             // -- status words (#9 「状态词表」, one English word each)
             Msg::Queue(state) => f.write_str(match state {
@@ -682,8 +714,8 @@ impl Msg {
                 }
             },
             Msg::RateLowTitle(api) => match lang {
-                Zh => write!(f, "GitHub {api} 余量低"),
-                En => write!(f, "GitHub {api} allowance low"),
+                Zh => write!(f, "GitHub {} 余量低", api_name(*api)),
+                En => write!(f, "GitHub {} allowance low", api_name(*api)),
             },
             Msg::RateLeft { remaining, limit, reset } => {
                 let (remaining, limit) = (thousands(*remaining), thousands(*limit));

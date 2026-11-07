@@ -332,13 +332,6 @@ pub fn first_line(text: &str) -> &str {
         .unwrap_or_default()
 }
 
-/// An API's name in the UI.
-pub fn api_label(api: Api) -> &'static str {
-    match api {
-        Api::Rest => "REST",
-        Api::GraphQl => "GraphQL",
-    }
-}
 #[cfg(test)]
 mod tests {
     use super::*;

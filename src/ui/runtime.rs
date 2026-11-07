@@ -25,7 +25,7 @@ use super::{
 use crate::{
     attention::first_line,
     config::{ColorToken::*, LengthToken::*},
-    gh::rate::Bucket,
+    gh::rate::{Api, Bucket},
     programs::{Base, BaseState, Program, QueueState, RewarmOutcome, Session},
     sources::{ProgramSources, Sources},
     time,
@@ -642,7 +642,7 @@ fn programs(sources: Sources, context: Rc<Context>) -> View {
 /// (an error with `429`) in the window.
 fn limits(sources: Sources, context: Rc<Context>) -> View {
     let hours = context.hours();
-    let bucket_cell = |label: &'static str, bucket: Option<Bucket>, threshold: u8| {
+    let bucket_cell = |api: Api, bucket: Option<Bucket>, threshold: u8| {
         let Some(bucket) = bucket else {
             return view().flex_1().child(small(SharedString::from(Msg::Unknown)));
         };
@@ -654,7 +654,7 @@ fn limits(sources: Sources, context: Rc<Context>) -> View {
                 view()
                     .flex_row()
                     .gap(len(Space2))
-                    .child(text(label).ty(Type::BodyStrong).flex_1())
+                    .child(text(SharedString::from(Msg::GitHubBucket(api))).ty(Type::BodyStrong).flex_1())
                     .child(small(Msg::Allowance(bucket.remaining, bucket.limit).to_string()).text_color(color(Foreground))),
             )
             .child(meter(
@@ -683,8 +683,8 @@ fn limits(sources: Sources, context: Rc<Context>) -> View {
                             .flex_row()
                             .gap(len(Space6))
                             .pt(len(Space2))
-                            .child(bucket_cell("GitHub REST", rate.map(|r| r.rest), threshold))
-                            .child(bucket_cell("GitHub GraphQL", rate.map(|r| r.graphql), threshold))
+                            .child(bucket_cell(Api::Rest, rate.map(|r| r.rest), threshold))
+                            .child(bucket_cell(Api::GraphQl, rate.map(|r| r.graphql), threshold))
                             .child(
                                 view()
                                     .flex_1()
@@ -693,7 +693,7 @@ fn limits(sources: Sources, context: Rc<Context>) -> View {
                                         view()
                                             .flex_row()
                                             .gap(len(Space2))
-                                            .child(text("LLM 429").ty(Type::BodyStrong).flex_1())
+                                            .child(text(SharedString::from(Msg::Llm429)).ty(Type::BodyStrong).flex_1())
                                             .child(small(Msg::LimitedSessions { hours, sessions: limited }.to_string()).text_color(color(Foreground))),
                                     )
                                     .child(meter(0.0, color(Ink3)))

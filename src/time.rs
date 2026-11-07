@@ -90,18 +90,30 @@ pub fn hourly(times: impl IntoIterator<Item = f64>, now: f64, hours: usize) -> V
     }
     counts
 }
-/// A duration in milliseconds as the logs show it: `0.4s`, `8s`,
-/// `4m 51s`, `1h 05m`.
-pub fn span(ms: f64) -> String {
+/// A duration as the logs write it: `0.4s`, `8s`, `4m 51s`, `1h 05m`
+/// (the UI words it, [`crate::Msg::Took`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Took {
+    /// Under a second, in tenths.
+    Tenths(u64),
+    Seconds(u64),
+    /// Minutes and the seconds past them.
+    Minutes(u64, u64),
+    /// Hours and the minutes past them.
+    Hours(u64, u64),
+}
+
+/// A duration in milliseconds, in the largest units the logs use.
+pub fn took(ms: f64) -> Took {
     let ms = ms.max(0.0);
     if ms < 1000.0 {
-        return format!("{:.1}s", ms / 1000.0);
+        return Took::Tenths((ms / 100.0).round() as u64);
     }
     let seconds = (ms / 1000.0) as u64;
     match seconds {
-        0..60 => format!("{seconds}s"),
-        60..3600 => format!("{}m {:02}s", seconds / 60, seconds % 60),
-        _ => format!("{}h {:02}m", seconds / 3600, seconds % 3600 / 60),
+        0..60 => Took::Seconds(seconds),
+        60..3600 => Took::Minutes(seconds / 60, seconds % 60),
+        _ => Took::Hours(seconds / 3600, seconds % 3600 / 60),
     }
 }
 

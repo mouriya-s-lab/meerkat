@@ -551,9 +551,9 @@ fn brand() -> View {
                 .justify_center()
                 .rounded(len(RadiusControl))
                 .bg(color(Foreground))
-                .child(text("Q").ty(Type::Label).text_color(color(Background))),
+                .child(text(SharedString::from(Msg::AppMark)).ty(Type::Label).text_color(color(Background))),
         )
-        .child(text("Quorum").ty(Type::Heading))
+        .child(text(SharedString::from(Msg::AppName)).ty(Type::Heading))
 }
 
 /// The search field that opens the command bar.
@@ -675,7 +675,7 @@ fn rate_block(sources: Sources, context: Rc<Context>) -> View {
             let Some(bucket) = lowest else {
                 return view()
                     .flex_row()
-                    .child(text("GitHub API").ty(Type::Small).flex_1())
+                    .child(text(SharedString::from(Msg::GitHubApi)).ty(Type::Small).flex_1())
                     .child(small(SharedString::from(Msg::Unknown)))
                     .into_element();
             };
@@ -688,7 +688,7 @@ fn rate_block(sources: Sources, context: Rc<Context>) -> View {
                         .flex_row()
                         .items_center()
                         .gap(len(Space2))
-                        .child(text("GitHub API").ty(Type::Small).flex_1())
+                        .child(text(SharedString::from(Msg::GitHubApi)).ty(Type::Small).flex_1())
                         .children(low.then(|| status::glyph(status::Glyph::Triangle, Role::Warn)))
                         .child(small(Msg::Allowance(bucket.remaining, bucket.limit).to_string())),
                 )
