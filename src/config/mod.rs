@@ -10,8 +10,8 @@ pub mod theme;
 use std::time::Duration;
 
 pub use schema::{
-    Attention, BaseUrl, Config, ConfigError, ConfigText, Digest, Endpoints, Fields, Filters,
-    HexColor, ProjectRef, RepoName, Repos,
+    Appearance, Attention, BaseUrl, Config, ConfigError, ConfigText, Digest, Endpoints, Fields,
+    Filters, HexColor, ProjectRef, RepoName, Repos,
 };
 pub use theme::{ColorToken, FontToken, LengthToken, Theme, ThemeColor};
 
@@ -23,6 +23,7 @@ pub struct AppConfig {
     pub attention: Attention,
     pub digest: Digest,
     pub filters: Filters,
+    pub appearance: Appearance,
     pub repos: Repos,
     pub fields: Fields,
     pub theme: Theme,
@@ -45,6 +46,7 @@ impl AppConfig {
             attention: dashboard.attention,
             digest: dashboard.digest,
             filters: dashboard.filters,
+            appearance: dashboard.appearance,
             repos,
             fields: project.fields,
             theme,

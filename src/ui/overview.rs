@@ -33,35 +33,45 @@ use crate::{
     time,
 };
 
-/// The overview.
+/// The overview: the rail beside the main column where it fits, under it
+/// where it does not.
 pub fn page(sources: Sources, context: Rc<Context>, nav: Nav) -> impl IntoElement {
+    let below = context.clone();
     scroll().flex_1().child(
-        view()
-            .flex_row()
-            .items_start()
-            .gap(len(Space6))
-            .px(len(Space6))
-            .py(len(Space5))
-            .child(
-                view()
-                    .flex_1()
-                    .min_w(Points::ZERO)
-                    .gap(len(Space6))
-                    .child(status_sentence(sources, context.clone()))
-                    .child(needs_section(sources, context.clone(), nav))
-                    .child(queue_section(sources, context.clone(), nav)),
-            )
-            .child(
-                view()
-                    .w(len(InspectorWidth) + len(Space8))
-                    .flex_shrink_0()
-                    .gap(len(Space4))
-                    .child(programs_panel(sources, context.clone()))
-                    .child(sessions_panel(sources, context.clone(), nav))
-                    .child(bases_panel(sources, context.clone(), nav))
-                    .child(errors_panel(sources, context)),
-            ),
+        when(rail_beside, move || columns(sources, context.clone(), nav, true))
+            .otherwise(move || columns(sources, below.clone(), nav, false)),
     )
+}
+
+/// Whether the rail fits beside the main column: the sidebar, a main
+/// column one and a half inspectors wide, the rail and the page's gaps.
+fn rail_beside() -> bool {
+    window().width >= len(SidebarWidth) + len(InspectorWidth) * 2.5 + len(Space8) * 3.0
+}
+
+fn columns(sources: Sources, context: Rc<Context>, nav: Nav, beside: bool) -> View {
+    let main = view()
+        .flex_1()
+        .min_w(Points::ZERO)
+        .gap(len(Space6))
+        .child(status_sentence(sources, context.clone()))
+        .child(needs_section(sources, context.clone(), nav))
+        .child(queue_section(sources, context.clone(), nav));
+    let rail = view()
+        .gap(len(Space4))
+        .child(programs_panel(sources, context.clone()))
+        .child(sessions_panel(sources, context.clone(), nav))
+        .child(bases_panel(sources, context.clone(), nav))
+        .child(errors_panel(sources, context));
+    let page = view().gap(len(Space6)).px(len(Space6)).py(len(Space5));
+    if beside {
+        page.flex_row()
+            .items_start()
+            .child(main)
+            .child(rail.w(len(InspectorWidth) + len(Space8)).flex_shrink_0())
+    } else {
+        page.child(main).child(rail)
+    }
 }
 
 // ---------------------------------------------------------------------------

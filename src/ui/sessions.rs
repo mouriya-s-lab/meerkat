@@ -481,7 +481,7 @@ async fn reduce(session: OpenSession, bytes: Vec<u8>, rules: Digest) -> Result<R
 #[cfg(target_arch = "wasm32")]
 async fn reduce(session: OpenSession, bytes: Vec<u8>, rules: Digest) -> Result<Record, String> {
     next_frame().await;
-    Ok(Record::new(session, bytes, &rules))
+    Result::Ok(Record::new(session, bytes, &rules))
 }
 
 fn inspector(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
@@ -563,7 +563,7 @@ fn header(open: &OpenSession, session: Option<&Session>, context: &Rc<Context>, 
         })
     });
     let at = |text: Option<&str>| text.map(time::seconds).unwrap_or_default();
-    let pair = |a: View, b: View| view().flex_row().gap(len(Space6)).child(a.flex_1()).child(b.flex_1());
+    let value = |text: String| mono(text).text_color(color(Foreground)).number_of_lines(1).selectable(true);
     view()
         .gap(len(Space3))
         .child(
@@ -582,18 +582,12 @@ fn header(open: &OpenSession, session: Option<&Session>, context: &Rc<Context>, 
         .child(
             view()
                 .gap(len(Space1))
-                .child(pair(
-                    kv(Msg::Model, mono(s.model.clone()).text_color(color(Foreground))),
-                    kv(Msg::Duration, mono(duration(s)).text_color(color(Foreground))),
-                ))
-                .child(pair(
-                    kv(Msg::Started, mono(at(Some(&s.started_at))).text_color(color(Foreground))),
-                    kv(Msg::Ended, mono(at(s.ended_at.as_deref())).text_color(color(Foreground))),
-                ))
-                .child(pair(
-                    kv(Msg::ForkedFrom, mono(s.parent.clone().unwrap_or_default()).selectable(true)),
-                    kv(Msg::SessionColumn, mono(s.id.clone()).selectable(true)),
-                )),
+                .child(kv(Msg::Model, value(s.model.clone())))
+                .child(kv(Msg::Duration, value(duration(s))))
+                .child(kv(Msg::Started, value(at(Some(&s.started_at)))))
+                .child(kv(Msg::Ended, value(at(s.ended_at.as_deref()))))
+                .children(s.parent.clone().map(|parent| kv(Msg::ForkedFrom, value(parent))))
+                .child(kv(Msg::SessionColumn, value(s.id.clone()))),
         )
 }
 
@@ -639,6 +633,7 @@ fn error_callout(session: &Session) -> View {
 fn log_head(state: SessionsState, count: Option<(usize, usize)>) -> View {
     view()
         .flex_row()
+        .flex_wrap()
         .items_center()
         .gap(len(Space2))
         .pb(len(Space2))

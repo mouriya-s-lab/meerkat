@@ -63,14 +63,22 @@ pub fn parse(text: ConfigText<'_>) -> Result<Config, ConfigError> {
     })
 }
 
+/// `file` parsed; an error names the key path once (serde_yaml_ng starts
+/// the message of a nested key with its path too).
 fn parse_file<T: DeserializeOwned>(file: &str, text: &str) -> Result<T, ConfigError> {
     let deserializer = serde_yaml_ng::Deserializer::from_str(text);
     serde_path_to_error::deserialize(deserializer).map_err(|error| {
         let path = error.path().to_string();
+        let path = if path == "." { String::new() } else { path };
+        let message = error.into_inner().to_string();
+        let message = match message.strip_prefix(&format!("{path}: ")) {
+            Some(rest) if !path.is_empty() => rest.to_owned(),
+            _ => message,
+        };
         ConfigError {
             file: file.to_owned(),
-            path: if path == "." { String::new() } else { path },
-            message: error.into_inner().to_string(),
+            path,
+            message,
         }
     })
 }
@@ -88,6 +96,16 @@ pub struct Dashboard {
     pub attention: Attention,
     pub digest: Digest,
     pub filters: Filters,
+    pub appearance: Appearance,
+}
+
+/// Light or dark: the system's, or one of them whatever the system's.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Appearance {
+    System,
+    Light,
+    Dark,
 }
 
 /// The addresses each build talks to.
@@ -385,5 +403,63 @@ impl TryFrom<String> for Name {
         } else {
             Ok(Self(name))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const DASHBOARD: &str = include_str!("../../config.example/dashboard/dashboard.yaml");
+    const REPOS: &str = include_str!("../../config.example/shared/repos.yaml");
+    const PROJECT: &str = include_str!("../../config.example/shared/project.yaml");
+
+    /// The example config with its `appearance` line replaced by `line`.
+    fn with_appearance(line: &str) -> Result<Config, ConfigError> {
+        let dashboard = DASHBOARD
+            .lines()
+            .map(|l| if l.starts_with("appearance:") { line } else { l })
+            .collect::<Vec<_>>()
+            .join("\n");
+        parse(ConfigText {
+            dashboard: &dashboard,
+            repos: REPOS,
+            project: PROJECT,
+        })
+    }
+
+    #[test]
+    fn the_example_config_parses() {
+        let config = parse(ConfigText {
+            dashboard: DASHBOARD,
+            repos: REPOS,
+            project: PROJECT,
+        })
+        .unwrap();
+        assert_eq!(config.dashboard.appearance, Appearance::System);
+    }
+
+    #[test]
+    fn appearance_is_system_light_or_dark() {
+        let of = |value: &str| with_appearance(&format!("appearance: {value}")).map(|c| c.dashboard.appearance);
+        assert_eq!(of("system"), Ok(Appearance::System));
+        assert_eq!(of("light"), Ok(Appearance::Light));
+        assert_eq!(of("dark"), Ok(Appearance::Dark));
+        let error = of("dim").unwrap_err();
+        assert_eq!(error.file, DASHBOARD_FILE);
+        assert_eq!(error.path, "appearance");
+        assert!(error.message.starts_with("unknown variant `dim`"), "{}", error.message);
+        assert_eq!(
+            error.to_string(),
+            format!("{DASHBOARD_FILE}: appearance: {}", error.message)
+        );
+        assert_eq!(of("Dark").unwrap_err().path, "appearance");
+    }
+
+    #[test]
+    fn appearance_is_required() {
+        let error = with_appearance("").unwrap_err();
+        assert_eq!(error.file, DASHBOARD_FILE);
+        assert!(error.message.contains("missing field `appearance`"), "{}", error.message);
     }
 }

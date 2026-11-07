@@ -24,11 +24,17 @@ fn native(registry: &mut Registry) {
 }
 
 /// The app's root: the overview for the config this build reads, drawn
-/// with its theme's tokens, or what is wrong with that config.
+/// with its theme's tokens in its appearance, or what is wrong with that
+/// config.
 #[component]
 pub fn App() -> impl IntoElement {
     let content = match config::load() {
         Ok(config) => {
+            set_color_scheme(match config.appearance {
+                config::Appearance::System => nsh_core::platform::Appearance::System,
+                config::Appearance::Light => nsh_core::platform::Appearance::Light,
+                config::Appearance::Dark => nsh_core::platform::Appearance::Dark,
+            });
             let tokens = ui::tokens(&config.theme);
             set_tokens(tokens.clone());
             ui::app(config, tokens)

@@ -9,51 +9,72 @@ comments, the API rate limit) and the council and guardians programs
 rewarm (`POST /v1/bases/{id}/rewarm`), which a person asks for and
 confirms.
 
+Windows at least 900 pt wide show a sidebar: Quorum's name, a search field
+that opens the command bar, the pages with a count each (概览: what needs
+you; 议题: open agenda issues; 会话: running sessions; 运行状况: failed and
+stale bases), and at its foot the two programs with their versions and
+what is left of the GitHub API allowance. Narrower windows show the pages
+as tabs in a top bar. Each page opens under a toolbar with its title, how
+long ago its data loaded and a refresh button. ⌘K opens the command bar
+(agenda issues, sessions and commands, picked with ↑↓ and ↵), ⌘1–⌘4 open
+the pages and ⌘R refreshes every source.
+
 The pages:
 
-- **概览** (overview): what needs a person now (failed or stale bases,
-  sessions failed recently, failed agenda issues, unsettled escalations,
-  unreachable programs, a low API allowance), then a card each for agenda
-  issues, implementations, guardian bases, recent LLM errors and program
-  health.
-- **守护** (guardians): every base (guardian, repository, model, state,
-  stale and why, when it was warmed, error) with a 重新预热 button,
-  disabled while the base warms. The button asks for confirmation naming
-  the guardian, repository and model; the guardians' answer (202 started,
-  409 warming, 404 no such base, or the error) shows on the row and the
-  bases load again. Selecting a base lists the sessions forked from it
-  (`/v1/sessions` rows whose `parent` is the base's session).
-- **会话** (sessions): the sessions of both programs in one list, filtered
-  by program, kind and state. Opening one fetches its record and shows its
+- **概览** (overview): one sentence on how things run, then 需要你处理,
+  what needs a person in order of consequence: failed agenda issues,
+  unreachable programs, failed bases, failed sessions grouped by program
+  and kind (expand a group for its errors, counted by first line), asks
+  escalated to an agenda issue, stale bases and a low API allowance; each
+  with the action that settles it. Under it the council's queue of open
+  agenda issues; beside it panels for the programs, the last day's
+  sessions by hour, the guardian bases and the sessions' errors.
+- **议题** (agenda issues: Project `Kind` human or agenda in the PM
+  repository), as a list or a dependency graph of the same issues,
+  filtered by state, by whether decided issues fold, show or hide, and by
+  human issues and what they block, and searched by agenda number or
+  title. A node's state is the council's `/v1/queue` verdict; while the
+  council is unreachable it is the Project's `Status`, marked
+  「议会不可达」. The list groups issues by what they need (需要处理, 在审,
+  可召集, 等待, 已定案) with their progress (votes of the round, share of
+  sub-issues done, a failure's note) and what they wait for or block; it
+  shows the latest three decided issues and a line for the rest. The
+  graph puts the open issues in columns by the "Blocked by" relations the
+  council counts: 可推进 first, then each column waiting on the one
+  before; decided issues fold into one line naming their chains.
+  Selecting an issue keeps it and the issues next to it bright, dims the
+  rest when it has any, and the inspector shows its round, why it has
+  not started, its prerequisites, what it blocks, the "Blocked by" the
+  council does not count and buttons that open it. Drag pans the graph;
+  the zoom bar, Control + wheel and trackpad pinches zoom it.
+- **会话** (sessions): the sessions of both programs in one table with
+  their count by hour, filtered by state, program and kind and searched by
+  issue, model or error. Selecting one shows its facts, its error, and its
   decision log, reduced by `dashboard.yaml`'s `digest` rules: the opening
-  message, the program's later prompts, kept tools' calls with arguments and
-  results, a count per run of a folded tool, the assistant's text when
-  configured, and highlighted LLM errors, automatic retries and
-  continuation prompts; thinking never shows. 原始记录 shows the record
-  line by line. On macOS the record is parsed on a background thread; the
-  web build, which has no threads, parses it on the page's thread after the
+  message, the program's later prompts, kept tools' calls with arguments
+  and results, a count per run of a folded tool, the assistant's text when
+  configured, and highlighted LLM errors, automatic retries (a run of the
+  same error folded into one line) and continuation prompts; thinking
+  never shows. 仅异常 keeps the abnormal steps; JSON shows the record line
+  by line. On macOS the record is parsed on a background thread; the web
+  build, which has no threads, parses it on the page's thread after the
   frame that says so.
+- **运行状况** (runtime): the guardian bases grouped by repository
+  (model, state, why a base is stale, when it was warmed, its forks in the
+  last day), the programs (state, version, uptime, work, last check) and
+  the limits (GitHub REST and GraphQL allowance, sessions that hit an LLM
+  rate limit). A hovered or selected base shows 重新预热, disabled while
+  the base warms. The button asks for confirmation naming the guardian,
+  repository and model; the guardians' answer (202 started, 409 warming,
+  404 no such base, or the error) shows on the row and the bases load
+  again. The inspector lists the sessions forked from the selected base
+  (`/v1/sessions` rows whose `parent` is the base's session).
 
-Every source loads, fails and refreshes on its own; the top bar shows the
-last refresh, how many sources fail, what is left of the API allowance,
-and a button that refreshes everything now.
-
-The second page, 「议题」, draws the agenda issues (Project `Kind` human or
-agenda in the PM repository) as a DAG of their GitHub "Blocked by"
-relations, or, switched with 图/列表, as a table of the same issues. A
-node's state is the council's `/v1/queue` verdict; while the council is
-unreachable it is the Project's `Status`, marked 「议会不可达」. Layers run
-left to right along the longest chain of prerequisites; a "Blocked by" the
-council does not count is drawn dashed. Issues with no prerequisite
-relation at all sit in a grid under the drawing, in agenda order. Pressing
-a node selects it: its prerequisites and what it blocks stay, the rest
-dims, and the panel beside the drawing shows its panel, votes and
-relations with a button that opens it on GitHub; a table row selects and
-opens it. Drag pans the DAG; the buttons, Control + wheel and trackpad
-pinches zoom it.
+Every source loads, fails and refreshes on its own: a panel whose source
+fails shows the error with a retry button and keeps the data it had.
 
 Every page draws from one design system: the colors, type sizes,
-spacings, radii and DAG lengths of `dashboard/theme.json`, and one
+spacings, radii and graph lengths of `dashboard/theme.json`, and one
 vocabulary of state words and glyphs shared by all pages.
 
 ## Configuration
@@ -89,8 +110,9 @@ repositories.
 | `digest.foldTools` | Tools whose consecutive calls the decision log shows as one count (the file-reading tools) |
 | `digest.showAssistantText` | Whether the decision log shows the assistant's text |
 | `digest.maxBytes` | A session record longer than this many bytes is parsed from its tail only, and the decision log says it is cut |
-| `filters.hideDecided` | The 「已定案」 filter when the app starts: `true` folds the decided and superseded issues (the list shows the latest three, the DAG one line), `false` shows them all |
-| `filters.humanOnly` | The 「仅人类议题及其后继」 filter when the app starts: human issues and the issues they block, transitively |
+| `filters.hideDecided` | The 「已定案」 filter when the app starts: `true` folds the decided and superseded issues (the list shows the latest three, the graph one line), `false` shows them all |
+| `filters.humanOnly` | The 「仅人类议题」 filter when the app starts: human issues and the issues they block, transitively |
+| `appearance` | `system` follows the system's light or dark appearance (the browser's on the web), `light` or `dark` keeps that one whatever the system's |
 
 `dashboard/theme.json` holds the design tokens: `cssVars.theme` (fonts
 and lengths), `cssVars.light` and `cssVars.dark` (colors), each with
@@ -117,7 +139,7 @@ file and the key path, for example
   missing variable, file or key shows a configuration error in the window.
 - **Web** carries the config in the WebAssembly module: `build.rs` reads the
   directory `PM_CONFIG_DIR` names at build time, checks it with the same
-  parser, and embeds the three files. A bad config fails the build with the
+  parsers, and embeds its four files. A bad config fails the build with the
   key path. Rebuild to change it.
 
 ## macOS
@@ -129,8 +151,7 @@ PM_CONFIG_DIR=$PWD/config.example cargo run
 ```
 
 The GitHub token is `GH_TOKEN`, or what `gh auth token` prints when
-`GH_TOKEN` is empty. Windows at least 900 pt wide show a sidebar beside the
-page; narrower ones show a single column.
+`GH_TOKEN` is empty.
 
 ## Web
 
@@ -178,15 +199,20 @@ else.
 
 | Path | Holds |
 |---|---|
-| `src/lib.rs` | The root component `App` and the NSH module |
+| `src/lib.rs` | The root component `App` (config, appearance, tokens) and the NSH module |
 | `src/main.rs` | `cargo run`: the macOS window |
-| `src/config/` | The config files as types (`schema.rs`, shared with `build.rs`) and how each build loads them |
+| `src/config/` | The config files as types (`schema.rs`, shared with `build.rs`; `theme.rs`, the design tokens) and how each build loads them |
 | `src/gh/` | The GitHub reader: Project items (GraphQL), comments, PM markers, open escalations, rate limit |
 | `src/programs/` | The program reader: health, sessions, session records, bases, rewarm, queue |
 | `src/digest.rs` | The decision log: a session record reduced by the `digest` rules (tests over real session files in `tests/fixtures/`) |
 | `src/sources.rs` | One `resource` per source, refreshed together |
-| `src/attention.rs` | What needs a person, derived from the sources |
-| `src/dag.rs` | The 「议题」 model: the issue DAG, its layers and filters, the table's order |
-| `src/ui/` | The shell, the pages (overview, 「议题」, guardians, sessions) and the app's own controls |
+| `src/attention.rs` | What needs a person, in order of consequence, failed sessions grouped by program and kind |
+| `src/dag.rs` | The 「议题」 model: the issue graph, its groups, readiness columns, folded decided issues and filters |
+| `src/time.rs` | Timestamps, "how long ago" and hourly counts |
+| `src/ui/shell.rs` | The sidebar or top bar, the toolbar, the shortcuts and the configuration error |
+| `src/ui/command.rs` | The command bar (⌘K) |
+| `src/ui/overview.rs`, `issues.rs`, `sessions.rs`, `runtime.rs` | The four pages |
+| `src/ui/parts.rs`, `status.rs`, `icons.rs`, `tokens.rs` | The app's own controls, its state words and glyphs, icons, and the theme's tokens as NSH tokens and type roles |
+| `src/ui/text.rs` | Every word the UI shows |
 | `deploy/Caddyfile` | The web build's same-origin proxy |
 | `config.example/` | A PM config directory for local runs |

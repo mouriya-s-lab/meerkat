@@ -36,3 +36,4 @@ digest:
 filters:
   hideDecided: true
   humanOnly: false
+appearance: system

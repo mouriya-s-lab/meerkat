@@ -186,14 +186,14 @@ pub fn progress(graph: &Graph, at: usize) -> AnyElement {
     match (&node.state, &node.panel) {
         (NodeState::Queue(QueueState::Deliberating), Some(panel)) => {
             let total = panel.votes.len() + panel.pending.len();
-            line.child(votes_bar(panel.votes.len(), total))
-                .child(small(Msg::RoundVoted { round: panel.round, voted: panel.votes.len(), seats: total }.to_string()).text_color(color(Ink2)))
+            line.child(view().flex_shrink_0().child(votes_bar(panel.votes.len(), total)))
+                .child(small(Msg::RoundVoted { round: panel.round, voted: panel.votes.len(), seats: total }.to_string()).text_color(color(Ink2)).flex_shrink(1.0).number_of_lines(1))
                 .into_element()
         }
         _ if node.sub_issues.total > 0 => {
             let sub = node.sub_issues;
-            line.child(view().w(len(Space8) + len(Space4)).child(meter(sub.completed as f32 / sub.total as f32, Role::Ok.ink())))
-                .child(small(Msg::Implemented(sub.completed, sub.total).to_string()).text_color(color(Ink2)))
+            line.child(view().w(len(Space8) + len(Space4)).flex_shrink_0().child(meter(sub.completed as f32 / sub.total as f32, Role::Ok.ink())))
+                .child(small(Msg::Implemented(sub.completed, sub.total).to_string()).text_color(color(Ink2)).flex_shrink(1.0).number_of_lines(1))
                 .into_element()
         }
         (NodeState::Queue(QueueState::Failed | QueueState::Interrupted), _) => match node.notes.first() {
@@ -367,7 +367,7 @@ fn visible_rows(graph: &Graph, state: IssuesState) -> Vec<usize> {
 /// The list's column widths: glyph, agenda, (title), progress, deps,
 /// updated.
 fn widths() -> [Points; 5] {
-    [len(Space4), len(Space8) + len(Space4), len(Space8) * 5.0, len(Space8) * 2.5, len(Space8) * 2.0]
+    [len(Space4), len(Space8) + len(Space4), len(Space8) * 4.0, len(Space8) * 2.0, len(Space8) * 2.0]
 }
 
 /// A group's glyph in its header.
@@ -511,20 +511,25 @@ fn selected_or_first(graph: &Graph, layout: &Layout, state: IssuesState) -> Opti
         .or_else(|| layout.columns.first().and_then(|c| c.first().copied()))
 }
 
-/// The issues next to `selected` by counted edges: itself, its
-/// prerequisites and what it blocks.
-fn neighbours(graph: &Graph, selected: Option<usize>) -> Option<HashSet<usize>> {
+/// The drawn issues next to `selected` by counted edges: itself, its
+/// prerequisites and what it blocks. `None` when nothing is selected or
+/// no drawn issue is next to it: then nothing dims.
+fn neighbours(graph: &Graph, boxes: &[Option<dag::Rect>], selected: Option<usize>) -> Option<HashSet<usize>> {
     let at = selected?;
     let mut near: HashSet<usize> = HashSet::from([at]);
     for edge in graph.edges.iter().filter(|e| e.kind == EdgeKind::Prerequisite) {
-        if edge.from == at {
-            near.insert(edge.to);
-        }
-        if edge.to == at {
-            near.insert(edge.from);
+        let other = if edge.from == at {
+            edge.to
+        } else if edge.to == at {
+            edge.from
+        } else {
+            continue;
+        };
+        if boxes[other].is_some() {
+            near.insert(other);
         }
     }
-    Some(near)
+    (near.len() > 1).then_some(near)
 }
 
 fn canvas_panel(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: IssuesState) -> View {
@@ -651,7 +656,8 @@ fn drawing(
 ) -> View {
     let geometry = dag::geometry(graph, layout, sizes());
     let boxes: Vec<Option<dag::Rect>> = geometry.boxes.iter().map(|b| b.map(|b| camera.place(b))).collect();
-    let near = neighbours(graph, selected);
+    let near = neighbours(graph, &boxes, selected);
+    let lit = near.is_some();
     let origin = TransformOrigin {
         x: Points::ZERO.into(),
         y: Points::ZERO.into(),
@@ -675,7 +681,7 @@ fn drawing(
     let edges = {
         let graph = graph.clone();
         let boxes = boxes.clone();
-        canvas(move || edges(&graph, &boxes, selected, camera.scale))
+        canvas(move || edges(&graph, &boxes, selected, lit, camera.scale))
     };
     let mut cards: Vec<AnyElement> = Vec::new();
     for (i, rect) in boxes.iter().enumerate() {
@@ -710,8 +716,9 @@ fn drawing(
 
 /// The counted edges between laid-out nodes, routed orthogonally with an
 /// arrowhead at the issue blocked; the selected node's in `selection`
-/// over the others, the rest dimmed while something is selected.
-fn edges(graph: &Graph, boxes: &[Option<dag::Rect>], selected: Option<usize>, scale: f32) -> Painter {
+/// over the others, the rest dimmed while the selected node has `lit`
+/// edges.
+fn edges(graph: &Graph, boxes: &[Option<dag::Rect>], selected: Option<usize>, lit: bool, scale: f32) -> Painter {
     let pick = super::parts::pick;
     let (plain, hot) = (pick(color(BorderStrong)), pick(color(Selection)));
     let head = len(Space2).0 * scale;
@@ -727,7 +734,7 @@ fn edges(graph: &Graph, boxes: &[Option<dag::Rect>], selected: Option<usize>, sc
                 continue;
             }
             let ink = if touches { hot } else { plain };
-            let alpha = if selected.is_some() && !touches { DIM } else { 1.0 };
+            let alpha = if lit && !touches { DIM } else { 1.0 };
             let [a, b, c, d] = dag::route(from, to);
             painter = painter
                 .global_alpha(alpha)
