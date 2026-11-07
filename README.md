@@ -130,7 +130,8 @@ count there. When the browser's language changes, the page switches
 without a reload. Any `zh…` reads Simplified Chinese; the app's name is
 Quorum in both. Data (issue titles, repositories, models, seats) and the
 errors programs, GitHub and the config parser give are shown as they are.
-For example `open -n --env OMOMP_LANG=en Quorum.app` opens it in English.
+For example `OMOMP_LANG=en Quorum.app/Contents/MacOS/Quorum` opens it in
+English.
 
 ## Configuration
 
