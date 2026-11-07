@@ -9,8 +9,8 @@ pub mod schema;
 use std::time::Duration;
 
 pub use schema::{
-    Attention, BaseUrl, Config, ConfigError, ConfigText, Endpoints, Fields, ProjectRef, RepoName,
-    Repos,
+    Attention, BaseUrl, Config, ConfigError, ConfigText, Digest, Endpoints, Fields, ProjectRef,
+    RepoName, Repos,
 };
 
 /// What the app runs with: this build's endpoints and the shared settings.
@@ -19,6 +19,7 @@ pub struct AppConfig {
     pub endpoints: Endpoints,
     pub refresh: Duration,
     pub attention: Attention,
+    pub digest: Digest,
     pub repos: Repos,
     pub fields: Fields,
 }
@@ -38,6 +39,7 @@ impl AppConfig {
             endpoints,
             refresh: Duration::from_secs(u64::from(dashboard.refresh_seconds.get())),
             attention: dashboard.attention,
+            digest: dashboard.digest,
             repos,
             fields: project.fields,
         }

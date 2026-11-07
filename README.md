@@ -4,15 +4,38 @@ The Pepgent PM dashboard: one [NSH](https://nsh.dev) Rust app that runs as a
 native macOS window and as a static web site. It owns no PM state; it reads
 GitHub (the PM repository's Project, implementation issues and their marker
 comments, the API rate limit) and the council and guardians programs
-(`/v1/health`, `/v1/sessions`, `/v1/bases`, `/v1/queue`), and shows what it
-read.
+(`/v1/health`, `/v1/sessions`, `/v1/sessions/{id}/log`, `/v1/bases`,
+`/v1/queue`), shows what it read, and forwards one request: a base's
+rewarm (`POST /v1/bases/{id}/rewarm`), which a person asks for and
+confirms.
 
-The first page is the overview: what needs a person now (failed or stale
-bases, sessions failed recently, failed agenda issues, unsettled
-escalations, unreachable programs, a low API allowance), then a card each for
-agenda issues, implementations, guardian bases, recent LLM errors and program
-health. Every source loads, fails and refreshes on its own; the top bar shows
-the last refresh, how many sources fail, what is left of the API allowance,
+The pages:
+
+- **概览** (overview): what needs a person now (failed or stale bases,
+  sessions failed recently, failed agenda issues, unsettled escalations,
+  unreachable programs, a low API allowance), then a card each for agenda
+  issues, implementations, guardian bases, recent LLM errors and program
+  health.
+- **守护** (guardians): every base (guardian, repository, model, state,
+  stale and why, when it was warmed, error) with a 重新预热 button,
+  disabled while the base warms. The button asks for confirmation naming
+  the guardian, repository and model; the guardians' answer (202 started,
+  409 warming, 404 no such base, or the error) shows on the row and the
+  bases load again. Selecting a base lists the sessions forked from it
+  (`/v1/sessions` rows whose `parent` is the base's session).
+- **会话** (sessions): the sessions of both programs in one list, filtered
+  by program, kind and state. Opening one fetches its record and shows its
+  decision log, reduced by `dashboard.yaml`'s `digest` rules: the opening
+  message, the program's later prompts, kept tools' calls with arguments and
+  results, a count per run of a folded tool, the assistant's text when
+  configured, and highlighted LLM errors, automatic retries and
+  continuation prompts; thinking never shows. 原始记录 shows the record
+  line by line. On macOS the record is parsed on a background thread; the
+  web build, which has no threads, parses it on the page's thread after the
+  frame that says so.
+
+Every source loads, fails and refreshes on its own; the top bar shows the
+last refresh, how many sources fail, what is left of the API allowance,
 and a button that refreshes everything now.
 
 ## Configuration
@@ -43,6 +66,10 @@ repositories.
 | `refreshSeconds` | Seconds between two refreshes of every source (at least 1) |
 | `attention.sessionFailureHours` | A failed session needs a person for this many hours after it ended |
 | `attention.rateLimitPercent` | Less than this share (0–100) of a GitHub API limit left needs a person |
+| `digest.keepTools` | Tools whose calls the decision log shows with their arguments and result (the council and guardians plugin tools) |
+| `digest.foldTools` | Tools whose consecutive calls the decision log shows as one count (the file-reading tools) |
+| `digest.showAssistantText` | Whether the decision log shows the assistant's text |
+| `digest.maxBytes` | A session record longer than this many bytes is parsed from its tail only, and the decision log says it is cut |
 
 Addresses are absolute `http(s)` URLs without a query; NSH's `fetch` takes
 absolute URLs only, so the web addresses name the proxy's origin.
@@ -105,8 +132,9 @@ LISTEN=:8088 SITE_DIR=/tmp/pm-dashboard-web GH_TOKEN=<token> \
 
 then open `http://127.0.0.1:8088/`. The proxy maps `/gh/*` to
 `https://api.github.com` with `Authorization: Bearer $GH_TOKEN`,
-`/council/*` to `COUNCIL_URL` and `/guardians/*` to `GUARDIANS_URL`, and
-serves `SITE_DIR` for everything else.
+`/council/*` to `COUNCIL_URL` and `/guardians/*` to `GUARDIANS_URL` (every
+method, so a rewarm's `POST` goes through too), and serves `SITE_DIR` for
+everything else.
 
 ## Layout
 
@@ -116,9 +144,10 @@ serves `SITE_DIR` for everything else.
 | `src/main.rs` | `cargo run`: the macOS window |
 | `src/config/` | The config files as types (`schema.rs`, shared with `build.rs`) and how each build loads them |
 | `src/gh/` | The GitHub reader: Project items (GraphQL), comments, PM markers, open escalations, rate limit |
-| `src/programs/` | The program reader: health, sessions, bases, queue |
+| `src/programs/` | The program reader: health, sessions, session records, bases, rewarm, queue |
+| `src/digest.rs` | The decision log: a session record reduced by the `digest` rules (tests over real session files in `tests/fixtures/`) |
 | `src/sources.rs` | One `resource` per source, refreshed together |
 | `src/attention.rs` | What needs a person, derived from the sources |
-| `src/ui/` | The shell, the overview and the app's own controls |
+| `src/ui/` | The shell, the pages (overview, guardians, sessions) and the app's own controls |
 | `deploy/Caddyfile` | The web build's same-origin proxy |
 | `config.example/` | A PM config directory for local runs |
