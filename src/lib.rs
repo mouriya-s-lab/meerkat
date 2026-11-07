@@ -15,6 +15,8 @@ pub mod sources;
 pub mod time;
 mod ui;
 
+pub use ui::Msg;
+
 use nsh_base::theme;
 use nsh_core::prelude::*;
 
