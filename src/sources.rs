@@ -212,28 +212,4 @@ impl Sources {
             self.config_files.refetch();
         });
     }
-
-    /// How many sources failed their last load (tracked where read).
-    pub fn failing(&self) -> usize {
-        [
-            self.project.error().is_some(),
-            self.rate.error().is_some(),
-            self.escalations.error().is_some(),
-            self.council.health.error().is_some(),
-            self.council.sessions.error().is_some(),
-            self.council.config.error().is_some(),
-            self.queue.error().is_some(),
-            self.guardians.health.error().is_some(),
-            self.guardians.sessions.error().is_some(),
-            self.guardians.config.error().is_some(),
-            self.bases.error().is_some(),
-            self.config_files.error().is_some(),
-        ]
-        .into_iter()
-        .filter(|failed| *failed)
-        .count()
-    }
-
-    /// How many sources there are.
-    pub const COUNT: usize = 12;
 }
