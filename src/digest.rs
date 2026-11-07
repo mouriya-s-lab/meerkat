@@ -52,16 +52,15 @@ pub struct Entry {
 #[derive(Debug, Clone, PartialEq)]
 pub enum DigestItem {
     /// The first user message of the session (after a fork's header).
-    Opening(String),
+    Opening(Body),
     /// A user message after the opening: a prompt the program sent.
-    ProgramPrompt(String),
+    ProgramPrompt(Body),
     /// The assistant's text (when `showAssistantText`).
     AssistantText(String),
-    /// A call of a kept tool: its arguments (JSON) and, once it came, its
-    /// result.
+    /// A call of a kept tool: its arguments and, once it came, its result.
     ToolCall {
         name: String,
-        args: String,
+        args: serde_json::Value,
         result: Option<ToolOutput>,
     },
     /// Consecutive calls of one folded tool.
@@ -75,16 +74,38 @@ pub enum DigestItem {
         error: String,
     },
     /// The plugin's prompt to go on (`session-stop-continuation`).
-    Continuation(String),
+    Continuation(Body),
     /// The PM programs' `pm-meta` entry.
     Meta(PmMeta),
 }
 
-/// A kept tool's result.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// A kept tool's result and when it came (the entry's RFC 3339
+/// timestamp).
+#[derive(Debug, Clone, PartialEq)]
 pub struct ToolOutput {
-    pub text: String,
+    pub body: Body,
     pub is_error: bool,
+    pub at: String,
+}
+
+/// A message's content: JSON when the whole of it is a JSON object or
+/// array (the council sends some prompts so), else text.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Body {
+    Text(String),
+    Json(serde_json::Value),
+}
+
+impl Body {
+    pub fn of(text: String) -> Self {
+        let trimmed = text.trim_start();
+        if trimmed.starts_with(['{', '['])
+            && let Ok(value) = serde_json::from_str::<serde_json::Value>(&text)
+        {
+            return Body::Json(value);
+        }
+        Body::Text(text)
+    }
 }
 
 /// How omp's retry of a failed request ended.
@@ -201,7 +222,7 @@ impl Reducer<'_> {
                 content,
             } => {
                 if custom_type == "session-stop-continuation" && self.own(&timestamp) {
-                    self.push(timestamp, DigestItem::Continuation(content.text()));
+                    self.push(timestamp, DigestItem::Continuation(Body::of(content.text())));
                 }
             }
             Line::Message { timestamp, message } => {
@@ -223,7 +244,7 @@ impl Reducer<'_> {
     fn message(&mut self, at: String, message: Message) {
         match message {
             Message::User { content } => {
-                let text = content.text();
+                let text = Body::of(content.text());
                 let item = if self.opened {
                     DigestItem::ProgramPrompt(text)
                 } else {
@@ -277,8 +298,9 @@ impl Reducer<'_> {
                     && let DigestItem::ToolCall { result, .. } = &mut self.entries[index].item
                 {
                     *result = Some(ToolOutput {
-                        text: content.text(),
+                        body: Body::of(content.text()),
                         is_error,
+                        at,
                     });
                 }
             }
@@ -289,13 +311,12 @@ impl Reducer<'_> {
     fn call(&mut self, at: &str, id: String, name: String, arguments: serde_json::Value) {
         let listed = |tools: &[crate::config::schema::Name]| tools.iter().any(|t| t.as_str() == name);
         if listed(&self.rules.keep_tools) {
-            let args = serde_json::to_string_pretty(&arguments).unwrap_or_default();
             self.calls.insert(id, self.entries.len());
             self.push(
                 at.to_owned(),
                 DigestItem::ToolCall {
                     name,
-                    args,
+                    args: arguments,
                     result: None,
                 },
             );
@@ -466,19 +487,17 @@ mod tests {
         assert_eq!(meta.reference.as_deref(), Some("oh-my-omp/pm-e2e-agenda#1"));
         assert_eq!(meta.seat.as_deref(), Some("ClaudeHigh"));
         // The fork's opening, not the base's warm-up prompt.
-        assert!(matches!(items[2], DigestItem::Opening(t) if t.contains("代读仓库 oh-my-omp/pm-e2e-code") && t.contains("列出入口文件路径")));
+        assert!(matches!(items[2], DigestItem::Opening(Body::Text(t)) if t.contains("代读仓库 oh-my-omp/pm-e2e-code") && t.contains("列出入口文件路径")));
         let DigestItem::ToolCall { name, args, result } = items[3] else {
             panic!("{:?}", items[3])
         };
         assert_eq!(name, "pm_return_facts");
-        assert!(args.contains("main.go:15-29"), "{args}");
-        assert_eq!(
-            result,
-            &Some(ToolOutput {
-                text: "recorded".to_owned(),
-                is_error: false
-            })
-        );
+        assert!(args.to_string().contains("main.go:15-29"), "{args}");
+        let result = result.as_ref().unwrap();
+        assert_eq!(result.body, Body::Text("recorded".to_owned()));
+        assert!(!result.is_error);
+        // The result came after the call: its time gives the call's duration.
+        assert!(result.at >= log.entries[3].at, "{} < {}", result.at, log.entries[3].at);
         // The base's own reads were copied history: none show.
         assert!(!items.iter().any(|i| matches!(i, DigestItem::Folded { .. })));
     }
@@ -503,7 +522,7 @@ mod tests {
             ["meta", "meta", "opening", "text", "continuation", "call"]
         );
         assert!(matches!(items[3], DigestItem::AssistantText(t) if t == "入口文件是 `main.go`。"));
-        assert!(matches!(items[4], DigestItem::Continuation(t) if t.starts_with("你还没有调用 pm_return_facts")));
+        assert!(matches!(items[4], DigestItem::Continuation(Body::Text(t)) if t.starts_with("你还没有调用 pm_return_facts")));
         // The aborted turn after the session ended is no LLM error.
         assert!(!items.iter().any(|i| matches!(i, DigestItem::LlmError(_))));
     }
@@ -608,7 +627,7 @@ mod tests {
         assert_eq!(log.unreadable, 0);
         let items = items(&log);
         assert!(matches!(items[0], DigestItem::Meta(m) if m.kind == "proxy"), "{items:#?}");
-        assert!(matches!(items[1], DigestItem::Opening(t) if t.contains("列出入口文件路径")));
+        assert!(matches!(items[1], DigestItem::Opening(Body::Text(t)) if t.contains("列出入口文件路径")));
         assert!(!items.iter().any(|i| matches!(i, DigestItem::Folded { .. })));
         // The call is in the tail, so it keeps its result.
         assert!(matches!(items.last().unwrap(), DigestItem::ToolCall { result: Some(_), .. }));

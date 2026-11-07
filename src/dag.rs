@@ -1,19 +1,19 @@
 //! The 「议题」 page's model (C4 `issueDag`): the agenda issues of the PM
-//! repository as a DAG of their GitHub "Blocked by" relations, laid out in
-//! layers by their longest prerequisite chain, and the table's order. Pure:
-//! it reads the Project's items and the council's queue as the sources last
-//! loaded them.
+//! repository with their GitHub "Blocked by" relations, the list's groups
+//! and the DAG's columns. Pure: it reads the Project's items and the
+//! council's queue as the sources last loaded them.
 //!
 //! A node's state is the council's verdict (`/v1/queue` `state`); while the
 //! council is unreachable, or when its queue does not list the issue, it is
 //! the Project's `Status`. Only a human issue is a prerequisite (the
-//! council's rule): a "Blocked by" on any other issue is an ignored edge,
-//! drawn but not counted for layers or for `humanOnly`'s successors.
+//! council's rule): a "Blocked by" on any other issue is ignored, as the
+//! council's notes on the blocked issue say; the DAG lays out and draws the
+//! counted edges only (#9 「依赖图的布局」).
 
 use std::collections::HashMap;
 
 use crate::{
-    config::{Dag, DagColors, Filters, HexColor, ListColumn, ListSort, RepoName},
+    config::RepoName,
     gh::{
         IssueRef,
         project::{Kind, ProjectItem, Proposer, Status, SubIssues},
@@ -58,16 +58,52 @@ pub enum Fallback {
     Unlisted,
 }
 
+/// The list's groups, in its order (#9 「议题列表」).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Group {
+    /// Failed or interrupted: a person looks.
+    Attention,
+    Deliberating,
+    Ready,
+    /// Blocked or held.
+    Waiting,
+    /// Decided or superseded.
+    Closed,
+}
+
+impl Group {
+    pub const ALL: [Group; 5] = [
+        Group::Attention,
+        Group::Deliberating,
+        Group::Ready,
+        Group::Waiting,
+        Group::Closed,
+    ];
+}
+
 impl NodeState {
-    pub fn decided(&self) -> bool {
-        matches!(
-            self,
-            NodeState::Queue(QueueState::Decided)
-                | NodeState::Project {
-                    status: Some(Status::Done),
-                    ..
-                }
-        )
+    /// The list's group: a verdict's, or what the Project `Status`
+    /// amounts to.
+    pub fn group(&self) -> Group {
+        match self {
+            NodeState::Queue(state) => match state {
+                QueueState::Failed | QueueState::Interrupted => Group::Attention,
+                QueueState::Deliberating => Group::Deliberating,
+                QueueState::Ready => Group::Ready,
+                QueueState::Blocked | QueueState::Held => Group::Waiting,
+                QueueState::Decided | QueueState::Superseded => Group::Closed,
+            },
+            NodeState::Project { status, .. } => match status {
+                Some(Status::Done | Status::Superseded) => Group::Closed,
+                Some(Status::InProgress) => Group::Deliberating,
+                Some(Status::Todo | Status::Other(_)) | None => Group::Ready,
+            },
+        }
+    }
+
+    /// Decided or superseded.
+    pub fn closed(&self) -> bool {
+        self.group() == Group::Closed
     }
 
     pub fn superseded(&self) -> bool {
@@ -80,64 +116,16 @@ impl NodeState {
                 }
         )
     }
-
-    /// Its color: the queue state's, or for a Project `Status` the state
-    /// it amounts to (Done is decided, Superseded superseded), else the
-    /// `unreachable` color.
-    pub fn color(&self, colors: &DagColors) -> HexColor {
-        match self {
-            NodeState::Queue(state) => match state {
-                QueueState::Decided => colors.decided,
-                QueueState::Superseded => colors.superseded,
-                QueueState::Blocked => colors.blocked,
-                QueueState::Held => colors.held,
-                QueueState::Deliberating => colors.deliberating,
-                QueueState::Interrupted => colors.interrupted,
-                QueueState::Failed => colors.failed,
-                QueueState::Ready => colors.ready,
-            },
-            NodeState::Project { status, .. } => match status {
-                Some(Status::Done) => colors.decided,
-                Some(Status::Superseded) => colors.superseded,
-                Some(Status::Todo | Status::InProgress | Status::Other(_)) | None => {
-                    colors.unreachable
-                }
-            },
-        }
-    }
-
-    /// Its place when the table sorts by state: the queue's decision
-    /// order, then the Project's statuses.
-    fn rank(&self) -> u8 {
-        match self {
-            NodeState::Queue(state) => match state {
-                QueueState::Decided => 0,
-                QueueState::Superseded => 1,
-                QueueState::Blocked => 2,
-                QueueState::Held => 3,
-                QueueState::Deliberating => 4,
-                QueueState::Interrupted => 5,
-                QueueState::Failed => 6,
-                QueueState::Ready => 7,
-            },
-            NodeState::Project { status, .. } => match status {
-                Some(Status::Done) => 8,
-                Some(Status::Superseded) => 9,
-                Some(Status::InProgress) => 10,
-                Some(Status::Todo) => 11,
-                Some(Status::Other(_)) => 12,
-                None => 13,
-            },
-        }
-    }
 }
 
-/// An agenda issue of the DAG.
+/// An agenda issue.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Node {
     pub issue: IssueRef,
     pub title: String,
     pub url: String,
+    /// GitHub's `updatedAt`.
+    pub updated_at: String,
     pub kind: NodeKind,
     pub agenda: Option<String>,
     pub proposer: Option<Proposer>,
@@ -149,10 +137,6 @@ pub struct Node {
     pub blocked_by: Vec<IssueRef>,
     /// The queue's notes on the issue.
     pub notes: Vec<String>,
-    /// Its layer: the length of its longest prerequisite chain.
-    pub layer: usize,
-    /// Its prerequisites form or follow a cycle: it sits in the last layer.
-    pub cycle: bool,
 }
 
 /// A "Blocked by": the prerequisite `from` blocks `to` (indices of
@@ -174,25 +158,58 @@ pub enum EdgeKind {
     Ignored { notes: Vec<String> },
 }
 
-/// The DAG after the filters: nodes in reading order (layer by layer,
-/// each layer in its order), the edges between them, and how many issues
-/// the filters hid.
+/// The agenda issues after the 「仅人类议题及其后继」 filter, in the
+/// council's queue order, the edges between them, and how many the filter
+/// hid.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Graph {
     pub nodes: Vec<Node>,
     pub edges: Vec<Edge>,
-    /// The nodes of each layer, as ranges of `nodes`.
-    pub layers: Vec<std::ops::Range<usize>>,
     pub hidden: usize,
 }
 
-/// The agenda issues of `pm` among `items` as a DAG, filtered by `filters`.
-pub fn build(items: &[ProjectItem], council: Council<'_>, pm: &RepoName, filters: Filters) -> Graph {
+impl Graph {
+    /// The edges into `at`, prerequisites first.
+    pub fn into_node(&self, at: usize) -> impl Iterator<Item = &Edge> {
+        let counted = self
+            .edges
+            .iter()
+            .filter(move |e| e.to == at && e.kind == EdgeKind::Prerequisite);
+        let ignored = self
+            .edges
+            .iter()
+            .filter(move |e| e.to == at && e.kind != EdgeKind::Prerequisite);
+        counted.chain(ignored)
+    }
+
+    /// The counted edges out of `at`.
+    pub fn out_of(&self, at: usize) -> impl Iterator<Item = &Edge> {
+        self.edges
+            .iter()
+            .filter(move |e| e.from == at && e.kind == EdgeKind::Prerequisite)
+    }
+
+    /// The counted prerequisites of `at` that are not closed: what it
+    /// waits for.
+    pub fn open_prerequisites(&self, at: usize) -> Vec<usize> {
+        self.edges
+            .iter()
+            .filter(|e| {
+                e.to == at && e.kind == EdgeKind::Prerequisite && !self.nodes[e.from].state.closed()
+            })
+            .map(|e| e.from)
+            .collect()
+    }
+}
+
+/// The agenda issues of `pm` among `items`, kept by the 「仅人类议题及其后继」
+/// filter when `human_only`.
+pub fn build(items: &[ProjectItem], council: Council<'_>, pm: &RepoName, human_only: bool) -> Graph {
     let queue: HashMap<&IssueRef, &QueueEntry> = match council {
         Council::Queue(entries) => entries.iter().map(|e| (&e.reference, e)).collect(),
         Council::Unreachable => HashMap::new(),
     };
-    let all: Vec<Node> = items
+    let mut all: Vec<Node> = items
         .iter()
         .filter(|item| item.issue.repo == *pm)
         .filter_map(|item| {
@@ -217,6 +234,7 @@ pub fn build(items: &[ProjectItem], council: Council<'_>, pm: &RepoName, filters
                 issue: item.issue.clone(),
                 title: item.title.clone(),
                 url: item.url.clone(),
+                updated_at: item.updated_at.clone(),
                 kind,
                 agenda: item.agenda.clone(),
                 proposer: item.proposer.clone(),
@@ -225,16 +243,13 @@ pub fn build(items: &[ProjectItem], council: Council<'_>, pm: &RepoName, filters
                 sub_issues: item.sub_issues,
                 blocked_by: item.blocked_by.clone(),
                 notes: entry.map(|e| e.notes.clone()).unwrap_or_default(),
-                layer: 0,
-                cycle: false,
             })
         })
         .collect();
+    all.sort_by(queue_order);
     let edges = edges_of(&all);
-    let shown = shown(&all, &edges, filters);
+    let shown = shown(&all, &edges, human_only);
     let hidden = shown.iter().filter(|shown| !**shown).count();
-
-    // The shown nodes and the edges between them, renumbered.
     let mut renumber = vec![None; all.len()];
     let mut nodes = Vec::new();
     for (i, node) in all.into_iter().enumerate() {
@@ -243,7 +258,7 @@ pub fn build(items: &[ProjectItem], council: Council<'_>, pm: &RepoName, filters
             nodes.push(node);
         }
     }
-    let edges: Vec<Edge> = edges
+    let edges = edges
         .into_iter()
         .filter_map(|edge| {
             Some(Edge {
@@ -253,43 +268,9 @@ pub fn build(items: &[ProjectItem], council: Council<'_>, pm: &RepoName, filters
             })
         })
         .collect();
-
-    assign_layers(&mut nodes, &edges);
-
-    // Reading order: by layer, then human issues, agenda number, issue.
-    let mut order: Vec<usize> = (0..nodes.len()).collect();
-    order.sort_by(|&a, &b| {
-        let (a, b) = (&nodes[a], &nodes[b]);
-        a.layer.cmp(&b.layer).then_with(|| queue_order(a, b))
-    });
-    let mut place = vec![0; nodes.len()];
-    for (to, &from) in order.iter().enumerate() {
-        place[from] = to;
-    }
-    let mut slots: Vec<Option<Node>> = nodes.into_iter().map(Some).collect();
-    let nodes: Vec<Node> = order
-        .iter()
-        .map(|&i| slots[i].take().expect("each node once"))
-        .collect();
-    let edges = edges
-        .into_iter()
-        .map(|edge| Edge {
-            from: place[edge.from],
-            to: place[edge.to],
-            kind: edge.kind,
-        })
-        .collect();
-    let mut layers: Vec<std::ops::Range<usize>> = Vec::new();
-    for (i, node) in nodes.iter().enumerate() {
-        match layers.last_mut() {
-            Some(range) if nodes[range.start].layer == node.layer => range.end = i + 1,
-            _ => layers.push(i..i + 1),
-        }
-    }
     Graph {
         nodes,
         edges,
-        layers,
         hidden,
     }
 }
@@ -332,65 +313,25 @@ fn names(note: &str, issue: &IssueRef) -> bool {
     })
 }
 
-/// Which nodes the filters keep.
-fn shown(nodes: &[Node], edges: &[Edge], filters: Filters) -> Vec<bool> {
-    let mut human_or_after: Vec<bool> = nodes.iter().map(|n| n.kind == NodeKind::Human).collect();
-    if filters.human_only {
-        let mut next: Vec<usize> = (0..nodes.len()).filter(|&i| human_or_after[i]).collect();
+/// Which nodes the 「仅人类议题及其后继」 filter keeps: everything when off;
+/// else the human issues and what they block through counted edges.
+fn shown(nodes: &[Node], edges: &[Edge], human_only: bool) -> Vec<bool> {
+    let mut keep: Vec<bool> = nodes
+        .iter()
+        .map(|n| !human_only || n.kind == NodeKind::Human)
+        .collect();
+    if human_only {
+        let mut next: Vec<usize> = (0..nodes.len()).filter(|&i| keep[i]).collect();
         while let Some(from) = next.pop() {
             for edge in edges {
-                if edge.from == from
-                    && edge.kind == EdgeKind::Prerequisite
-                    && !human_or_after[edge.to]
-                {
-                    human_or_after[edge.to] = true;
+                if edge.from == from && edge.kind == EdgeKind::Prerequisite && !keep[edge.to] {
+                    keep[edge.to] = true;
                     next.push(edge.to);
                 }
             }
         }
     }
-    nodes
-        .iter()
-        .zip(human_or_after)
-        .map(|(node, human_or_after)| {
-            !(filters.hide_decided && node.state.decided())
-                && !(filters.hide_superseded && node.state.superseded())
-                && (!filters.human_only || human_or_after)
-        })
-        .collect()
-}
-
-/// Gives each node its layer, the length of its longest chain of
-/// prerequisite edges. Nodes left over (a cycle, and what follows it) go
-/// to a layer after the others.
-fn assign_layers(nodes: &mut [Node], edges: &[Edge]) {
-    let prerequisites = || edges.iter().filter(|e| e.kind == EdgeKind::Prerequisite);
-    let mut waiting = vec![0usize; nodes.len()];
-    for edge in prerequisites() {
-        waiting[edge.to] += 1;
-    }
-    let mut layer = vec![0usize; nodes.len()];
-    let mut done = vec![false; nodes.len()];
-    let mut ready: Vec<usize> = (0..nodes.len()).filter(|&i| waiting[i] == 0).collect();
-    while let Some(from) = ready.pop() {
-        done[from] = true;
-        for edge in prerequisites().filter(|e| e.from == from) {
-            layer[edge.to] = layer[edge.to].max(layer[from] + 1);
-            waiting[edge.to] -= 1;
-            if waiting[edge.to] == 0 {
-                ready.push(edge.to);
-            }
-        }
-    }
-    let last = (0..nodes.len())
-        .filter(|&i| done[i])
-        .map(|i| layer[i] + 1)
-        .max()
-        .unwrap_or(0);
-    for (i, node) in nodes.iter_mut().enumerate() {
-        node.cycle = !done[i];
-        node.layer = if done[i] { layer[i] } else { last };
-    }
+    keep
 }
 
 /// The council's queue order: human issues first, then by agenda number
@@ -416,8 +357,155 @@ pub fn agenda_number(agenda: &str) -> Option<u64> {
     agenda[agenda.len() - digits..].parse().ok()
 }
 
+/// What the 「已定案」 filter does with the decided and superseded issues.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Closed {
+    /// The list shows the latest [`LATEST_CLOSED`] and a line for the
+    /// rest; the DAG folds them into one line.
+    Fold,
+    Show,
+    Hide,
+}
+
+impl Closed {
+    /// The filter as `filters.hideDecided` sets it.
+    pub fn from_hide_decided(hide: bool) -> Self {
+        if hide { Closed::Fold } else { Closed::Show }
+    }
+
+    /// The value after this one, as the filter's token steps.
+    pub fn next(self) -> Self {
+        match self {
+            Closed::Fold => Closed::Show,
+            Closed::Show => Closed::Hide,
+            Closed::Hide => Closed::Fold,
+        }
+    }
+}
+
+/// How many closed issues the list shows while folded.
+pub const LATEST_CLOSED: usize = 3;
+
+/// The list's rows of `group` among the nodes `keep` keeps: the queue's
+/// order, the closed group by `updatedAt`, newest first.
+pub fn rows(graph: &Graph, group: Group, keep: &dyn Fn(&Node) -> bool) -> Vec<usize> {
+    let mut rows: Vec<usize> = (0..graph.nodes.len())
+        .filter(|&i| graph.nodes[i].state.group() == group && keep(&graph.nodes[i]))
+        .collect();
+    if group == Group::Closed {
+        rows.sort_by(|&a, &b| graph.nodes[b].updated_at.cmp(&graph.nodes[a].updated_at));
+    }
+    rows
+}
+
 // ---------------------------------------------------------------------------
-// The drawing
+// The DAG
+
+/// The DAG's columns (#9 「依赖图的布局」): the open issues (and the closed
+/// ones when shown) in columns by their longest chain of counted
+/// prerequisites among them; issues on or after a cycle in a last column.
+/// While folded, the closed issues and the chains of counted edges among
+/// them.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct Layout {
+    /// Indices of the graph's nodes, column by column, each in queue order.
+    pub columns: Vec<Vec<usize>>,
+    /// The nodes in the last column because of a cycle.
+    pub cyclic: Vec<usize>,
+    /// The closed nodes the fold holds.
+    pub folded: Vec<usize>,
+    /// Chains of counted edges among the folded nodes, each at least two.
+    pub chains: Vec<Vec<usize>>,
+}
+
+impl Layout {
+    /// The column of `node`, if it is laid out.
+    pub fn column_of(&self, node: usize) -> Option<usize> {
+        self.columns.iter().position(|c| c.contains(&node))
+    }
+}
+
+/// Lays out the nodes `keep` keeps, the closed ones as `closed` says.
+pub fn layout(graph: &Graph, closed: Closed, keep: &dyn Fn(&Node) -> bool) -> Layout {
+    let n = graph.nodes.len();
+    let kept: Vec<bool> = graph.nodes.iter().map(keep).collect();
+    let placed: Vec<bool> = (0..n)
+        .map(|i| kept[i] && (closed == Closed::Show || !graph.nodes[i].state.closed()))
+        .collect();
+    let folded: Vec<usize> = (0..n)
+        .filter(|&i| closed == Closed::Fold && kept[i] && graph.nodes[i].state.closed())
+        .collect();
+    let counted = |e: &&Edge| e.kind == EdgeKind::Prerequisite;
+    let mut waiting = vec![0usize; n];
+    for e in graph.edges.iter().filter(counted) {
+        if placed[e.from] && placed[e.to] {
+            waiting[e.to] += 1;
+        }
+    }
+    let mut column = vec![0usize; n];
+    let mut done = vec![false; n];
+    let mut ready: Vec<usize> = (0..n).filter(|&i| placed[i] && waiting[i] == 0).collect();
+    while let Some(from) = ready.pop() {
+        done[from] = true;
+        for e in graph.edges.iter().filter(counted) {
+            if e.from == from && placed[e.to] {
+                column[e.to] = column[e.to].max(column[from] + 1);
+                waiting[e.to] -= 1;
+                if waiting[e.to] == 0 {
+                    ready.push(e.to);
+                }
+            }
+        }
+    }
+    let cyclic: Vec<usize> = (0..n).filter(|&i| placed[i] && !done[i]).collect();
+    let last = (0..n)
+        .filter(|&i| done[i])
+        .map(|i| column[i] + 1)
+        .max()
+        .unwrap_or(0);
+    for &i in &cyclic {
+        column[i] = last;
+    }
+    let width = (0..n).filter(|&i| placed[i]).map(|i| column[i] + 1).max().unwrap_or(0);
+    let mut columns = vec![Vec::new(); width];
+    for i in (0..n).filter(|&i| placed[i]) {
+        columns[column[i]].push(i);
+    }
+
+    let in_fold = |i: usize| folded.contains(&i);
+    let next = |i: usize| {
+        graph
+            .edges
+            .iter()
+            .find(|e| counted(e) && e.from == i && in_fold(e.to))
+            .map(|e| e.to)
+    };
+    let has_prev = |i: usize| {
+        graph
+            .edges
+            .iter()
+            .any(|e| counted(&e) && e.to == i && in_fold(e.from))
+    };
+    let mut chains = Vec::new();
+    for &start in folded.iter().filter(|&&i| !has_prev(i)) {
+        let mut chain = vec![start];
+        while let Some(to) = next(*chain.last().expect("a chain has a start")) {
+            if chain.contains(&to) {
+                break;
+            }
+            chain.push(to);
+        }
+        if chain.len() > 1 {
+            chains.push(chain);
+        }
+    }
+    Layout {
+        columns,
+        cyclic,
+        folded,
+        chains,
+    }
+}
 
 /// A node's box, in points from the drawing's top left.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -428,101 +516,76 @@ pub struct Rect {
     pub h: f32,
 }
 
-/// Where the DAG's nodes go: layers top to bottom, each centred across the
-/// widest, `nodeGap` around the drawing.
+/// The lengths the drawing is laid out with (the theme's `dag-*` tokens),
+/// in points.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Sizes {
+    pub node_width: f32,
+    pub node_height: f32,
+    /// Between two columns.
+    pub column_gap: f32,
+    /// Between two nodes of a column, and around the drawing.
+    pub node_gap: f32,
+    /// Above the columns, for their labels.
+    pub label: f32,
+}
+
+/// Where the laid-out nodes go: columns left to right, each from the top,
+/// under a band for the columns' labels.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Geometry {
     pub width: f32,
     pub height: f32,
-    /// One per node of the graph.
-    pub boxes: Vec<Rect>,
+    /// The left edge of each column.
+    pub columns: Vec<f32>,
+    /// Each node's box (`None`: not laid out), indexed as the graph's nodes.
+    pub boxes: Vec<Option<Rect>>,
 }
 
-pub fn geometry(graph: &Graph, dag: &Dag) -> Geometry {
-    let (w, h) = (
-        f32::from(dag.node_width.get()),
-        f32::from(dag.node_height.get()),
-    );
-    let (gap, layer_gap) = (f32::from(dag.node_gap), f32::from(dag.layer_gap));
-    let row = |n: usize| n as f32 * w + n.saturating_sub(1) as f32 * gap;
-    let widest = graph.layers.iter().map(|l| row(l.len())).fold(0.0, f32::max);
-    let mut boxes = Vec::with_capacity(graph.nodes.len());
-    for (i, layer) in graph.layers.iter().enumerate() {
-        let left = gap + (widest - row(layer.len())) / 2.0;
-        let y = gap + i as f32 * (h + layer_gap);
-        boxes.extend((0..layer.len()).map(|slot| Rect {
-            x: left + slot as f32 * (w + gap),
-            y,
-            w,
-            h,
-        }));
+pub fn geometry(graph: &Graph, layout: &Layout, sizes: Sizes) -> Geometry {
+    let Sizes {
+        node_width: w,
+        node_height: h,
+        column_gap,
+        node_gap: gap,
+        label,
+    } = sizes;
+    let top = gap + label;
+    let mut boxes = vec![None; graph.nodes.len()];
+    let mut columns = Vec::with_capacity(layout.columns.len());
+    for (c, nodes) in layout.columns.iter().enumerate() {
+        let x = gap + c as f32 * (w + column_gap);
+        columns.push(x);
+        for (slot, &node) in nodes.iter().enumerate() {
+            boxes[node] = Some(Rect {
+                x,
+                y: top + slot as f32 * (h + gap),
+                w,
+                h,
+            });
+        }
     }
-    let n = graph.layers.len();
+    let n = layout.columns.len();
+    let tallest = layout.columns.iter().map(Vec::len).max().unwrap_or(0);
     Geometry {
-        width: widest + 2.0 * gap,
-        height: n as f32 * h + n.saturating_sub(1) as f32 * layer_gap + 2.0 * gap,
+        width: n as f32 * w + n.saturating_sub(1) as f32 * column_gap + 2.0 * gap,
+        height: top + tallest as f32 * h + tallest.saturating_sub(1) as f32 * gap + gap,
+        columns,
         boxes,
     }
 }
 
-// ---------------------------------------------------------------------------
-// The table
-
-/// The order of the table's rows (indices of `nodes`): the graph's reading
-/// order, or sorted by `sort` with ties in that order.
-pub fn sorted(nodes: &[Node], sort: Option<ListSort>) -> Vec<usize> {
-    let mut rows: Vec<usize> = (0..nodes.len()).collect();
-    if let Some(sort) = sort {
-        rows.sort_by(|&a, &b| {
-            let order = compare(&nodes[a], &nodes[b], sort.column);
-            if sort.descending { order.reverse() } else { order }
-        });
-    }
-    rows
-}
-
-fn compare(a: &Node, b: &Node, column: ListColumn) -> std::cmp::Ordering {
-    match column {
-        ListColumn::Agenda => agenda_key(a)
-            .cmp(&agenda_key(b))
-            .then_with(|| a.agenda.cmp(&b.agenda)),
-        ListColumn::Title => a.title.cmp(&b.title),
-        ListColumn::Kind => (a.kind != NodeKind::Human).cmp(&(b.kind != NodeKind::Human)),
-        ListColumn::State => a.state.rank().cmp(&b.state.rank()),
-        ListColumn::Proposer => proposer_key(&a.proposer).cmp(&proposer_key(&b.proposer)),
-        ListColumn::BlockedBy => a
-            .blocked_by
-            .len()
-            .cmp(&b.blocked_by.len())
-            .then_with(|| a.blocked_by.cmp(&b.blocked_by)),
-        ListColumn::Progress => progress_key(a.sub_issues).cmp(&progress_key(b.sub_issues)),
-    }
-}
-
-fn proposer_key(proposer: &Option<Proposer>) -> (u8, &str) {
-    match proposer {
-        Some(Proposer::Human) => (0, ""),
-        Some(Proposer::Guardians) => (1, ""),
-        Some(Proposer::Coordination) => (2, ""),
-        Some(Proposer::Other(name)) => (3, name),
-        None => (4, ""),
-    }
-}
-
-/// Issues without sub-issues first, then by the share completed (in
-/// millionths), then by how many.
-fn progress_key(sub: SubIssues) -> (bool, u64, u32) {
-    if sub.total == 0 {
-        return (false, 0, 0);
-    }
-    let share = u64::from(sub.completed) * 1_000_000 / u64::from(sub.total);
-    (true, share, sub.total)
+/// An edge's orthogonal route from the right of `from` to the left of
+/// `to`: out, across at the middle of the gap, and in.
+pub fn route(from: Rect, to: Rect) -> [(f32, f32); 4] {
+    let (x1, y1) = (from.x + from.w, from.y + from.h / 2.0);
+    let (x2, y2) = (to.x, to.y + to.h / 2.0);
+    let mid = x1 + (x2 - x1) / 2.0;
+    [(x1, y1), (mid, y1), (mid, y2), (x2, y2)]
 }
 
 #[cfg(test)]
 mod tests {
-    use std::num::NonZeroU16;
-
     use super::*;
     use crate::{gh::project::IssueState, programs::AgendaKind};
 
@@ -542,6 +605,7 @@ mod tests {
             issue: issue(n),
             title: format!("issue {n}"),
             url: format!("https://github.com/o/pm/issues/{n}"),
+            updated_at: format!("2026-11-07T0{}:00:00Z", n % 10),
             state: IssueState::Open,
             status: Some(Status::Todo),
             kind: Some(kind),
@@ -569,14 +633,13 @@ mod tests {
         }
     }
 
-    const ALL: Filters = Filters {
-        hide_decided: false,
-        hide_superseded: false,
-        human_only: false,
-    };
+    fn all(_: &Node) -> bool {
+        true
+    }
 
-    /// The issue's fixture: H1; H2 ← H1; A1 ← H2; A2 ← A1 (an agenda
-    /// issue as prerequisite, ignored); D decided; an implementation issue.
+    /// #9's fixture: H1; H2 ← H1; A1 ← H2; A2 ← A1 (an agenda issue as
+    /// prerequisite, ignored); D6 decided; an implementation issue; an
+    /// issue of another repository.
     fn fixture() -> Vec<ProjectItem> {
         let mut decided = item(6, Kind::Agenda, "D6", &[]);
         decided.status = Some(Status::Done);
@@ -597,20 +660,79 @@ mod tests {
         ]
     }
 
-    fn numbers(graph: &Graph) -> Vec<(u64, usize)> {
-        graph.nodes.iter().map(|n| (n.issue.number, n.layer)).collect()
+    fn numbers(graph: &Graph, nodes: &[usize]) -> Vec<u64> {
+        nodes.iter().map(|&i| graph.nodes[i].issue.number).collect()
+    }
+
+    fn columns(graph: &Graph, layout: &Layout) -> Vec<Vec<u64>> {
+        layout.columns.iter().map(|c| numbers(graph, c)).collect()
     }
 
     #[test]
-    fn layers_follow_the_longest_prerequisite_chain() {
-        let graph = build(&fixture(), Council::Unreachable, &repo("o/pm"), ALL);
-        // A2's only "Blocked by" is ignored: it starts a chain of its own.
+    fn nodes_are_in_queue_order() {
+        let items = vec![
+            item(5, Kind::Agenda, "", &[]),
+            item(4, Kind::Agenda, "D10", &[]),
+            item(3, Kind::Agenda, "D2", &[]),
+            item(2, Kind::Human, "D30", &[]),
+            item(1, Kind::Agenda, "", &[]),
+        ];
+        let graph = build(&items, Council::Unreachable, &repo("o/pm"), false);
+        let order: Vec<u64> = graph.nodes.iter().map(|n| n.issue.number).collect();
+        // Human issues first, then by agenda number; those without one by
+        // issue.
+        assert_eq!(order, vec![2, 3, 4, 1, 5]);
+    }
+
+    #[test]
+    fn columns_follow_the_counted_chain_of_open_issues() {
+        let graph = build(&fixture(), Council::Unreachable, &repo("o/pm"), false);
+        let layout = layout(&graph, Closed::Fold, &all);
+        // H1 and A2 can move (A2's "Blocked by" A1 is not counted); H2 and
+        // A1 follow H1 in columns 1 and 2. D6 is decided: folded.
+        assert_eq!(columns(&graph, &layout), vec![vec![1, 4], vec![2], vec![3]]);
+        assert_eq!(numbers(&graph, &layout.folded), vec![6]);
+        assert!(layout.chains.is_empty());
+        assert!(layout.cyclic.is_empty());
+    }
+
+    #[test]
+    fn closed_issues_fold_show_or_hide() {
+        let mut items = fixture();
+        items[3].status = Some(Status::Done); // H1 decided
+        let graph = build(&items, Council::Unreachable, &repo("o/pm"), false);
+        // H1 closed: H2 has no open prerequisite and moves to column 0.
+        let folded = layout(&graph, Closed::Fold, &all);
+        assert_eq!(columns(&graph, &folded), vec![vec![2, 4], vec![3]]);
+        assert_eq!(numbers(&graph, &folded.folded), vec![1, 6]);
+        // Shown, the closed issues join the columns by the same rule.
+        let shown = layout(&graph, Closed::Show, &all);
         assert_eq!(
-            numbers(&graph),
-            vec![(1, 0), (4, 0), (6, 0), (2, 1), (3, 2)]
+            columns(&graph, &shown),
+            vec![vec![1, 4, 6], vec![2], vec![3]]
         );
-        assert_eq!(graph.layers, vec![0..3, 3..4, 4..5]);
-        assert_eq!(graph.hidden, 0);
+        assert!(shown.folded.is_empty());
+        let hidden = layout(&graph, Closed::Hide, &all);
+        assert_eq!(columns(&graph, &hidden), vec![vec![2, 4], vec![3]]);
+        assert!(hidden.folded.is_empty());
+    }
+
+    #[test]
+    fn the_fold_names_the_chains_among_closed_issues() {
+        let mut items = vec![
+            item(1, Kind::Human, "D1", &[]),
+            item(2, Kind::Human, "D2", &[1]),
+            item(3, Kind::Agenda, "D3", &[2]),
+            item(4, Kind::Agenda, "D4", &[]),
+        ];
+        for item in &mut items {
+            item.status = Some(Status::Done);
+        }
+        let graph = build(&items, Council::Unreachable, &repo("o/pm"), false);
+        let layout = layout(&graph, Closed::Fold, &all);
+        assert!(layout.columns.is_empty());
+        let chains: Vec<Vec<u64>> = layout.chains.iter().map(|c| numbers(&graph, c)).collect();
+        assert_eq!(chains, vec![vec![1, 2, 3]]);
     }
 
     #[test]
@@ -620,22 +742,24 @@ mod tests {
             item(2, Kind::Human, "D2", &[1]),
             item(3, Kind::Agenda, "D3", &[1, 2]),
         ];
-        let graph = build(&items, Council::Unreachable, &repo("o/pm"), ALL);
-        assert_eq!(numbers(&graph), vec![(1, 0), (2, 1), (3, 2)]);
+        let graph = build(&items, Council::Unreachable, &repo("o/pm"), false);
+        let layout = layout(&graph, Closed::Fold, &all);
+        assert_eq!(columns(&graph, &layout), vec![vec![1], vec![2], vec![3]]);
     }
 
     #[test]
-    fn layers_put_human_issues_first_then_agenda_numbers_then_issues() {
+    fn a_cycle_goes_to_the_last_column() {
         let items = vec![
-            item(5, Kind::Agenda, "", &[]),
-            item(4, Kind::Agenda, "D10", &[]),
-            item(3, Kind::Agenda, "D2", &[]),
-            item(2, Kind::Human, "D30", &[]),
-            item(1, Kind::Agenda, "", &[]),
+            item(1, Kind::Human, "D1", &[]),
+            item(2, Kind::Human, "D2", &[1]),
+            item(3, Kind::Human, "D3", &[4]),
+            item(4, Kind::Human, "D4", &[3]),
+            item(5, Kind::Agenda, "D5", &[3]),
         ];
-        let graph = build(&items, Council::Unreachable, &repo("o/pm"), ALL);
-        let order: Vec<u64> = graph.nodes.iter().map(|n| n.issue.number).collect();
-        assert_eq!(order, vec![2, 3, 4, 1, 5]);
+        let graph = build(&items, Council::Unreachable, &repo("o/pm"), false);
+        let layout = layout(&graph, Closed::Fold, &all);
+        assert_eq!(columns(&graph, &layout), vec![vec![1], vec![2], vec![3, 4, 5]]);
+        assert_eq!(numbers(&graph, &layout.cyclic), vec![3, 4, 5]);
     }
 
     #[test]
@@ -647,28 +771,27 @@ mod tests {
             entry(3, QueueState::Held, &[]),
             entry(4, QueueState::Held, &[note, "Blocked by o/pm#31 ignored: x"]),
         ];
-        let graph = build(&fixture(), Council::Queue(&queue), &repo("o/pm"), ALL);
+        let graph = build(&fixture(), Council::Queue(&queue), &repo("o/pm"), false);
         let at = |n: u64| graph.nodes.iter().position(|x| x.issue.number == n).unwrap();
         let kinds: Vec<(usize, usize, &EdgeKind)> =
             graph.edges.iter().map(|e| (e.from, e.to, &e.kind)).collect();
         assert!(kinds.contains(&(at(1), at(2), &EdgeKind::Prerequisite)));
         assert!(kinds.contains(&(at(2), at(3), &EdgeKind::Prerequisite)));
-        assert!(kinds.contains(&(
-            at(3),
-            at(4),
-            &EdgeKind::Ignored {
-                notes: vec![note.to_owned()]
-            }
-        )));
+        let ignored = EdgeKind::Ignored {
+            notes: vec![note.to_owned()],
+        };
+        assert!(kinds.contains(&(at(3), at(4), &ignored)));
         assert_eq!(graph.edges.len(), 3);
-        assert_eq!(graph.nodes[at(4)].state, NodeState::Queue(QueueState::Held));
-        assert_eq!(graph.nodes[at(4)].notes.len(), 2);
+        assert_eq!(graph.open_prerequisites(at(3)), vec![at(2)]);
+        assert!(graph.open_prerequisites(at(4)).is_empty());
+        let into: Vec<&EdgeKind> = graph.into_node(at(4)).map(|e| &e.kind).collect();
+        assert_eq!(into, vec![&ignored]);
     }
 
     #[test]
     fn states_fall_back_to_the_project_status() {
         let queue = vec![entry(1, QueueState::Ready, &[])];
-        let graph = build(&fixture(), Council::Queue(&queue), &repo("o/pm"), ALL);
+        let graph = build(&fixture(), Council::Queue(&queue), &repo("o/pm"), false);
         let state = |n: u64| &graph.nodes.iter().find(|x| x.issue.number == n).unwrap().state;
         assert_eq!(state(1), &NodeState::Queue(QueueState::Ready));
         assert_eq!(
@@ -678,7 +801,7 @@ mod tests {
                 why: Fallback::Unlisted
             }
         );
-        let graph = build(&fixture(), Council::Unreachable, &repo("o/pm"), ALL);
+        let graph = build(&fixture(), Council::Unreachable, &repo("o/pm"), false);
         let decided = graph.nodes.iter().find(|x| x.issue.number == 6).unwrap();
         assert_eq!(
             decided.state,
@@ -687,106 +810,46 @@ mod tests {
                 why: Fallback::Unreachable
             }
         );
-        assert!(decided.state.decided());
-    }
-
-    #[test]
-    fn colors_follow_the_state() {
-        let hex = |n: u32| HexColor::try_from(format!("#{n:06x}")).unwrap();
-        let colors = DagColors {
-            decided: hex(1),
-            superseded: hex(2),
-            blocked: hex(3),
-            held: hex(4),
-            deliberating: hex(5),
-            interrupted: hex(6),
-            failed: hex(7),
-            ready: hex(8),
-            unreachable: hex(9),
-        };
-        let project = |status| NodeState::Project {
-            status,
-            why: Fallback::Unreachable,
-        };
-        assert_eq!(NodeState::Queue(QueueState::Held).color(&colors), hex(4));
-        assert_eq!(project(Some(Status::Done)).color(&colors), hex(1));
-        assert_eq!(project(Some(Status::Superseded)).color(&colors), hex(2));
-        assert_eq!(project(Some(Status::Todo)).color(&colors), hex(9));
-        assert_eq!(project(None).color(&colors), hex(9));
-    }
-
-    #[test]
-    fn filters_hide_decided_and_superseded_issues() {
-        let mut items = fixture();
-        items.push(ProjectItem {
-            status: Some(Status::Superseded),
-            ..item(8, Kind::Agenda, "D8", &[])
-        });
-        let filters = Filters {
-            hide_decided: true,
-            ..ALL
-        };
-        let graph = build(&items, Council::Unreachable, &repo("o/pm"), filters);
-        assert!(graph.nodes.iter().all(|n| n.issue.number != 6));
-        assert!(graph.nodes.iter().any(|n| n.issue.number == 8));
-        assert_eq!(graph.hidden, 1);
-        let filters = Filters {
-            hide_superseded: true,
-            ..ALL
-        };
-        let graph = build(&items, Council::Unreachable, &repo("o/pm"), filters);
-        assert!(graph.nodes.iter().all(|n| n.issue.number != 8));
-        assert!(graph.nodes.iter().any(|n| n.issue.number == 6));
+        assert!(decided.state.closed());
+        assert_eq!(decided.state.group(), Group::Closed);
     }
 
     #[test]
     fn human_only_keeps_human_issues_and_what_they_block() {
         let mut items = fixture();
         items.push(item(10, Kind::Agenda, "D10", &[1]));
-        let filters = Filters {
-            human_only: true,
-            ..ALL
-        };
-        let graph = build(&items, Council::Unreachable, &repo("o/pm"), filters);
+        let graph = build(&items, Council::Unreachable, &repo("o/pm"), true);
         let mut kept: Vec<u64> = graph.nodes.iter().map(|n| n.issue.number).collect();
         kept.sort();
         // A2 (4) follows only through an ignored edge; 6 blocks nothing.
         assert_eq!(kept, vec![1, 2, 3, 10]);
-        // The edges between the kept nodes stay.
+        assert_eq!(graph.hidden, 2);
         assert_eq!(graph.edges.len(), 3);
     }
 
     #[test]
-    fn hidden_nodes_take_their_edges_and_layers_close_up() {
-        let mut items = fixture();
-        items[3].status = Some(Status::Done);
-        let filters = Filters {
-            hide_decided: true,
-            ..ALL
-        };
-        let graph = build(&items, Council::Unreachable, &repo("o/pm"), filters);
-        assert_eq!(numbers(&graph), vec![(2, 0), (4, 0), (3, 1)]);
-        assert_eq!(graph.edges.len(), 2);
-    }
-
-    #[test]
-    fn a_cycle_goes_to_the_last_layer() {
-        let items = vec![
-            item(1, Kind::Human, "D1", &[]),
-            item(2, Kind::Human, "D2", &[1]),
-            item(3, Kind::Human, "D3", &[4]),
-            item(4, Kind::Human, "D4", &[3]),
-            item(5, Kind::Agenda, "D5", &[3]),
-        ];
-        let graph = build(&items, Council::Unreachable, &repo("o/pm"), ALL);
-        assert_eq!(numbers(&graph), vec![(1, 0), (2, 1), (3, 2), (4, 2), (5, 2)]);
-        let cycle: Vec<u64> = graph
-            .nodes
-            .iter()
-            .filter(|n| n.cycle)
-            .map(|n| n.issue.number)
+    fn list_groups_follow_the_states_and_closed_rows_the_latest_update() {
+        let items: Vec<ProjectItem> = (1..=8)
+            .map(|n| item(n, Kind::Agenda, &format!("D{n}"), &[]))
             .collect();
-        assert_eq!(cycle, vec![3, 4, 5]);
+        let queue = vec![
+            entry(1, QueueState::Ready, &[]),
+            entry(2, QueueState::Held, &[]),
+            entry(3, QueueState::Decided, &[]),
+            entry(4, QueueState::Deliberating, &[]),
+            entry(5, QueueState::Failed, &[]),
+            entry(6, QueueState::Superseded, &[]),
+            entry(7, QueueState::Decided, &[]),
+            entry(8, QueueState::Interrupted, &[]),
+        ];
+        let graph = build(&items, Council::Queue(&queue), &repo("o/pm"), false);
+        let group = |g| numbers(&graph, &rows(&graph, g, &all));
+        assert_eq!(group(Group::Attention), vec![5, 8]);
+        assert_eq!(group(Group::Deliberating), vec![4]);
+        assert_eq!(group(Group::Ready), vec![1]);
+        assert_eq!(group(Group::Waiting), vec![2]);
+        // Newest update first.
+        assert_eq!(group(Group::Closed), vec![7, 6, 3]);
     }
 
     #[test]
@@ -804,91 +867,38 @@ mod tests {
         assert!(names("o/pm#31 and o/pm#3", &issue(3)));
     }
 
+    const SIZES: Sizes = Sizes {
+        node_width: 100.0,
+        node_height: 40.0,
+        column_gap: 50.0,
+        node_gap: 10.0,
+        label: 20.0,
+    };
+
     #[test]
-    fn geometry_centres_layers_across_the_widest() {
-        let graph = build(&fixture(), Council::Unreachable, &repo("o/pm"), ALL);
-        let black = || HexColor::try_from(format!("#{:06}", 0)).unwrap();
-        let dag = Dag {
-            colors: DagColors {
-                decided: black(),
-                superseded: black(),
-                blocked: black(),
-                held: black(),
-                deliberating: black(),
-                interrupted: black(),
-                failed: black(),
-                ready: black(),
-                unreachable: black(),
-            },
-            layer_gap: 50,
-            node_gap: 10,
-            node_width: NonZeroU16::new(100).unwrap(),
-            node_height: NonZeroU16::new(40).unwrap(),
-        };
-        let g = geometry(&graph, &dag);
-        // Three nodes in layer 0: 3 × 100 + 2 × 10, plus 10 each side.
-        assert_eq!(g.width, 340.0);
-        // Three layers: 3 × 40 + 2 × 50, plus 10 each side.
-        assert_eq!(g.height, 240.0);
-        assert_eq!(g.boxes[0], Rect { x: 10.0, y: 10.0, w: 100.0, h: 40.0 });
-        assert_eq!(g.boxes[3], Rect { x: 120.0, y: 100.0, w: 100.0, h: 40.0 });
-        assert_eq!(g.boxes[4].y, 190.0);
+    fn geometry_runs_columns_left_to_right_from_the_top() {
+        let graph = build(&fixture(), Council::Unreachable, &repo("o/pm"), false);
+        let layout = layout(&graph, Closed::Fold, &all);
+        let g = geometry(&graph, &layout, SIZES);
+        // Three columns: 3 × 100 + 2 × 50, plus 10 each side.
+        assert_eq!(g.width, 420.0);
+        // Two nodes high under the label band: 10 + 20 + 40 + 10 + 40 + 10.
+        assert_eq!(g.height, 130.0);
+        assert_eq!(g.columns, vec![10.0, 160.0, 310.0]);
+        let at = |n: u64| graph.nodes.iter().position(|x| x.issue.number == n).unwrap();
+        assert_eq!(g.boxes[at(1)], Some(Rect { x: 10.0, y: 30.0, w: 100.0, h: 40.0 }));
+        assert_eq!(g.boxes[at(4)], Some(Rect { x: 10.0, y: 80.0, w: 100.0, h: 40.0 }));
+        assert_eq!(g.boxes[at(2)].map(|b| (b.x, b.y)), Some((160.0, 30.0)));
+        assert_eq!(g.boxes[at(6)], None);
     }
 
     #[test]
-    fn the_table_sorts_by_state_in_the_queue_decision_order() {
-        let items: Vec<ProjectItem> = (1..=6)
-            .map(|n| item(n, Kind::Agenda, &format!("D{n}"), &[]))
-            .collect();
-        // Issue 6 is not in the queue: its Project Status (Todo) sorts after
-        // every queue state.
-        let queue = vec![
-            entry(1, QueueState::Ready, &[]),
-            entry(2, QueueState::Held, &[]),
-            entry(3, QueueState::Decided, &[]),
-            entry(4, QueueState::Deliberating, &[]),
-            entry(5, QueueState::Failed, &[]),
-        ];
-        let graph = build(&items, Council::Queue(&queue), &repo("o/pm"), ALL);
-        let rows = |descending| -> Vec<u64> {
-            let sort = ListSort {
-                column: ListColumn::State,
-                descending,
-            };
-            sorted(&graph.nodes, Some(sort))
-                .into_iter()
-                .map(|i| graph.nodes[i].issue.number)
-                .collect()
-        };
-        assert_eq!(rows(false), vec![3, 2, 4, 5, 1, 6]);
-        assert_eq!(rows(true), vec![6, 1, 5, 4, 2, 3]);
-    }
-
-    #[test]
-    fn the_table_sorts_with_ties_in_graph_order() {
-        let mut items = fixture();
-        items[1].sub_issues = SubIssues {
-            total: 2,
-            completed: 1,
-        };
-        items[0].sub_issues = SubIssues {
-            total: 4,
-            completed: 4,
-        };
-        let graph = build(&items, Council::Unreachable, &repo("o/pm"), ALL);
-        let rows = |sort| -> Vec<u64> {
-            sorted(&graph.nodes, sort)
-                .into_iter()
-                .map(|i| graph.nodes[i].issue.number)
-                .collect()
-        };
-        assert_eq!(rows(None), vec![1, 4, 6, 2, 3]);
-        let by = |column, descending| Some(ListSort { column, descending });
-        assert_eq!(rows(by(ListColumn::Agenda, false)), vec![1, 2, 3, 4, 6]);
-        assert_eq!(rows(by(ListColumn::Agenda, true)), vec![6, 4, 3, 2, 1]);
-        assert_eq!(rows(by(ListColumn::Kind, false)), vec![1, 2, 4, 6, 3]);
-        assert_eq!(rows(by(ListColumn::Progress, true)), vec![4, 3, 1, 6, 2]);
-        // Done (decided) before Todo.
-        assert_eq!(rows(by(ListColumn::State, false)), vec![6, 1, 4, 2, 3]);
+    fn edges_route_out_across_and_in() {
+        let from = Rect { x: 10.0, y: 30.0, w: 100.0, h: 40.0 };
+        let to = Rect { x: 160.0, y: 80.0, w: 100.0, h: 40.0 };
+        assert_eq!(
+            route(from, to),
+            [(110.0, 50.0), (135.0, 50.0), (135.0, 100.0), (160.0, 100.0)]
+        );
     }
 }

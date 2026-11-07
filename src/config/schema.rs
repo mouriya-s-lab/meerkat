@@ -6,7 +6,7 @@
 
 use std::{
     fmt,
-    num::{NonZeroU16, NonZeroU32},
+    num::NonZeroU32,
 };
 
 use serde::{Deserialize, de::DeserializeOwned};
@@ -63,14 +63,22 @@ pub fn parse(text: ConfigText<'_>) -> Result<Config, ConfigError> {
     })
 }
 
+/// `file` parsed; an error names the key path once (serde_yaml_ng starts
+/// the message of a nested key with its path too).
 fn parse_file<T: DeserializeOwned>(file: &str, text: &str) -> Result<T, ConfigError> {
     let deserializer = serde_yaml_ng::Deserializer::from_str(text);
     serde_path_to_error::deserialize(deserializer).map_err(|error| {
         let path = error.path().to_string();
+        let path = if path == "." { String::new() } else { path };
+        let message = error.into_inner().to_string();
+        let message = match message.strip_prefix(&format!("{path}: ")) {
+            Some(rest) if !path.is_empty() => rest.to_owned(),
+            _ => message,
+        };
         ConfigError {
             file: file.to_owned(),
-            path: if path == "." { String::new() } else { path },
-            message: error.into_inner().to_string(),
+            path,
+            message,
         }
     })
 }
@@ -87,9 +95,17 @@ pub struct Dashboard {
     pub refresh_seconds: NonZeroU32,
     pub attention: Attention,
     pub digest: Digest,
-    pub dag: Dag,
-    pub list: List,
     pub filters: Filters,
+    pub appearance: Appearance,
+}
+
+/// Light or dark: the system's, or one of them whatever the system's.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Appearance {
+    System,
+    Light,
+    Dark,
 }
 
 /// The addresses each build talks to.
@@ -191,42 +207,14 @@ impl TryFrom<u8> for Percent {
     }
 }
 
-/// How the 「议题」 page draws the DAG.
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Dag {
-    pub colors: DagColors,
-    /// Points between two layers.
-    pub layer_gap: u16,
-    /// Points between two nodes of a layer, and around the drawing.
-    pub node_gap: u16,
-    pub node_width: NonZeroU16,
-    pub node_height: NonZeroU16,
-}
-
-/// A node's color for each queue state, and for an issue whose Project
-/// Status no council verdict replaces (`unreachable`).
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct DagColors {
-    pub decided: HexColor,
-    pub superseded: HexColor,
-    pub blocked: HexColor,
-    pub held: HexColor,
-    pub deliberating: HexColor,
-    pub interrupted: HexColor,
-    pub failed: HexColor,
-    pub ready: HexColor,
-    pub unreachable: HexColor,
-}
-
 /// A color written `#rrggbb`, kept as `0xrrggbb`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(try_from = "String")]
 pub struct HexColor(u32);
 
 impl HexColor {
-    pub fn rgb(self) -> u32 {
+    /// `0xrrggbb`.
+    pub fn packed(self) -> u32 {
         self.0
     }
 }
@@ -243,80 +231,14 @@ impl TryFrom<String> for HexColor {
     }
 }
 
-/// The 「议题」 table: its columns, left to right, and its order before
-/// the user sorts it.
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(try_from = "ListText")]
-pub struct List {
-    pub columns: Vec<ListColumn>,
-    pub default_sort: ListSort,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-struct ListText {
-    columns: Vec<ListColumn>,
-    default_sort: ListSort,
-}
-
-impl TryFrom<ListText> for List {
-    type Error = String;
-
-    fn try_from(list: ListText) -> Result<Self, String> {
-        if list.columns.is_empty() {
-            return Err("columns is empty".to_owned());
-        }
-        if let Some((i, column)) = list
-            .columns
-            .iter()
-            .enumerate()
-            .find(|(i, column)| list.columns[..*i].contains(column))
-        {
-            return Err(format!("columns[{i}]: {column:?} is listed twice"));
-        }
-        if !list.columns.contains(&list.default_sort.column) {
-            return Err(format!(
-                "defaultSort.column: {:?} is not one of the columns",
-                list.default_sort.column
-            ));
-        }
-        Ok(Self {
-            columns: list.columns,
-            default_sort: list.default_sort,
-        })
-    }
-}
-
-/// A column of the 「议题」 table.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum ListColumn {
-    Agenda,
-    Title,
-    Kind,
-    State,
-    Proposer,
-    BlockedBy,
-    Progress,
-}
-
-/// What the table is sorted by.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ListSort {
-    pub column: ListColumn,
-    pub descending: bool,
-}
-
-/// The filters of the 「议题」 page when it opens; the user toggles them
-/// there. They apply to the DAG and the table alike.
+/// The filters of the 「议题」 page when it opens; the user changes them
+/// there. They apply to the list and the DAG alike.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Filters {
-    /// Hide decided issues.
+    /// Fold the decided and superseded issues (the list's latest three
+    /// and a line for the rest, the DAG's fold); else show them all.
     pub hide_decided: bool,
-    /// Hide superseded issues.
-    pub hide_superseded: bool,
     /// Show only human issues and the issues they block, transitively.
     pub human_only: bool,
 }
@@ -481,5 +403,63 @@ impl TryFrom<String> for Name {
         } else {
             Ok(Self(name))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const DASHBOARD: &str = include_str!("../../config.example/dashboard/dashboard.yaml");
+    const REPOS: &str = include_str!("../../config.example/shared/repos.yaml");
+    const PROJECT: &str = include_str!("../../config.example/shared/project.yaml");
+
+    /// The example config with its `appearance` line replaced by `line`.
+    fn with_appearance(line: &str) -> Result<Config, ConfigError> {
+        let dashboard = DASHBOARD
+            .lines()
+            .map(|l| if l.starts_with("appearance:") { line } else { l })
+            .collect::<Vec<_>>()
+            .join("\n");
+        parse(ConfigText {
+            dashboard: &dashboard,
+            repos: REPOS,
+            project: PROJECT,
+        })
+    }
+
+    #[test]
+    fn the_example_config_parses() {
+        let config = parse(ConfigText {
+            dashboard: DASHBOARD,
+            repos: REPOS,
+            project: PROJECT,
+        })
+        .unwrap();
+        assert_eq!(config.dashboard.appearance, Appearance::System);
+    }
+
+    #[test]
+    fn appearance_is_system_light_or_dark() {
+        let of = |value: &str| with_appearance(&format!("appearance: {value}")).map(|c| c.dashboard.appearance);
+        assert_eq!(of("system"), Ok(Appearance::System));
+        assert_eq!(of("light"), Ok(Appearance::Light));
+        assert_eq!(of("dark"), Ok(Appearance::Dark));
+        let error = of("dim").unwrap_err();
+        assert_eq!(error.file, DASHBOARD_FILE);
+        assert_eq!(error.path, "appearance");
+        assert!(error.message.starts_with("unknown variant `dim`"), "{}", error.message);
+        assert_eq!(
+            error.to_string(),
+            format!("{DASHBOARD_FILE}: appearance: {}", error.message)
+        );
+        assert_eq!(of("Dark").unwrap_err().path, "appearance");
+    }
+
+    #[test]
+    fn appearance_is_required() {
+        let error = with_appearance("").unwrap_err();
+        assert_eq!(error.file, DASHBOARD_FILE);
+        assert!(error.message.contains("missing field `appearance`"), "{}", error.message);
     }
 }

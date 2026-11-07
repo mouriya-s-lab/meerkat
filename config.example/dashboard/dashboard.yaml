@@ -33,25 +33,7 @@ digest:
     - find
   showAssistantText: true
   maxBytes: 8000000
-dag:
-  colors:
-    decided: "#16a34a"
-    superseded: "#7c3aed"
-    blocked: "#d97706"
-    held: "#db2777"
-    deliberating: "#2563eb"
-    interrupted: "#ea580c"
-    failed: "#dc2626"
-    ready: "#0891b2"
-    unreachable: "#6b7280"
-  layerGap: 56
-  nodeGap: 24
-  nodeWidth: 200
-  nodeHeight: 76
-list:
-  columns: [agenda, title, kind, state, proposer, blockedBy, progress]
-  defaultSort: { column: agenda, descending: false }
 filters:
   hideDecided: true
-  hideSuperseded: false
   humanOnly: false
+appearance: system

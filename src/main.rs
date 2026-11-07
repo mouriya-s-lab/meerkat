@@ -6,11 +6,19 @@ fn main() -> impl std::process::Termination {
     use nsh_platform_macos as platform;
 
     env_logger::init();
+    // The window, title bar included, opens in the config's appearance
+    // (NSH sets `NSWindow.appearance` only from `AppOptions`; the app's
+    // `set_color_scheme` reaches the views). A config that does not load
+    // shows its error in the system's.
+    let appearance = quorum::config::load()
+        .map(|config| quorum::appearance(config.appearance))
+        .unwrap_or(platform::Appearance::System);
     platform::run_app(
         platform::AppSource::Rust(platform::Root::of::<quorum::App>()),
         platform::AppOptions {
             title: "Quorum".to_owned(),
             size: (1200, 820),
+            appearance,
             ..Default::default()
         },
     )
