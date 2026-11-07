@@ -86,6 +86,14 @@ impl GitHub {
         http::json(self.request("GET", path)?).await
     }
 
+    /// `GET path` as GitHub has it now, parsed as `T`: for what changes
+    /// (a branch, a file on a branch). GitHub marks such answers fresh for a
+    /// minute (`max-age=60`); `Cache-Control: no-cache` sends the request
+    /// past the HTTP cache in front of it (the browser's, `NSURLCache`).
+    pub async fn get_current<T: DeserializeOwned>(&self, path: &str) -> Result<T, String> {
+        http::json(self.request("GET", path)?.header("Cache-Control", "no-cache")).await
+    }
+
     /// `PUT path` with `body` as JSON: the response whatever its status, so
     /// the caller tells a conflict from a failure.
     pub async fn put<B: Serialize>(&self, path: &str, body: &B) -> Result<HttpResponse, String> {

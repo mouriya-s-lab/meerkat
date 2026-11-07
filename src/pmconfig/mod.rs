@@ -154,7 +154,9 @@ impl ConfigRepoClient {
         self.config.readers.of(path)
     }
 
-    /// The branch's head commit and every file in it.
+    /// The branch's head commit and every file in it. The head is read as
+    /// it is now; the tree is named by that commit, so any copy of it is
+    /// the same tree.
     pub async fn listing(&self) -> Result<Listing, String> {
         #[derive(Deserialize)]
         struct Branch {
@@ -179,7 +181,7 @@ impl ConfigRepoClient {
         let repo = self.repo();
         let branch: Branch = self
             .github
-            .get(&format!("/repos/{repo}/branches/{}", self.branch()))
+            .get_current(&format!("/repos/{repo}/branches/{}", self.branch()))
             .await?;
         let head = branch.commit.sha;
         let tree: Tree = self
@@ -201,7 +203,8 @@ impl ConfigRepoClient {
         Ok(Listing { head, files })
     }
 
-    /// `path` as the branch has it now.
+    /// `path` as the branch has it now: its text, and the sha a save
+    /// replaces.
     pub async fn open(&self, path: &str) -> Result<Opened, String> {
         #[derive(Deserialize)]
         struct Contents {
@@ -211,7 +214,7 @@ impl ConfigRepoClient {
         }
         let contents: Contents = self
             .github
-            .get(&format!(
+            .get_current(&format!(
                 "/repos/{}/contents/{path}?ref={}",
                 self.repo(),
                 self.branch()
