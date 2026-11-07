@@ -202,7 +202,7 @@ else.
 | Path | Holds |
 |---|---|
 | `src/lib.rs` | The root component `App` (config, appearance, tokens) and the NSH module |
-| `src/main.rs` | `cargo run`: the macOS window |
+| `src/main.rs` | `cargo run`: the macOS window, opened in the config's appearance |
 | `src/config/` | The config files as types (`schema.rs`, shared with `build.rs`; `theme.rs`, the design tokens) and how each build loads them |
 | `src/gh/` | The GitHub reader: Project items (GraphQL), comments, PM markers, open escalations, rate limit |
 | `src/programs/` | The program reader: health, sessions, session records, bases, rewarm, queue |
@@ -211,7 +211,7 @@ else.
 | `src/attention.rs` | What needs a person, in order of consequence, failed sessions grouped by program and kind |
 | `src/dag.rs` | The 「议题」 model: the issue graph, its groups, readiness columns, folded decided issues and filters |
 | `src/time.rs` | Timestamps, "how long ago" and hourly counts |
-| `src/ui/shell.rs` | The sidebar or top bar, the toolbar, the shortcuts and the configuration error |
+| `src/ui/shell.rs` | The sidebar or top bar, the toolbar, the shortcuts, a list beside its inspector or (narrow) the inspector full width under 返回, and the configuration error |
 | `src/ui/command.rs` | The command bar (⌘K) |
 | `src/ui/overview.rs`, `issues.rs`, `sessions.rs`, `runtime.rs` | The four pages |
 | `src/ui/parts.rs`, `status.rs`, `icons.rs`, `tokens.rs` | The app's own controls, its state words and glyphs, icons, and the theme's tokens as NSH tokens and type roles |
