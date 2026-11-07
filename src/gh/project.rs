@@ -5,7 +5,10 @@
 use serde::{Deserialize, Serialize};
 
 use super::{GitHub, IssueRef};
-use crate::config::{Fields, ProjectRef, RepoName};
+use crate::{
+    config::{Fields, ProjectRef, RepoName},
+    failure::Failure,
+};
 
 /// An issue in the Project.
 #[derive(Debug, Clone, PartialEq)]
@@ -223,7 +226,7 @@ pub async fn items(
     github: &GitHub,
     project: &ProjectRef,
     fields: &Fields,
-) -> Result<Vec<ProjectItem>, String> {
+) -> Result<Vec<ProjectItem>, Failure> {
     let mut items = Vec::new();
     let mut after = None;
     loop {
@@ -240,12 +243,9 @@ pub async fn items(
         let connection = data
             .repository_owner
             .and_then(|owner| owner.project)
-            .ok_or_else(|| {
-                format!(
-                    "找不到 Project {}/{}",
-                    project.owner,
-                    project.number.get()
-                )
+            .ok_or_else(|| Failure::ProjectNotFound {
+                owner: project.owner.to_string(),
+                number: project.number.get().into(),
             })?
             .items;
         items.extend(

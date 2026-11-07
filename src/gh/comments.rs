@@ -17,7 +17,7 @@ pub struct Comment {
 const PAGE: usize = 100;
 
 /// Every comment of `issue`, oldest first.
-pub async fn comments(github: &GitHub, issue: &IssueRef) -> Result<Vec<Comment>, String> {
+pub async fn comments(github: &GitHub, issue: &IssueRef) -> Result<Vec<Comment>, crate::failure::Failure> {
     let mut all = Vec::new();
     for page in 1.. {
         let batch: Vec<Comment> = github

@@ -30,6 +30,7 @@ use crate::{
     attention::first_line,
     config::{ColorToken::*, Digest, LengthToken::*},
     digest::{self, Body, DecisionLog, DigestItem, Entry},
+    failure::Failure,
     programs::{Program, Session, SessionState},
     sources::Sources,
     time,
@@ -482,16 +483,16 @@ impl Record {
 
 /// Reduces `bytes` on the runtime's blocking threads.
 #[cfg(not(target_arch = "wasm32"))]
-async fn reduce(session: OpenSession, bytes: Vec<u8>, rules: Digest) -> Result<Record, String> {
+async fn reduce(session: OpenSession, bytes: Vec<u8>, rules: Digest) -> Result<Record, Failure> {
     blocking(move || Record::new(session, bytes, &rules))
         .await
-        .map_err(|error| Msg::ParseStopped(error.to_string()).to_string())
+        .map_err(|error| Failure::ParseStopped(error.to_string()))
 }
 
 /// Reduces `bytes` on the engine thread (WebAssembly has no other), after
 /// the frame that says it is parsing.
 #[cfg(target_arch = "wasm32")]
-async fn reduce(session: OpenSession, bytes: Vec<u8>, rules: Digest) -> Result<Record, String> {
+async fn reduce(session: OpenSession, bytes: Vec<u8>, rules: Digest) -> Result<Record, Failure> {
     next_frame().await;
     Result::Ok(Record::new(session, bytes, &rules))
 }

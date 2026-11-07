@@ -287,7 +287,8 @@ through too), and `SITE_DIR` is served for everything else.
 | `src/sources.rs` | One `resource` per source, refreshed together |
 | `src/attention.rs` | What needs a person, in order of consequence, failed sessions grouped by program and kind |
 | `src/dag.rs` | The 「议题」 model: the issue graph, its groups, readiness columns, folded decided issues and filters |
-| `src/time.rs` | Timestamps, "how long ago" and hourly counts |
+| `src/time.rs` | Timestamps, "how long ago", durations and hourly counts |
+| `src/failure.rs` | Why something Quorum asked for did not come: its own reasons as variants (worded by `src/ui/text.rs`), others' words as they are |
 | `src/ui/shell.rs` | The sidebar or top bar, the toolbar, the shortcuts, a list beside its inspector or (narrow) the inspector full width under 返回, and the configuration error |
 | `src/ui/command.rs` | The command bar (⌘K) |
 | `src/ui/overview.rs`, `issues.rs`, `sessions.rs`, `runtime.rs`, `config.rs` | The five pages |

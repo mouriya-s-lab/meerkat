@@ -25,6 +25,7 @@ use super::{
 use crate::{
     attention::first_line,
     config::{ColorToken::*, LengthToken::*},
+    failure::Failure,
     gh::rate::{Api, Bucket},
     programs::{Base, BaseState, Program, QueueState, RewarmOutcome, Session},
     sources::{ProgramSources, Sources},
@@ -37,7 +38,7 @@ enum Rewarm {
     /// The request is on its way.
     Sending,
     /// What the guardians answered, or why there was no answer.
-    Answered(Result<RewarmOutcome, String>),
+    Answered(Result<RewarmOutcome, Failure>),
 }
 
 impl Rewarm {

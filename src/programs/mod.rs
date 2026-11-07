@@ -5,7 +5,7 @@
 use nsh_core::prelude::HttpRequest;
 use serde::Deserialize;
 
-use crate::{config::BaseUrl, gh::IssueRef, http};
+use crate::{config::BaseUrl, failure::Failure, gh::IssueRef, http};
 
 /// Which program.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -166,33 +166,33 @@ impl ProgramClient {
         Self { program, base }
     }
 
-    async fn get<T: serde::de::DeserializeOwned>(&self, path: &str) -> Result<T, String> {
+    async fn get<T: serde::de::DeserializeOwned>(&self, path: &str) -> Result<T, Failure> {
         http::json(HttpRequest::get(self.base.join(path))).await
     }
 
-    pub async fn health(&self) -> Result<Health, String> {
+    pub async fn health(&self) -> Result<Health, Failure> {
         self.get("/v1/health").await
     }
 
     /// The most recent sessions, newest first.
-    pub async fn sessions(&self) -> Result<Vec<Session>, String> {
+    pub async fn sessions(&self) -> Result<Vec<Session>, Failure> {
         self.get(&format!("/v1/sessions?limit={SESSION_WINDOW}")).await
     }
 
     /// The guardians' bases.
-    pub async fn bases(&self) -> Result<Vec<Base>, String> {
+    pub async fn bases(&self) -> Result<Vec<Base>, Failure> {
         self.get("/v1/bases").await
     }
 
     /// The council's queue.
-    pub async fn queue(&self) -> Result<Vec<QueueEntry>, String> {
+    pub async fn queue(&self) -> Result<Vec<QueueEntry>, Failure> {
         self.get("/v1/queue").await
     }
 
     /// Asks the guardians to warm `base` again. Statuses other than the
     /// three the contract names, and requests that got no answer, are the
     /// error's text.
-    pub async fn rewarm(&self, base: &str) -> Result<RewarmOutcome, String> {
+    pub async fn rewarm(&self, base: &str) -> Result<RewarmOutcome, Failure> {
         let url = self.base.join(&format!("/v1/bases/{base}/rewarm"));
         let response = http::send(HttpRequest::post(url.clone(), Vec::new())).await?;
         match response.status() {
@@ -204,7 +204,7 @@ impl ProgramClient {
     }
 
     /// A session's record: the omp session file as it is.
-    pub async fn log(&self, session: &str) -> Result<Vec<u8>, String> {
+    pub async fn log(&self, session: &str) -> Result<Vec<u8>, Failure> {
         http::bytes(HttpRequest::get(self.session_log_url(session))).await
     }
 

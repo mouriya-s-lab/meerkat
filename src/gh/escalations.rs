@@ -47,11 +47,11 @@ pub fn unfinished_implementations(items: &[ProjectItem]) -> Vec<IssueRef> {
 pub async fn open_escalations(
     github: &GitHub,
     issues: Vec<IssueRef>,
-) -> Result<Vec<OpenEscalation>, String> {
+) -> Result<Vec<OpenEscalation>, crate::failure::Failure> {
     let per_issue: Vec<Vec<OpenEscalation>> = stream::iter(issues)
         .map(|issue| async move {
             let comments = comments(github, &issue).await?;
-            Ok::<_, String>(unsettled(&issue, &comments))
+            Ok::<_, crate::failure::Failure>(unsettled(&issue, &comments))
         })
         .buffered(CONCURRENT_READS)
         .try_collect()

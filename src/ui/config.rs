@@ -29,6 +29,7 @@ use super::{
 };
 use crate::{
     config::{ColorToken::*, FontToken, LengthToken::*, LoadedFile, Reader},
+    failure::Failure,
     pmconfig::{
         ConfigRepoClient, Opened, Saved, Verdict, Version, Violation, compare,
         lines::{self, Change},
@@ -61,7 +62,7 @@ enum Outcome {
     Saving,
     Committed { commit: String, url: String },
     Conflict,
-    Failed(String),
+    Failed(Failure),
 }
 
 /// The page's state, kept by the shell so unsaved text survives a visit to
@@ -116,7 +117,7 @@ enum Gate {
 enum Pull {
     Idle,
     Pulling,
-    Failed(String),
+    Failed(Failure),
 }
 
 /// The page's view of the open file and what hangs off it.
@@ -127,10 +128,10 @@ struct Doc {
     repo: Rc<ConfigRepoClient>,
     loaded: Rc<Vec<LoadedFile>>,
     selected: Rc<dyn Fn() -> Option<String>>,
-    opened: Resource<Rc<Opened>, String>,
-    checks: Resource<Rc<Checks>, String>,
+    opened: Resource<Rc<Opened>, Failure>,
+    checks: Resource<Rc<Checks>, Failure>,
     #[cfg(not(target_arch = "wasm32"))]
-    behind: Resource<u32, String>,
+    behind: Resource<u32, Failure>,
     #[cfg(not(target_arch = "wasm32"))]
     pull: Signal<Pull>,
 }
@@ -273,7 +274,7 @@ pub fn page(sources: Sources, context: Rc<Context>, _nav: Nav) -> impl IntoEleme
                 async move {
                     timer(CHECK_DELAY).await;
                     let verdicts = repo.checks(&path, &draft).await;
-                    Ok::<_, String>(Rc::new(Checks { path, draft, verdicts }))
+                    Ok::<_, Failure>(Rc::new(Checks { path, draft, verdicts }))
                 }
             },
         )
@@ -286,7 +287,7 @@ pub fn page(sources: Sources, context: Rc<Context>, _nav: Nav) -> impl IntoEleme
             move |_, _| {
                 let branch = branch.clone();
                 async move {
-                    let dir = crate::config::dir().map_err(|error| error.to_string())?;
+                    let dir = crate::config::dir().map_err(Failure::Config)?;
                     crate::pmconfig::checkout::behind(dir, branch).await
                 }
             },
@@ -843,7 +844,7 @@ fn error_row(reader: Reader, error: &Violation, with_file: bool) -> View {
         .child(text(Msg::Reader(reader).to_string()).ty(Type::Label).text_color(Role::Fail.text()))
         .child(text(place).ty(Type::Mono).text_color(Role::Fail.text()))
         .child(
-            text(error.message.clone())
+            text(Msg::Problem(error.message.clone()).to_string())
                 .ty(Type::Small)
                 .text_color(Role::Fail.text())
                 .flex_1()
@@ -1061,16 +1062,16 @@ fn checks_section(doc: &Doc) -> AnyElement {
                     Status::of(Role::Fail, Glyph::Cross, Msg::Errors(errors.len())),
                     errors
                         .iter()
-                        .map(|e| detail(format!("{} · {}\n{}", e.file, e.key, e.message), Role::Fail))
+                        .map(|e| detail(format!("{} · {}\n{}", e.file, e.key, Msg::Problem(e.message.clone())), Role::Fail))
                         .collect(),
                 ),
                 (true, Some(Verdict::Unreachable(error))) => (
                     Status::of(Role::Fail, Glyph::Cross, Msg::Unreachable),
-                    vec![detail(error, Role::Fail)],
+                    vec![detail(Msg::Failure(error).to_string(), Role::Fail)],
                 ),
                 (true, Some(Verdict::NoInput(error))) => (
                     Status::of(Role::Warn, Glyph::Triangle, Msg::NoInput),
-                    vec![detail(error, Role::Neutral)],
+                    vec![detail(Msg::Failure(error).to_string(), Role::Neutral)],
                 ),
             };
             rows.push(rail_row(&status, Msg::Reader(*reader).into(), details).into_element());
@@ -1102,7 +1103,7 @@ fn versions_section(doc: Doc) -> View {
         let doc = doc.clone();
         dynamic(move || {
             let listing = sources.config_files.with(|l| l.map(|l| l.data.clone()));
-            let rows: Vec<(SharedString, Result<Option<Version>, String>)> = [sources.council, sources.guardians]
+            let rows: Vec<(SharedString, Result<Option<Version>, Failure>)> = [sources.council, sources.guardians]
                 .into_iter()
                 .map(|program| {
                     let running = program.config.with(|r| r.map(|r| r.data.files.clone()));
@@ -1128,7 +1129,7 @@ fn versions_section(doc: Doc) -> View {
                 view()
                     .children(rows.into_iter().map(|(who, state)| {
                         let (status, details) = match state {
-                            Err(error) => (status::program(false), vec![detail(error, Role::Fail)]),
+                            Err(error) => (status::program(false), vec![detail(Msg::Failure(error).to_string(), Role::Fail)]),
                             Ok(None) => (Status::of(Role::Neutral, Glyph::Dashed, Msg::Checking), vec![]),
                             Ok(Some(Version::Same)) => {
                                 (Status::of(Role::Ok, Glyph::Check, Msg::SameAs(branch.clone())), vec![])
@@ -1170,7 +1171,7 @@ fn checkout_row(doc: Doc) -> Option<AnyElement> {
                 let (status, mut details) = match (error, count) {
                     (Some(error), _) => (
                         Status::of(Role::Fail, Glyph::Cross, Msg::Error),
-                        vec![detail(error, Role::Fail)],
+                        vec![detail(Msg::Failure(error).to_string(), Role::Fail)],
                     ),
                     (None, None) => (Status::of(Role::Neutral, Glyph::Dashed, Msg::Checking), vec![]),
                     (None, Some(0)) => (
@@ -1183,7 +1184,7 @@ fn checkout_row(doc: Doc) -> Option<AnyElement> {
                     ),
                 };
                 if let Pull::Failed(error) = &state {
-                    details.push(detail(error.clone(), Role::Fail));
+                    details.push(detail(Msg::Failure(error.clone()).to_string(), Role::Fail));
                 }
                 let pulling = state == Pull::Pulling;
                 if count.is_some_and(|n| n > 0) || pulling {
@@ -1201,8 +1202,7 @@ fn checkout_row(doc: Doc) -> Option<AnyElement> {
                                         owner.run(move || {
                                             spawn(async move {
                                                 let result = async {
-                                                    let dir = crate::config::dir()
-                                                        .map_err(|error| error.to_string())?;
+                                                    let dir = crate::config::dir().map_err(Failure::Config)?;
                                                     crate::pmconfig::checkout::pull(dir).await
                                                 }
                                                 .await;

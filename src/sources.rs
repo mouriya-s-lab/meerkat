@@ -11,6 +11,7 @@ use nsh_core::prelude::*;
 
 use crate::{
     config::AppConfig,
+    failure::Failure,
     gh::{
         Credential, GitHub,
         escalations::{self, OpenEscalation},
@@ -32,7 +33,7 @@ pub struct Loaded<T> {
 }
 
 /// A source: its last value, its last error, whether it loads.
-pub type Source<T> = Resource<Loaded<T>, String>;
+pub type Source<T> = Resource<Loaded<T>, Failure>;
 
 /// A program's sources.
 #[derive(Clone, Copy)]
@@ -66,7 +67,7 @@ pub struct Sources {
 fn source<T, Fut>(load: impl Fn() -> Fut + 'static) -> Source<T>
 where
     T: 'static,
-    Fut: Future<Output = Result<T, String>> + 'static,
+    Fut: Future<Output = Result<T, Failure>> + 'static,
 {
     source_from(|| Some(()), move |()| load())
 }
@@ -80,7 +81,7 @@ fn source_from<S, T, Fut>(
 where
     S: 'static,
     T: 'static,
-    Fut: Future<Output = Result<T, String>> + 'static,
+    Fut: Future<Output = Result<T, Failure>> + 'static,
 {
     resource(from, move |from, _| {
         let loading = load(from);

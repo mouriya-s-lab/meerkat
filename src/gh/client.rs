@@ -5,7 +5,11 @@
 use nsh_core::prelude::{HttpRequest, HttpResponse, Signal, signal};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
-use crate::{config::BaseUrl, http};
+use crate::{
+    config::BaseUrl,
+    failure::{Failure, NoCredential},
+    http,
+};
 
 /// How requests are authorised.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -15,7 +19,7 @@ pub enum Credential {
     /// None here: the proxy in front of the API adds it (web).
     Proxy,
     /// None could be found: why; every request fails with it.
-    Missing(String),
+    Missing(NoCredential),
 }
 
 impl Credential {
@@ -46,7 +50,7 @@ impl Credential {
             })
             .await;
             credential.set(Some(asked.unwrap_or_else(|error| {
-                Credential::Missing(format!("GH_TOKEN 为空，`gh auth token` 失败：{error}"))
+                Credential::Missing(NoCredential::GhFailed(error.to_string()))
             })));
         });
         credential
@@ -59,18 +63,15 @@ impl Credential {
             Ok(output) if output.status.success() => {
                 let token = String::from_utf8_lossy(&output.stdout).trim().to_owned();
                 if token.is_empty() {
-                    Credential::Missing("GH_TOKEN 为空，`gh auth token` 没有输出".to_owned())
+                    Credential::Missing(NoCredential::GhSilent)
                 } else {
                     Credential::Token(token)
                 }
             }
-            Ok(output) => Credential::Missing(format!(
-                "GH_TOKEN 为空，`gh auth token` 失败：{}",
-                String::from_utf8_lossy(&output.stderr).trim()
+            Ok(output) => Credential::Missing(NoCredential::GhFailed(
+                String::from_utf8_lossy(&output.stderr).trim().to_owned(),
             )),
-            Err(error) => Credential::Missing(format!(
-                "GH_TOKEN 为空，无法执行 `gh auth token`：{error}"
-            )),
+            Err(error) => Credential::Missing(NoCredential::GhCannotRun(error.to_string())),
         }
     }
 }
@@ -87,7 +88,7 @@ impl GitHub {
         Self { api, credential }
     }
 
-    fn request(&self, method: &str, path: &str) -> Result<HttpRequest, String> {
+    fn request(&self, method: &str, path: &str) -> Result<HttpRequest, Failure> {
         let request = HttpRequest::new(method, self.api.join(path))
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28");
@@ -96,12 +97,12 @@ impl GitHub {
                 Ok(request.header("Authorization", format!("Bearer {token}")))
             }
             Credential::Proxy => Ok(request),
-            Credential::Missing(why) => Err(why.clone()),
+            Credential::Missing(why) => Err(Failure::NoCredential(why.clone())),
         }
     }
 
     /// `GET path` (from the API root, with its query), parsed as `T`.
-    pub async fn get<T: DeserializeOwned>(&self, path: &str) -> Result<T, String> {
+    pub async fn get<T: DeserializeOwned>(&self, path: &str) -> Result<T, Failure> {
         http::json(self.request("GET", path)?).await
     }
 
@@ -109,14 +110,14 @@ impl GitHub {
     /// (a branch, a file on a branch). GitHub marks such answers fresh for a
     /// minute (`max-age=60`); `Cache-Control: no-cache` sends the request
     /// past the HTTP cache in front of it (the browser's, `NSURLCache`).
-    pub async fn get_current<T: DeserializeOwned>(&self, path: &str) -> Result<T, String> {
+    pub async fn get_current<T: DeserializeOwned>(&self, path: &str) -> Result<T, Failure> {
         http::json(self.request("GET", path)?.header("Cache-Control", "no-cache")).await
     }
 
     /// `PUT path` with `body` as JSON: the response whatever its status, so
     /// the caller tells a conflict from a failure.
-    pub async fn put<B: Serialize>(&self, path: &str, body: &B) -> Result<HttpResponse, String> {
-        let body = serde_json::to_vec(body).map_err(|error| error.to_string())?;
+    pub async fn put<B: Serialize>(&self, path: &str, body: &B) -> Result<HttpResponse, Failure> {
+        let body = serde_json::to_vec(body).map_err(|error| Failure::Said(error.to_string()))?;
         let request = self
             .request("PUT", path)?
             .header("Content-Type", "application/json")
@@ -135,7 +136,7 @@ impl GitHub {
         &self,
         query: &str,
         variables: &V,
-    ) -> Result<T, String> {
+    ) -> Result<T, Failure> {
         #[derive(Serialize)]
         struct Body<'a, V> {
             query: &'a str,
@@ -152,7 +153,7 @@ impl GitHub {
             message: String,
         }
         let body = serde_json::to_vec(&Body { query, variables })
-            .map_err(|error| error.to_string())?;
+            .map_err(|error| Failure::Said(error.to_string()))?;
         let request = self
             .request("POST", "/graphql")?
             .header("Content-Type", "application/json")
@@ -160,13 +161,15 @@ impl GitHub {
         let answer: Answer<T> = http::json(request).await?;
         match (answer.data, answer.errors.is_empty()) {
             (Some(data), true) => Ok(data),
-            (_, false) => Err(answer
-                .errors
-                .into_iter()
-                .map(|error| error.message)
-                .collect::<Vec<_>>()
-                .join("; ")),
-            (None, true) => Err("GraphQL 没有返回数据".to_owned()),
+            (_, false) => Err(Failure::Said(
+                answer
+                    .errors
+                    .into_iter()
+                    .map(|error| error.message)
+                    .collect::<Vec<_>>()
+                    .join("; "),
+            )),
+            (None, true) => Err(Failure::GraphQlNoData),
         }
     }
 }
@@ -180,6 +183,7 @@ mod tests {
     };
 
     use super::Credential;
+    use crate::failure::NoCredential;
 
     fn ran(code: i32, stdout: &str, stderr: &str) -> io::Result<Output> {
         Ok(Output {
@@ -198,17 +202,15 @@ mod tests {
         );
         assert_eq!(
             Credential::from_gh(ran(0, " \n", "")),
-            Credential::Missing("GH_TOKEN 为空，`gh auth token` 没有输出".to_owned())
+            Credential::Missing(NoCredential::GhSilent)
         );
         assert_eq!(
             Credential::from_gh(ran(1, "", "no oauth token\n")),
-            Credential::Missing("GH_TOKEN 为空，`gh auth token` 失败：no oauth token".to_owned())
+            Credential::Missing(NoCredential::GhFailed("no oauth token".to_owned()))
         );
-        let Credential::Missing(why) =
-            Credential::from_gh(Err(io::Error::from(io::ErrorKind::NotFound)))
-        else {
-            panic!("a gh that cannot run gives no credential");
-        };
-        assert!(why.starts_with("GH_TOKEN 为空，无法执行 `gh auth token`："), "{why}");
+        assert!(matches!(
+            Credential::from_gh(Err(io::Error::from(io::ErrorKind::NotFound))),
+            Credential::Missing(NoCredential::GhCannotRun(_))
+        ));
     }
 }

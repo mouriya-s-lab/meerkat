@@ -7,6 +7,7 @@ pub mod attention;
 pub mod config;
 pub mod digest;
 pub mod dag;
+pub mod failure;
 pub mod gh;
 mod http;
 pub mod pmconfig;

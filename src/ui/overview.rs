@@ -386,7 +386,7 @@ fn line_of(need: &Need, context: &Context) -> Line {
             title: Msg::ProgramUnreachable(*program).to_string(),
             count: None,
             meta: vec![
-                error_text(first_line(error).to_owned()).number_of_lines(1).into_element(),
+                error_text(first_line(&Msg::Failure(error.clone()).to_string()).to_owned()).number_of_lines(1).into_element(),
                 sep(),
                 small(Msg::LastLoaded(last_success.map(time::clock)).to_string()).into_element(),
             ],

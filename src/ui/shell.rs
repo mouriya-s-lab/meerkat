@@ -360,13 +360,13 @@ fn concerns_of(sources: Sources, settings: &Attention) -> Vec<Concern> {
     let guardians_at = sources.guardians.health.with(|l| l.map(|l| l.at));
     fn view<'a>(
         program: &ProgramSources,
-        error: &'a Option<String>,
+        error: &'a Option<crate::failure::Failure>,
         at: Option<f64>,
         sessions: &'a Option<Vec<crate::programs::Session>>,
     ) -> ProgramView<'a> {
         ProgramView {
             program: program.program,
-            unreachable: error.as_deref().map(|error| (error, at)),
+            unreachable: error.as_ref().map(|error| (error, at)),
             sessions: sessions.as_deref(),
         }
     }
@@ -758,8 +758,8 @@ fn top_bar(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
 /// parser's words, as they are). Drawn before the theme is known, with
 /// NSH's own theme.
 pub fn config_error(error: &ConfigError) -> AnyElement {
-    log::error!("config: {error}");
-    let detail = error.to_string();
+    log::error!("config: {error:?}");
+    let error = error.clone();
     localized(move || {
         view()
             .flex_1()
@@ -780,7 +780,7 @@ pub fn config_error(error: &ConfigError) -> AnyElement {
                             .font_weight(FontWeight::SEMIBOLD)
                             .text_color(move || theme().destructive),
                     )
-                    .child(text(detail.clone()).text_sm().selectable(true))
+                    .child(text(Msg::ConfigFailure(error.clone()).to_string()).text_sm().selectable(true))
                     .child(
                         text(SharedString::from(Msg::ConfigHint))
                             .text_xs()

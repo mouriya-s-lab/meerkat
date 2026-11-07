@@ -11,9 +11,10 @@ use nsh_core::prelude::SharedString;
 
 use super::lang::Lang::{self, En, Zh};
 use crate::{
-    config::Reader,
-    gh::rate::Api,
+    config::{ConfigError, Problem, Reader},
     dag::{Closed, Fallback, Group},
+    failure::{Failure, NoCredential},
+    gh::rate::Api,
     programs::{BaseState, Program, QueueState, SessionState},
     time::{Ago, Took},
 };
@@ -107,6 +108,12 @@ pub enum Msg {
     Retry,
     /// A GitHub panel while the credential is fetched.
     FetchingCredential,
+    /// Why something did not come.
+    Failure(Failure),
+    /// What is wrong with the config: its file, key path and why.
+    ConfigFailure(ConfigError),
+    /// What is wrong with a config file's key.
+    Problem(Problem),
 
     // -- overview ---------------------------------------------------------
     RunningWell,
@@ -168,7 +175,7 @@ pub enum Msg {
     RewarmStarted,
     RewarmBusy,
     RewarmUnknown,
-    RewarmFailed(String),
+    RewarmFailed(Failure),
     Rewarm,
     RewarmConfirm,
     RewarmDetail { guardian: String, repo: String, model: String },
@@ -210,9 +217,8 @@ pub enum Msg {
     SessionColumn,
     Duration,
     NoSessions,
-    ParseStopped(String),
     SelectSession,
-    RecordFailed(String),
+    RecordFailed(Failure),
     Parsing,
     NotListed,
     ProgramKind(String, Program),
@@ -323,7 +329,7 @@ pub enum Msg {
     Discard,
     Saving,
     SaveTo(String),
-    SaveFailed(String),
+    SaveFailed(Failure),
     /// The commit's short sha.
     Committed(String),
     OpenCommit,
@@ -408,6 +414,105 @@ fn ago(f: &mut fmt::Formatter<'_>, at: Ago, lang: Lang) -> fmt::Result {
             span(f, other, lang)?;
             f.write_str(" ago")
         }
+    }
+}
+
+/// Why something did not come; others' words as they are.
+fn failure(f: &mut fmt::Formatter<'_>, why: &Failure, lang: Lang) -> fmt::Result {
+    match why {
+        Failure::Said(said) => f.write_str(said),
+        Failure::Unparsable { url, error } => match lang {
+            Zh => write!(f, "{url}: 响应无法解析：{error}"),
+            En => write!(f, "{url}: the answer cannot be parsed: {error}"),
+        },
+        Failure::CredentialPending => Msg::FetchingCredential.write(lang, f),
+        Failure::ParseStopped(error) => match lang {
+            Zh => write!(f, "解析中断：{error}"),
+            En => write!(f, "Parsing stopped: {error}"),
+        },
+        Failure::NoCredential(NoCredential::GhFailed(error)) => match lang {
+            Zh => write!(f, "GH_TOKEN 为空，`gh auth token` 失败：{error}"),
+            En => write!(f, "GH_TOKEN is empty and `gh auth token` failed: {error}"),
+        },
+        Failure::NoCredential(NoCredential::GhSilent) => f.write_str(pick(
+            lang,
+            "GH_TOKEN 为空，`gh auth token` 没有输出",
+            "GH_TOKEN is empty and `gh auth token` printed nothing",
+        )),
+        Failure::NoCredential(NoCredential::GhCannotRun(error)) => match lang {
+            Zh => write!(f, "GH_TOKEN 为空，无法执行 `gh auth token`：{error}"),
+            En => write!(f, "GH_TOKEN is empty and `gh auth token` cannot run: {error}"),
+        },
+        Failure::GraphQlNoData => f.write_str(pick(lang, "GraphQL 没有返回数据", "GraphQL returned no data")),
+        Failure::ProjectNotFound { owner, number } => match lang {
+            Zh => write!(f, "找不到 Project {owner}/{number}"),
+            En => write!(f, "Project {owner}/{number} not found"),
+        },
+        Failure::TreeTruncated { repo, head } => match lang {
+            Zh => write!(f, "{repo}@{head}: GitHub 截断了文件树"),
+            En => write!(f, "{repo}@{head}: GitHub truncated the file tree"),
+        },
+        Failure::Encoding { path, encoding } => match lang {
+            Zh => write!(f, "{path}: 内容编码为 {encoding}"),
+            En => write!(f, "{path}: the content is encoded as {encoding}"),
+        },
+        Failure::NotUtf8 { path } => match lang {
+            Zh => write!(f, "{path}: 不是 UTF-8 文本"),
+            En => write!(f, "{path}: not UTF-8 text"),
+        },
+        Failure::Config(error) => config_error(f, error, lang),
+    }
+}
+
+/// A config error: its file, key path (when there is one) and why.
+fn config_error(f: &mut fmt::Formatter<'_>, error: &ConfigError, lang: Lang) -> fmt::Result {
+    write!(f, "{}: ", error.file)?;
+    if !error.path.is_empty() {
+        write!(f, "{}: ", error.path)?;
+    }
+    problem(f, &error.message, lang)
+}
+
+/// What is wrong with a config file; the parser's words as they are.
+fn problem(f: &mut fmt::Formatter<'_>, why: &Problem, lang: Lang) -> fmt::Result {
+    match why {
+        Problem::Said(said) => f.write_str(said),
+        Problem::NotUtf8(error) => match lang {
+            Zh => write!(f, "不是 UTF-8：{error}"),
+            En => write!(f, "not UTF-8: {error}"),
+        },
+        Problem::DirUnset => f.write_str(pick(
+            lang,
+            "未设置：应指向 PM 配置目录",
+            "not set: it should name the PM config directory",
+        )),
+        Problem::NotJson(error) => match lang {
+            Zh => write!(f, "不是 JSON：{error}"),
+            En => write!(f, "not JSON: {error}"),
+        },
+        Problem::NotString(found) => match lang {
+            Zh => write!(f, "应为字符串，实为 {found}"),
+            En => write!(f, "should be a string, is {found}"),
+        },
+        Problem::NotFontList(text) => match lang {
+            Zh => write!(f, "{text:?} 不是 CSS 字体族列表"),
+            En => write!(f, "{text:?} is not a list of CSS font families"),
+        },
+        Problem::NotLength(text) => match lang {
+            Zh => write!(f, "{text:?} 不是正的 <数字>px"),
+            En => write!(f, "{text:?} is not a positive <number>px"),
+        },
+        Problem::NotColor(text) => match lang {
+            Zh => write!(f, "{text:?} 不是 #rrggbb"),
+            En => write!(f, "{text:?} is not #rrggbb"),
+        },
+        Problem::NotObject(found) => match lang {
+            Zh => write!(f, "应为对象，实为 {found}"),
+            En => write!(f, "should be an object, is {found}"),
+        },
+        Problem::MissingToken => f.write_str(pick(lang, "缺少该 token", "this token is missing")),
+        Problem::UnknownToken => f.write_str(pick(lang, "不认识的 token", "not a known token")),
+        Problem::Unreachable(why) => failure(f, why, lang),
     }
 }
 
@@ -600,6 +705,9 @@ impl Msg {
             Msg::LastLoaded(None) => say(f, "还没有成功读取过", "never loaded"),
             Msg::Retry => say(f, "重试", "Retry"),
             Msg::FetchingCredential => say(f, "正在获取 GitHub 凭据", "Fetching the GitHub credential"),
+            Msg::Failure(why) => failure(f, why, lang),
+            Msg::ConfigFailure(error) => config_error(f, error, lang),
+            Msg::Problem(why) => problem(f, why, lang),
 
             // -- overview
             Msg::RunningWell => say(f, "运行正常", "Running normally"),
@@ -808,10 +916,10 @@ impl Msg {
             Msg::RewarmStarted => say(f, "已开始重新预热", "Rewarm started"),
             Msg::RewarmBusy => say(f, "该基座已在预热，请等它完成", "This base is warming already; wait for it to finish"),
             Msg::RewarmUnknown => say(f, "守护程序没有这个基座", "The guardians have no such base"),
-            Msg::RewarmFailed(error) => match lang {
-                Zh => write!(f, "请求失败：{error}"),
-                En => write!(f, "Request failed: {error}"),
-            },
+            Msg::RewarmFailed(error) => {
+                f.write_str(pick(lang, "请求失败：", "Request failed: "))?;
+                failure(f, error, lang)
+            }
             Msg::Rewarm => say(f, "重新预热", "Rewarm"),
             Msg::RewarmConfirm => say(f, "重新预热基座？", "Rewarm the base?"),
             Msg::RewarmDetail { guardian, repo, model } => match lang {
@@ -932,15 +1040,11 @@ impl Msg {
             Msg::SessionColumn => say(f, "会话", "Session"),
             Msg::Duration => say(f, "时长", "Duration"),
             Msg::NoSessions => say(f, "没有符合筛选的会话", "No session matches the filters"),
-            Msg::ParseStopped(error) => match lang {
-                Zh => write!(f, "解析中断：{error}"),
-                En => write!(f, "Parsing stopped: {error}"),
-            },
             Msg::SelectSession => say(f, "选中一个会话，查看它的决策日志", "Select a session to see its decision log"),
-            Msg::RecordFailed(error) => match lang {
-                Zh => write!(f, "取记录失败：{error}"),
-                En => write!(f, "Could not fetch the record: {error}"),
-            },
+            Msg::RecordFailed(error) => {
+                f.write_str(pick(lang, "取记录失败：", "Could not fetch the record: "))?;
+                failure(f, error, lang)
+            }
             Msg::Parsing => say(f, "取记录并解析中…", "Fetching and parsing the record…"),
             Msg::NotListed => say(f, "这个会话不在最近的会话列表里", "This session is not in the recent sessions"),
             Msg::ProgramKind(k, p) => write!(f, "{} · {}", program(*p, lang), kind(k, lang)),
@@ -1218,10 +1322,10 @@ impl Msg {
                 Zh => write!(f, "保存到 {branch}"),
                 En => write!(f, "Save to {branch}"),
             },
-            Msg::SaveFailed(error) => match lang {
-                Zh => write!(f, "提交失败：{error}"),
-                En => write!(f, "Commit failed: {error}"),
-            },
+            Msg::SaveFailed(error) => {
+                f.write_str(pick(lang, "提交失败：", "Commit failed: "))?;
+                failure(f, error, lang)
+            }
             Msg::Committed(sha) => match lang {
                 Zh => write!(f, "已提交 {sha}"),
                 En => write!(f, "Committed {sha}"),

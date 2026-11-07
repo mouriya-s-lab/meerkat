@@ -13,7 +13,7 @@ use std::time::Duration;
 
 pub use schema::{
     Appearance, Attention, BaseUrl, Config, ConfigError, ConfigRepo, ConfigText, Digest,
-    Endpoints, Fields, Filters, HexColor, ProjectRef, Reader, Readers, RepoName, Repos,
+    Endpoints, Fields, Filters, HexColor, Problem, ProjectRef, Reader, Readers, RepoName, Repos,
 };
 pub use theme::{ColorToken, FontToken, LengthToken, Theme, ThemeColor};
 
@@ -97,7 +97,7 @@ fn text_of<'a>(file: &'static str, bytes: &'a [u8]) -> Result<&'a str, ConfigErr
     std::str::from_utf8(bytes).map_err(|error| ConfigError {
         file: file.to_owned(),
         path: String::new(),
-        message: format!("不是 UTF-8：{error}"),
+        message: Problem::NotUtf8(error.to_string()),
     })
 }
 
@@ -167,10 +167,10 @@ async fn fetch(file: &'static str) -> Result<Vec<u8>, ConfigError> {
     let url = format!("{}/config/{file}", origin());
     crate::http::bytes(HttpRequest::get(url))
         .await
-        .map_err(|message| ConfigError {
+        .map_err(|failure| ConfigError {
             file: file.to_owned(),
             path: String::new(),
-            message,
+            message: Problem::Unreachable(Box::new(failure)),
         })
 }
 
@@ -193,7 +193,7 @@ pub fn dir() -> Result<std::path::PathBuf, ConfigError> {
         .ok_or_else(|| ConfigError {
             file: CONFIG_DIR_VAR.to_owned(),
             path: String::new(),
-            message: "未设置：应指向 PM 配置目录".to_owned(),
+            message: Problem::DirUnset,
         })
 }
 
@@ -206,7 +206,7 @@ pub fn load() -> Result<AppConfig, ConfigError> {
         std::fs::read(&path).map_err(|error| ConfigError {
             file: file.to_owned(),
             path: String::new(),
-            message: format!("{}: {error}", path.display()),
+            message: Problem::Said(format!("{}: {error}", path.display())),
         })
     };
     let quorum = read(schema::QUORUM_FILE)?;
@@ -279,7 +279,7 @@ mod tests {
         let error = assemble(unknown.as_bytes(), &theme, &repos, &project).unwrap_err();
         assert_eq!(error.file, schema::QUORUM_FILE);
         assert_eq!(error.path, "unexpectedKey");
-        assert!(error.message.contains("unknown field"), "{}", error.message);
+        assert!(matches!(&error.message, Problem::Said(said) if said.contains("unknown field")), "{:?}", error.message);
     }
 
     /// A file that is not UTF-8 is a config error naming the file.
@@ -288,6 +288,6 @@ mod tests {
         let [_, theme, repos, project] = example();
         let error = assemble(&[0xff, 0xfe], &theme, &repos, &project).unwrap_err();
         assert_eq!(error.file, schema::QUORUM_FILE);
-        assert!(error.message.starts_with("不是 UTF-8"), "{}", error.message);
+        assert!(matches!(error.message, Problem::NotUtf8(_)), "{:?}", error.message);
     }
 }

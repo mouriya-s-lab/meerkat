@@ -7,6 +7,7 @@
 
 use crate::{
     config::Attention,
+    failure::Failure,
     gh::{
         IssueRef,
         escalations::OpenEscalation,
@@ -26,7 +27,7 @@ pub enum Concern {
     EscalationOpen(OpenEscalation),
     Unreachable {
         program: Program,
-        error: String,
+        error: Failure,
         last_success: Option<f64>,
     },
     RateLow { api: Api, bucket: Bucket },
@@ -37,7 +38,7 @@ pub enum Concern {
 pub struct ProgramView<'a> {
     pub program: Program,
     /// The health check's error, and when it last answered.
-    pub unreachable: Option<(&'a str, Option<f64>)>,
+    pub unreachable: Option<(&'a Failure, Option<f64>)>,
     pub sessions: Option<&'a [Session]>,
 }
 
@@ -110,7 +111,7 @@ pub fn concerns(inputs: Inputs<'_>, settings: &Attention) -> Vec<Concern> {
         if let Some((error, last_success)) = view.unreachable {
             concerns.push(Concern::Unreachable {
                 program: view.program,
-                error: error.to_owned(),
+                error: error.clone(),
                 last_success,
             });
         }
@@ -417,7 +418,7 @@ mod tests {
             session(Program::Council, failed("d", "vote", 4, "x", 45)),
             Concern::Unreachable {
                 program: Program::Guardians,
-                error: "refused".to_owned(),
+                error: Failure::Said("refused".to_owned()),
                 last_success: None,
             },
             Concern::AgendaFailed(entry),
