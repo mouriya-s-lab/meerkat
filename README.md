@@ -1,6 +1,6 @@
-# pm-dashboard
+# Quorum (议席)
 
-The Pepgent PM dashboard: one [NSH](https://nsh.dev) Rust app that runs as a
+Quorum (议席): one [NSH](https://nsh.dev) Rust app that runs as a
 native macOS window and as a static web site. It owns no PM state; it reads
 GitHub (the PM repository's Project, implementation issues and their marker
 comments, the API rate limit) and the council and guardians programs

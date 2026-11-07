@@ -3,7 +3,7 @@ name = "pm-dashboard"
 version = "0.1.0"
 edition = "2024"
 publish = false
-description = "The Pepgent PM dashboard: an NSH app for macOS and the web."
+description = "Quorum: a dashboard for the council, guardians and workers; an NSH app for macOS and the web."
 
 [workspace]
 

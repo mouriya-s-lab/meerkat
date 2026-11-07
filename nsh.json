@@ -1,6 +1,7 @@
 {
-  "name": "PM Dashboard",
-  "id": "dev.pepgent.pm-dashboard",
+  "name": "Quorum",
+  "id": "io.github.oh-my-omp.quorum",
+  "icon": "assets/icon.png",
   "version": "0.1.0",
   "appearance": "system",
   "rust": ".",

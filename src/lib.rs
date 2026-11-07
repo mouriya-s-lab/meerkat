@@ -1,4 +1,4 @@
-//! The Pepgent PM dashboard (`nsh.json` `"root"` names [`App`]): one Rust
+//! Quorum (`nsh.json` `"root"` names [`App`]): one Rust
 //! app for macOS (`cargo run`) and the web (`nsh package --target web`).
 //! It owns no PM state: it reads GitHub and the council and guardians
 //! programs, and shows what it read.
