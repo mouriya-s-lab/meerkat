@@ -12,6 +12,16 @@ use crate::{
     time::Ago,
 };
 
+/// What the status sentence says of the council's queue, when the council
+/// and its queue answered.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum QueueMotion {
+    /// Some issue is under deliberation.
+    Moving,
+    /// None is.
+    Idle,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Msg {
     // -- shell ------------------------------------------------------------
@@ -80,7 +90,8 @@ pub enum Msg {
     // -- overview ---------------------------------------------------------
     RunningWell,
     ProgramsDown { council: bool, guardians: bool },
-    ProgramsLine { council: bool, guardians: bool, moving: bool },
+    /// The programs' state, then the queue's when it answered.
+    ProgramsLine { council: bool, guardians: bool, queue: Option<QueueMotion> },
     FailureKinds(usize),
     AsksWaiting(usize),
     StaleBases(usize),
@@ -417,9 +428,22 @@ impl fmt::Display for Msg {
                 (false, true) => "议会不可达",
                 _ => "守护不可达",
             }),
-            Msg::ProgramsLine { council, guardians, moving } => {
-                f.write_str(if *council && *guardians { "。议会与守护在线，" } else { "。" })?;
-                f.write_str(if *moving { "议会队列在推进；" } else { "议会队列没有在审的议题；" })
+            Msg::ProgramsLine { council, guardians, queue } => {
+                let online = *council && *guardians;
+                f.write_str(if online { "。议会与守护在线" } else { "。" })?;
+                match queue {
+                    Some(motion) => {
+                        if online {
+                            f.write_str("，")?;
+                        }
+                        f.write_str(match motion {
+                            QueueMotion::Moving => "议会队列在推进；",
+                            QueueMotion::Idle => "议会队列没有在审的议题；",
+                        })
+                    }
+                    None if online => f.write_str("；"),
+                    None => Ok(()),
+                }
             }
             Msg::FailureKinds(n) => write!(f, "{n} 类失败"),
             Msg::AsksWaiting(n) => write!(f, "{n} 个询问已提为议题"),
@@ -749,5 +773,15 @@ mod tests {
     fn kinds_have_names_and_unknown_kinds_pass_through() {
         assert_eq!(Msg::Kind("proxy".into()).to_string(), "代读");
         assert_eq!(Msg::Kind("other".into()).to_string(), "other");
+    }
+
+    #[test]
+    fn the_programs_line_tells_the_queue_only_when_it_answered() {
+        let line = |council, guardians, queue| Msg::ProgramsLine { council, guardians, queue }.to_string();
+        assert_eq!(line(true, true, Some(QueueMotion::Moving)), "。议会与守护在线，议会队列在推进；");
+        assert_eq!(line(true, true, Some(QueueMotion::Idle)), "。议会与守护在线，议会队列没有在审的议题；");
+        assert_eq!(line(true, false, Some(QueueMotion::Moving)), "。议会队列在推进；");
+        assert_eq!(line(true, true, None), "。议会与守护在线；");
+        assert_eq!(line(false, true, None), "。");
     }
 }

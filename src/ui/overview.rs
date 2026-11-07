@@ -21,7 +21,7 @@ use super::{
     sessions::{self, OpenSession, histogram},
     shell::{Context, Nav, Page},
     status::{self, Role},
-    text::Msg,
+    text::{Msg, QueueMotion},
     tokens::{Type, Typeset, color, len},
 };
 use crate::{
@@ -94,8 +94,19 @@ fn status_sentence(sources: Sources, context: Rc<Context>) -> View {
         .child(dynamic(move || {
             let council = !sources.council.health.with_error(|e| e.is_some());
             let guardians = !sources.guardians.health.with_error(|e| e.is_some());
-            let moving = sources.queue.with(|q| {
-                q.is_some_and(|q| q.data.iter().any(|e| e.state == QueueState::Deliberating))
+            // The queue's motion only while the council and its queue
+            // answer: a kept copy from before a failure is not how it
+            // moves now.
+            let queue_failed = sources.queue.with_error(|e| e.is_some());
+            let queue = sources.queue.with(|q| match q {
+                Some(q) if council && !queue_failed => {
+                    Some(if q.data.iter().any(|e| e.state == QueueState::Deliberating) {
+                        QueueMotion::Moving
+                    } else {
+                        QueueMotion::Idle
+                    })
+                }
+                _ => None,
             });
             let needs = context.needs.get();
             let failures = needs.iter().filter(|n| n.failure()).count();
@@ -120,7 +131,7 @@ fn status_sentence(sources: Sources, context: Rc<Context>) -> View {
                 Msg::ProgramsLine {
                     council,
                     guardians,
-                    moving,
+                    queue,
                 }
                 .to_string(),
             ));

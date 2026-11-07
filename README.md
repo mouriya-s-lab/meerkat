@@ -24,8 +24,10 @@ the pages and ⌘R refreshes every source.
 
 The pages:
 
-- **概览** (overview): one sentence on how things run, then 需要你处理,
-  what needs a person in order of consequence: failed agenda issues,
+- **概览** (overview): one sentence on how things run (whether the
+  programs answer, and while the council and its queue answer, whether
+  the queue moves), then 需要你处理, what needs a person in order of
+  consequence: failed agenda issues,
   unreachable programs, failed bases, failed sessions grouped by program
   and kind (expand a group for its errors, counted by first line), asks
   escalated to an agenda issue, stale bases and a low API allowance; each
@@ -37,11 +39,16 @@ The pages:
   filtered by state, by whether decided issues fold, show or hide, and by
   human issues and what they block, and searched by agenda number or
   title. A node's state is the council's `/v1/queue` verdict; while the
-  council is unreachable it is the Project's `Status`, marked
-  「议会不可达」. The list groups issues by what they need (需要处理, 在审,
+  council is unreachable, or when its queue does not list the issue, it
+  is the Project's `Status`, marked 「议会不可达」 or 「议会队列未列出」.
+  The list groups issues with a verdict by what they need (需要处理, 在审,
   可召集, 等待, 已定案) with their progress (votes of the round, share of
   sub-issues done, a failure's note) and what they wait for or block; it
-  shows the latest three decided issues and a line for the rest. The
+  shows the latest three decided issues and a line for the rest. After
+  them, the issues showing their Project `Status` group under the
+  option's name, each row naming its `Status` and why; the state filter
+  names only the verdict groups, so these show under 全部 alone. While
+  the queue fails to load, the page shows its error above the list. The
   graph puts the open issues in columns by the "Blocked by" relations the
   council counts: 可推进 first, then each column waiting on the one
   before; decided issues fold into one line naming their chains.
