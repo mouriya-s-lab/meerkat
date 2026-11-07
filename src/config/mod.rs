@@ -1,17 +1,19 @@
 //! The PM config as each build gets it. macOS reads the directory named by
 //! `PM_CONFIG_DIR` at startup; the web build carries the files `build.rs`
 //! checked and embedded from the same variable at build time. Both parse
-//! with [`schema`] and use their own section of `dashboard.yaml`'s
-//! `targets`.
+//! the YAML files with [`schema`] and `dashboard/theme.json` with
+//! [`theme`], and use their own section of `dashboard.yaml`'s `targets`.
 
 pub mod schema;
+pub mod theme;
 
 use std::time::Duration;
 
 pub use schema::{
-    Attention, BaseUrl, Config, ConfigError, ConfigText, Dag, DagColors, Digest, Endpoints,
-    Fields, Filters, HexColor, List, ListColumn, ListSort, ProjectRef, RepoName, Repos,
+    Attention, BaseUrl, Config, ConfigError, ConfigText, Digest, Endpoints, Fields, Filters,
+    HexColor, List, ListColumn, ListSort, ProjectRef, RepoName, Repos,
 };
+pub use theme::{ColorToken, FontToken, LengthToken, Theme, ThemeColor};
 
 /// What the app runs with: this build's endpoints and the shared settings.
 #[derive(Debug, Clone, PartialEq)]
@@ -20,15 +22,15 @@ pub struct AppConfig {
     pub refresh: Duration,
     pub attention: Attention,
     pub digest: Digest,
-    pub dag: Dag,
     pub list: List,
     pub filters: Filters,
     pub repos: Repos,
     pub fields: Fields,
+    pub theme: Theme,
 }
 
 impl AppConfig {
-    fn of(config: Config) -> Self {
+    fn of(config: Config, theme: Theme) -> Self {
         let Config {
             dashboard,
             repos,
@@ -43,11 +45,11 @@ impl AppConfig {
             refresh: Duration::from_secs(u64::from(dashboard.refresh_seconds.get())),
             attention: dashboard.attention,
             digest: dashboard.digest,
-            dag: dashboard.dag,
             list: dashboard.list,
             filters: dashboard.filters,
             repos,
             fields: project.fields,
+            theme,
         }
     }
 }
@@ -58,12 +60,13 @@ pub const CONFIG_DIR_VAR: &str = "PM_CONFIG_DIR";
 /// The config embedded at build time (`build.rs` checked it).
 #[cfg(target_arch = "wasm32")]
 pub fn load() -> Result<AppConfig, ConfigError> {
-    schema::parse(ConfigText {
+    let config = schema::parse(ConfigText {
         dashboard: include_str!(concat!(env!("OUT_DIR"), "/dashboard.yaml")),
         repos: include_str!(concat!(env!("OUT_DIR"), "/repos.yaml")),
         project: include_str!(concat!(env!("OUT_DIR"), "/project.yaml")),
-    })
-    .map(AppConfig::of)
+    })?;
+    let theme = theme::parse(include_str!(concat!(env!("OUT_DIR"), "/theme.json")))?;
+    Ok(AppConfig::of(config, theme))
 }
 
 /// The config in the directory `PM_CONFIG_DIR` names.
@@ -90,10 +93,11 @@ pub fn load() -> Result<AppConfig, ConfigError> {
     let dashboard = read(schema::DASHBOARD_FILE)?;
     let repos = read(schema::REPOS_FILE)?;
     let project = read(schema::PROJECT_FILE)?;
-    schema::parse(ConfigText {
+    let theme = read(theme::THEME_FILE)?;
+    let config = schema::parse(ConfigText {
         dashboard: &dashboard,
         repos: &repos,
         project: &project,
-    })
-    .map(AppConfig::of)
+    })?;
+    Ok(AppConfig::of(config, theme::parse(&theme)?))
 }

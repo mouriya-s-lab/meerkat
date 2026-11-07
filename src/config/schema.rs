@@ -6,7 +6,7 @@
 
 use std::{
     fmt,
-    num::{NonZeroU16, NonZeroU32},
+    num::NonZeroU32,
 };
 
 use serde::{Deserialize, de::DeserializeOwned};
@@ -87,7 +87,6 @@ pub struct Dashboard {
     pub refresh_seconds: NonZeroU32,
     pub attention: Attention,
     pub digest: Digest,
-    pub dag: Dag,
     pub list: List,
     pub filters: Filters,
 }
@@ -191,42 +190,14 @@ impl TryFrom<u8> for Percent {
     }
 }
 
-/// How the 「议题」 page draws the DAG.
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Dag {
-    pub colors: DagColors,
-    /// Points between two layers.
-    pub layer_gap: u16,
-    /// Points between two nodes of a layer, and around the drawing.
-    pub node_gap: u16,
-    pub node_width: NonZeroU16,
-    pub node_height: NonZeroU16,
-}
-
-/// A node's color for each queue state, and for an issue whose Project
-/// Status no council verdict replaces (`unreachable`).
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct DagColors {
-    pub decided: HexColor,
-    pub superseded: HexColor,
-    pub blocked: HexColor,
-    pub held: HexColor,
-    pub deliberating: HexColor,
-    pub interrupted: HexColor,
-    pub failed: HexColor,
-    pub ready: HexColor,
-    pub unreachable: HexColor,
-}
-
 /// A color written `#rrggbb`, kept as `0xrrggbb`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(try_from = "String")]
 pub struct HexColor(u32);
 
 impl HexColor {
-    pub fn rgb(self) -> u32 {
+    /// `0xrrggbb`.
+    pub fn packed(self) -> u32 {
         self.0
     }
 }

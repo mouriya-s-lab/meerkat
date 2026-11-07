@@ -1,0 +1,39 @@
+{
+  "cssVars": {
+    "theme": {
+      "font-sans": "-apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Hiragino Sans GB\", system-ui, sans-serif",
+      "font-mono": "\"SF Mono\", ui-monospace, Menlo, monospace",
+      "radius": "8px", "radius-control": "6px",
+      "text-title": "20px", "text-heading": "15px", "text-body": "14px", "text-dense": "13px", "text-meta": "12px", "text-kpi": "26px",
+      "space-1": "4px", "space-2": "8px", "space-3": "12px", "space-4": "16px", "space-5": "24px", "space-6": "32px",
+      "row-dense": "36px", "row-attention": "60px", "sidebar-width": "220px",
+      "dag-node-width": "220px", "dag-node-height": "84px", "dag-layer-gap": "36px", "dag-node-gap": "24px"
+    },
+    "light": {
+      "background": "#f7f7f5", "foreground": "#18181a", "card": "#ffffff", "card-foreground": "#18181a",
+      "popover": "#ffffff", "popover-foreground": "#18181a", "primary": "#18181a", "primary-foreground": "#ffffff",
+      "secondary": "#f1f1ef", "secondary-foreground": "#18181a", "muted": "#f1f1ef", "muted-foreground": "#6b6a65",
+      "accent": "#eceae6", "accent-foreground": "#18181a", "destructive": "#d03b3b", "border": "#e4e3de", "input": "#d6d5cf", "ring": "#2a78d6",
+      "ink-2": "#4f4e4a", "border-strong": "#cfcec8", "selection": "#2a78d6",
+      "critical": "#d03b3b", "critical-text": "#b42828", "critical-subtle": "#fdecec",
+      "warning": "#d99a00", "warning-text": "#8a5d00", "warning-subtle": "#fdf3dc",
+      "good": "#12805c", "good-text": "#0d6b4c", "good-subtle": "#e3f4ed",
+      "active": "#2a78d6", "active-text": "#1d5fb8", "active-subtle": "#e8f0fc",
+      "neutral": "#8f8e89", "neutral-text": "#5c5b57", "neutral-subtle": "#f1f1ef",
+      "edge": "#b9b8b2", "canvas-dot": "#e2e1dc"
+    },
+    "dark": {
+      "background": "#0f0f11", "foreground": "#ededec", "card": "#17171a", "card-foreground": "#ededec",
+      "popover": "#1f1f23", "popover-foreground": "#ededec", "primary": "#ededec", "primary-foreground": "#17171a",
+      "secondary": "#26262a", "secondary-foreground": "#ededec", "muted": "#1f1f23", "muted-foreground": "#94938e",
+      "accent": "#26262a", "accent-foreground": "#ededec", "destructive": "#d03b3b", "border": "#2a2a2f", "input": "#3a3a40", "ring": "#3b82f6",
+      "ink-2": "#c2c1bc", "border-strong": "#3a3a40", "selection": "#3b82f6",
+      "critical": "#d03b3b", "critical-text": "#ff7b7b", "critical-subtle": "#3a1a1c",
+      "warning": "#e2a336", "warning-text": "#f0b84a", "warning-subtle": "#33270e",
+      "good": "#16a085", "good-text": "#3cc79b", "good-subtle": "#10302a",
+      "active": "#3b82f6", "active-text": "#78a9ff", "active-subtle": "#172a47",
+      "neutral": "#7d7c78", "neutral-text": "#a8a7a2", "neutral-subtle": "#26262a",
+      "edge": "#4a4a50", "canvas-dot": "#232328"
+    }
+  }
+}
