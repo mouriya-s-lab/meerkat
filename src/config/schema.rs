@@ -1,6 +1,5 @@
-//! The three PM config files the dashboard reads, as types: what they may
-//! hold is what parses. `build.rs` includes this file too, so the web build
-//! rejects a config with the same messages the macOS app shows.
+//! The three PM config files Quorum reads, as types: what they may
+//! hold is what parses.
 //!
 //! Every error names the file and the key path (`targets.web.council`).
 
@@ -11,8 +10,8 @@ use std::{
 
 use serde::{Deserialize, de::DeserializeOwned};
 
-/// `dashboard/dashboard.yaml`, relative to the PM config directory.
-pub const DASHBOARD_FILE: &str = "dashboard/dashboard.yaml";
+/// `quorum/quorum.yaml`, relative to the PM config directory.
+pub const QUORUM_FILE: &str = "quorum/quorum.yaml";
 /// `shared/repos.yaml`, relative to the PM config directory.
 pub const REPOS_FILE: &str = "shared/repos.yaml";
 /// `shared/project.yaml`, relative to the PM config directory.
@@ -40,7 +39,7 @@ impl fmt::Display for ConfigError {
 /// The text of the three files.
 #[derive(Debug, Clone, Copy)]
 pub struct ConfigText<'a> {
-    pub dashboard: &'a str,
+    pub quorum: &'a str,
     pub repos: &'a str,
     pub project: &'a str,
 }
@@ -48,7 +47,7 @@ pub struct ConfigText<'a> {
 /// The three files, parsed.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Config {
-    pub dashboard: Dashboard,
+    pub quorum: Quorum,
     pub repos: Repos,
     pub project: Project,
 }
@@ -57,7 +56,7 @@ pub struct Config {
 /// path.
 pub fn parse(text: ConfigText<'_>) -> Result<Config, ConfigError> {
     Ok(Config {
-        dashboard: parse_file(DASHBOARD_FILE, text.dashboard)?,
+        quorum: parse_file(QUORUM_FILE, text.quorum)?,
         repos: parse_file(REPOS_FILE, text.repos)?,
         project: parse_file(PROJECT_FILE, text.project)?,
     })
@@ -84,12 +83,12 @@ fn parse_file<T: DeserializeOwned>(file: &str, text: &str) -> Result<T, ConfigEr
 }
 
 // ---------------------------------------------------------------------------
-// dashboard/dashboard.yaml
+// quorum/quorum.yaml
 
-/// `dashboard/dashboard.yaml`.
+/// `quorum/quorum.yaml`.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Dashboard {
+pub struct Quorum {
     pub targets: Targets,
     /// Seconds between two refreshes of every source.
     pub refresh_seconds: NonZeroU32,

@@ -23,25 +23,47 @@ fn native(registry: &mut Registry) {
     registry.register::<App>();
 }
 
-/// The app's root: the overview for the config this build reads, drawn
-/// with its theme's tokens in its appearance, or what is wrong with that
-/// config.
+/// The app's root: the overview for the config it loads, drawn with its
+/// theme's tokens in its appearance, or what is wrong with that config.
+/// macOS's load reads `PM_CONFIG_DIR` and resolves almost at once; the
+/// web's fetches `/config/` from the site, so the first frame may still
+/// be loading (nothing shows until the theme is known: every page reads
+/// its tokens).
 #[component]
 pub fn App() -> impl IntoElement {
-    let content = match config::load() {
-        Ok(config) => {
-            set_color_scheme(appearance(config.appearance));
-            let tokens = ui::tokens(&config.theme);
-            set_tokens(tokens.clone());
-            ui::app(config, tokens)
+    let loaded = resource(|| Some(()), |(), _| load_config());
+    let content = dynamic(move || {
+        if let Some(error) = loaded.error() {
+            return ui::config_error(&error).into_elements();
         }
-        Err(error) => ui::config_error(&error),
-    };
+        loaded.with(|config| match config {
+            Some(config) => {
+                set_color_scheme(appearance(config.appearance));
+                let tokens = ui::tokens(&config.theme);
+                set_tokens(tokens.clone());
+                ui::app(config.clone(), tokens).into_elements()
+            }
+            None => Vec::new(),
+        })
+    });
     view()
         .flex_1()
         .bg(move || theme().background)
         .text_color(move || theme().foreground)
         .child(content)
+}
+
+/// The config this build loads: the site's `/config/` on the web, the
+/// `PM_CONFIG_DIR` directory elsewhere.
+#[cfg(target_arch = "wasm32")]
+async fn load_config() -> Result<config::AppConfig, config::ConfigError> {
+    config::load().await
+}
+
+/// The config this build loads: the `PM_CONFIG_DIR` directory.
+#[cfg(not(target_arch = "wasm32"))]
+async fn load_config() -> Result<config::AppConfig, config::ConfigError> {
+    config::load()
 }
 
 /// NSH's appearance for the config's.
