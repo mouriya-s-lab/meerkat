@@ -494,11 +494,16 @@ fn list_row(graph: &Rc<Graph>, i: usize, settings: &Settings, state: IssuesState
         .number_of_lines(1);
     let title = if node.state.superseded() { title.line_through() } else { title };
     // A Project `Status` in place of a verdict says which and why; a
-    // verdict's word is its group's header.
+    // verdict's word is its group's header. It shrinks with the title, so
+    // a narrow list keeps a part of both.
     let fallback = match node.state {
-        NodeState::Project { .. } => {
-            Some(small(st.word.clone()).text_color(st.role.text()).flex_shrink_0().number_of_lines(1))
-        }
+        NodeState::Project { .. } => Some(
+            small(st.word.clone())
+                .text_color(st.role.text())
+                .flex_shrink(1.0)
+                .min_w(Points::ZERO)
+                .number_of_lines(1),
+        ),
         NodeState::Queue(_) => None,
     };
     row(selected, node.title.clone(), move || state.selected.set(Some(issue.clone())))
