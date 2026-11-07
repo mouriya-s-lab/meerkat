@@ -139,20 +139,25 @@ PATH=/opt/homebrew/opt/llvm/bin:$PATH PM_CONFIG_DIR=$PWD/config.example \
 The site holds no credential. It reaches GitHub and the two programs through
 a same-origin reverse proxy, `deploy/Caddyfile`, which adds the GitHub token
 from its own environment. The token may be able to write; the proxy passes
-only reads to GitHub. To run it locally (with the example config's web
-addresses):
+reads to GitHub, and one kind of write: a `PUT` of a single file under the
+config repo `CONFIG_REPO` (the contents API, with `sha` to update). To run it
+locally (with the example config's web addresses):
 
 ```sh
 LISTEN=:8088 SITE_DIR=/tmp/quorum-web GH_TOKEN=<token> \
-  COUNCIL_URL=http://127.0.0.1:7421 GUARDIANS_URL=http://127.0.0.1:7410 \
+  CONFIG_REPO=oh-my-omp/pm-config COUNCIL_URL=http://127.0.0.1:7421 \
+  GUARDIANS_URL=http://127.0.0.1:7410 \
   caddy run --config deploy/Caddyfile --adapter caddyfile
 ```
 
 then open `http://127.0.0.1:8088/`. The proxy maps `/gh/*` to
 `https://api.github.com` with `Authorization: Bearer $GH_TOKEN` for reads
 only: REST `GET` and `HEAD`, and `POST /gh/graphql` whose body contains
-neither `mutation` (any case) nor a `\u` escape. Every other `/gh/*` request
-gets `403` with an empty body and never reaches GitHub. `/council/*` goes to
+neither `mutation` (any case) nor a `\u` escape. The one write is
+`PUT /gh/repos/$CONFIG_REPO/contents/<path>`, with a path free of `..`, `%`,
+`//` and backslashes; with `CONFIG_REPO` unset no write is passed. Every
+other `/gh/*` request gets `403` with an empty body and never reaches GitHub.
+`/council/*` goes to
 `COUNCIL_URL` and `/guardians/*` to `GUARDIANS_URL` (every method, so a
 rewarm's `POST` goes through too), and `SITE_DIR` is served for everything
 else.
