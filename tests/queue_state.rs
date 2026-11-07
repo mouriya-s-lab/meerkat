@@ -17,7 +17,6 @@ mod support;
 
 use std::{
     collections::{HashMap, HashSet},
-    path::{Path, PathBuf},
     sync::{Mutex, MutexGuard, PoisonError},
     time::Duration,
 };
@@ -266,28 +265,9 @@ fn project_issues() -> Vec<serde_json::Value> {
 /// the one the queue lists, its queue answered with `queue`.
 fn start(sandbox: &Sandbox, queue: &str) -> Fixture {
     support::set_github_token("gho_q26_queue_state_token");
-    let dir = sandbox.dir().join("config");
-    copy_dir(&support::config_dir(), &dir);
-    let repos = dir.join("shared/repos.yaml");
-    let text = std::fs::read_to_string(&repos).expect("repos.yaml");
-    let pm = "pm:\n  repo: oh-my-omp/pm-e2e-agenda\n";
-    assert!(text.contains(pm), "the fixture's repos.yaml names another PM repository");
-    std::fs::write(&repos, text.replace(pm, &format!("pm:\n  repo: {DESIGN}\n"))).expect("repos.yaml written");
+    let dir = support::config_with_pm(sandbox, DESIGN);
     let answer = StubRoute::Response(support::answer(200, queue));
     Fixture::start_in(Lang::Zh, &dir, vec![(QUEUE.to_owned(), answer)])
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).expect("a directory");
-    for entry in std::fs::read_dir(from).expect("a fixture directory") {
-        let path: PathBuf = entry.expect("an entry").path();
-        let target = to.join(path.file_name().expect("a name"));
-        if path.is_dir() {
-            copy_dir(&path, &target);
-        } else {
-            std::fs::copy(&path, &target).expect("a copied file");
-        }
-    }
 }
 
 /// 概览: the queue answered and parsed, its counts, and the queue panel's

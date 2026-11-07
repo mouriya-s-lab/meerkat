@@ -103,6 +103,134 @@ fn language_follows_locale_change() -> Result<(), String> {
     Ok(())
 }
 
+/// #4's acceptance row 6: in Chinese, then in English, the detail of G25
+/// (`oh-my-omp/pm-e2e-design#23`) and the reason of one of its veto cells,
+/// 「实现」 and one implementation issue's timeline; each text on them is
+/// data (the recordings under `responses/` and `detail/`, the config) or a
+/// [`Msg`] in that language.
+#[test]
+fn detail_pages_in_both_languages() -> Result<(), String> {
+    let mut failures = Vec::new();
+    for lang in [Lang::Zh, Lang::En] {
+        failures.extend(detail_pages(lang)?);
+    }
+    if failures.is_empty() { Ok(()) } else { Err(failures.join("\n")) }
+}
+
+/// The detail pages in `lang`, each text the union does not explain.
+fn detail_pages(lang: Lang) -> Result<Vec<String>, String> {
+    const G25: &str = "oh-my-omp/pm-e2e-design#23";
+    /// The implementation issue whose timeline is read: asks the guardians
+    /// answered and asks that became agenda issues the council answered.
+    const TIMELINE: &str = "oh-my-omp/pm-e2e-code#3";
+    let _serial = serial();
+    let sandbox = support::Sandbox::new("i18n-detail");
+    let mut quorum = support::start_detail(&sandbox, "oh-my-omp/pm-e2e-design", lang, Vec::new());
+    let data = Data::of(&sandbox.dir().join("config"), &[]);
+    let union = Union::new(lang, &data);
+    let mut pages: Vec<(String, Vec<String>)> = Vec::new();
+
+    // G25's detail, from its list row and 「打开详情」, its sessions and
+    // decision in.
+    quorum.open(Msg::PageIssues)?;
+    quorum.press(&format!("label:{}", quorum.say(&Msg::ViewList)))?;
+    let row = format!("label:{}", project_title(G25));
+    quorum.wait_for_view(&row, SHOWN)?;
+    quorum.press(&row)?;
+    quorum.press(&format!("label:{}", quorum.say(&Msg::OpenDetail)))?;
+    let comments = support::recorded_comments(G25).expect("G25's comments");
+    let markers = markers_in(&comments);
+    let (round, version, seat, row) = veto(&markers);
+    let decided = quorum.say(&Msg::Decision);
+    quorum.wait_for(&decided, SHOWN)?;
+    quorum.wait_for(&quorum.say(&Msg::SessionSeat { kind: "vote".to_owned(), seat: Some(seat.clone()) }), SHOWN)?;
+    pages.push((format!("agenda detail ({lang:?})"), quorum.texts()));
+
+    // The veto's version, and the veto cell's reason.
+    quorum.press(&format!("label:{}", quorum.say(&Msg::StepDraft { round, version })))?;
+    let cell = format!("label:{}", quorum.say(&Msg::Cell { seat, row, stance: detail::Stance::Veto }));
+    quorum.wait_for_view(&cell, SHOWN)?;
+    quorum.press(&cell)?;
+    quorum.wait_for(&quorum.say(&Msg::Classification), SHOWN)?;
+    pages.push((format!("veto reason ({lang:?})"), quorum.texts()));
+
+    // 「实现」, then one issue's timeline.
+    quorum.open(Msg::PageImplementations)?;
+    quorum.wait_for(&quorum.say(&Msg::ImplGroup(detail::ImplGroup::Waiting)), SHOWN)?;
+    pages.push((format!("implementations ({lang:?})"), quorum.texts()));
+    // The issue is done: 「完成」 unfolds first.
+    quorum.press(&format!("label:{}", quorum.say(&Msg::ImplGroup(detail::ImplGroup::Done))))?;
+    let timeline = format!("label:{}", project_title(TIMELINE));
+    quorum.wait_for_view(&timeline, SHOWN)?;
+    quorum.press(&timeline)?;
+    quorum.wait_for(&quorum.say(&Msg::GuardianReply), SHOWN)?;
+    pages.push((format!("implementation timeline ({lang:?})"), quorum.texts()));
+
+    Ok(pages
+        .iter()
+        .filter_map(|(page, texts)| check_page(&union, page, texts).err())
+        .collect())
+}
+
+/// The title the recorded Project gives `issue`.
+fn project_title(issue: &str) -> String {
+    let project: serde_json::Value = serde_json::from_str(&support::detail_project()).expect("the Project");
+    project["data"]["repositoryOwner"]["projectV2"]["items"]["nodes"]
+        .as_array()
+        .expect("the Project's items")
+        .iter()
+        .map(|node| &node["content"])
+        .find(|content| {
+            let repo = content["repository"]["nameWithOwner"].as_str().unwrap_or_default();
+            format!("{repo}#{}", content["number"]) == issue
+        })
+        .and_then(|content| content["title"].as_str())
+        .unwrap_or_else(|| panic!("the Project holds no {issue}"))
+        .to_owned()
+}
+
+/// The markers the comments answer `json` ends its comments with, in order.
+fn markers_in(json: &str) -> Vec<(String, serde_json::Value)> {
+    let comments: Vec<serde_json::Value> = serde_json::from_str(json).expect("comments");
+    comments
+        .iter()
+        .filter_map(|comment| {
+            let last = comment["body"].as_str()?.trim_end().lines().last()?.trim();
+            let inner = last.strip_prefix("<!-- pm:")?.strip_suffix("-->")?.trim();
+            let (kind, json) = inner.split_once(' ')?;
+            Some((kind.to_owned(), serde_json::from_str(json).ok()?))
+        })
+        .collect()
+}
+
+/// The first veto among `markers`: its draft's round and version, its seat
+/// and row.
+fn veto(markers: &[(String, serde_json::Value)]) -> (u32, u32, String, String) {
+    let mut round = 1;
+    let mut rounds: Vec<(u64, u32)> = Vec::new();
+    for (kind, marker) in markers {
+        match kind.as_str() {
+            "panel" => round = marker["round"].as_u64().map_or(round, |r| r as u32),
+            "draft" => rounds.push((marker["version"].as_u64().expect("a version"), round)),
+            "vote" => {
+                let version = marker["version"].as_u64().expect("a version");
+                let rows = marker["rows"].as_array().expect("rows");
+                if let Some(row) = rows.iter().find(|row| row["choice"] == "veto") {
+                    let round = rounds.iter().find(|(v, _)| *v == version).expect("the vote's draft").1;
+                    return (
+                        round,
+                        version as u32,
+                        marker["seat"].as_str().expect("a seat").to_owned(),
+                        row["row"].as_str().expect("a row").to_owned(),
+                    );
+                }
+            }
+            _ => {}
+        }
+    }
+    panic!("the recording has no veto")
+}
+
 /// Opens every page in `lang` and checks each text on it, then starts on
 /// an invalid config and checks the configuration error page, then starts
 /// with no GitHub credential and checks the panels that read GitHub.
@@ -271,6 +399,18 @@ impl Data {
             let json: serde_json::Value = serde_json::from_str(&text).expect("a JSON answer");
             json_strings(&json, &mut raw);
         }
+        // The detail pages' recordings (#4), without their `//` lines; a log
+        // is a JSON value per line.
+        for file in files(&support::fixtures_dir().join("detail")) {
+            let name = file.file_name().expect("a file name").to_string_lossy().into_owned();
+            let text = support::detail(&name);
+            let values: Vec<serde_json::Value> = if name.ends_with(".jsonl") {
+                text.lines().map(|line| serde_json::from_str(line).expect("a log line")).collect()
+            } else {
+                vec![serde_json::from_str(&text).expect("a JSON recording")]
+            };
+            values.iter().for_each(|value| json_strings(value, &mut raw));
+        }
         for file in files(config) {
             // The config's files by their paths in the directory.
             let path = file.strip_prefix(config).expect("a file in the config directory");
@@ -314,7 +454,19 @@ fn derive(text: &str, out: &mut BTreeSet<String>) {
 
 fn json_strings(value: &serde_json::Value, out: &mut Vec<String>) {
     match value {
-        serde_json::Value::String(text) => out.push(text.clone()),
+        serde_json::Value::String(text) => {
+            // A comment's last line may be a marker: its fields are data
+            // the pages show (a vote's counterexample, a ruling's category).
+            for line in text.lines() {
+                let marker = line.trim().strip_prefix("<!-- pm:").and_then(|rest| rest.strip_suffix("-->"));
+                if let Some((_, json)) = marker.and_then(|inner| inner.trim().split_once(' '))
+                    && let Ok(value) = serde_json::from_str::<serde_json::Value>(json)
+                {
+                    json_strings(&value, out);
+                }
+            }
+            out.push(text.clone());
+        }
         serde_json::Value::Array(items) => items.iter().for_each(|item| json_strings(item, out)),
         serde_json::Value::Object(fields) => {
             // A file's contents (`GET /repos/…/contents/…`) are base64.
