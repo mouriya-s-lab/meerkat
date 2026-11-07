@@ -204,7 +204,12 @@ impl Graph {
 
 /// The agenda issues of `pm` among `items`, kept by the 「仅人类议题及其后继」
 /// filter when `human_only`.
-pub fn build(items: &[ProjectItem], council: Council<'_>, pm: &RepoName, human_only: bool) -> Graph {
+pub fn build(
+    items: &[ProjectItem],
+    council: Council<'_>,
+    pm: &RepoName,
+    human_only: bool,
+) -> Graph {
     let queue: HashMap<&IssueRef, &QueueEntry> = match council {
         Council::Queue(entries) => entries.iter().map(|e| (&e.reference, e)).collect(),
         Council::Unreachable => HashMap::new(),
@@ -277,8 +282,11 @@ pub fn build(items: &[ProjectItem], council: Council<'_>, pm: &RepoName, human_o
 
 /// Every "Blocked by" between two of `nodes`.
 fn edges_of(nodes: &[Node]) -> Vec<Edge> {
-    let index: HashMap<&IssueRef, usize> =
-        nodes.iter().enumerate().map(|(i, n)| (&n.issue, i)).collect();
+    let index: HashMap<&IssueRef, usize> = nodes
+        .iter()
+        .enumerate()
+        .map(|(i, n)| (&n.issue, i))
+        .collect();
     let mut edges = Vec::new();
     for (to, node) in nodes.iter().enumerate() {
         for blocker in &node.blocked_by {
@@ -506,7 +514,11 @@ pub fn layout(graph: &Graph, closed: Closed, keep: &dyn Fn(&Node) -> bool) -> La
     for &i in &cyclic {
         column[i] = last;
     }
-    let width = (0..n).filter(|&i| placed[i]).map(|i| column[i] + 1).max().unwrap_or(0);
+    let width = (0..n)
+        .filter(|&i| placed[i])
+        .map(|i| column[i] + 1)
+        .max()
+        .unwrap_or(0);
     let mut columns = vec![Vec::new(); width];
     for i in (0..n).filter(|&i| placed[i]) {
         columns[column[i]].push(i);
@@ -645,6 +657,8 @@ mod tests {
             issue: issue(n),
             title: format!("issue {n}"),
             url: format!("https://github.com/o/pm/issues/{n}"),
+            body: String::new(),
+            created_at: "2026-11-07T00:00:00Z".to_owned(),
             updated_at: format!("2026-11-07T0{}:00:00Z", n % 10),
             state: IssueState::Open,
             status: Some(Status::Todo),
@@ -657,6 +671,7 @@ mod tests {
                 total: 0,
                 completed: 0,
             },
+            pulls: Vec::new(),
         }
     }
 
@@ -798,7 +813,10 @@ mod tests {
         ];
         let graph = build(&items, Council::Unreachable, &repo("o/pm"), false);
         let layout = layout(&graph, Closed::Fold, &all);
-        assert_eq!(columns(&graph, &layout), vec![vec![1], vec![2], vec![3, 4, 5]]);
+        assert_eq!(
+            columns(&graph, &layout),
+            vec![vec![1], vec![2], vec![3, 4, 5]]
+        );
         assert_eq!(numbers(&graph, &layout.cyclic), vec![3, 4, 5]);
     }
 
@@ -809,12 +827,25 @@ mod tests {
             entry(1, QueueState::Ready, &[]),
             entry(2, QueueState::Blocked, &[]),
             entry(3, QueueState::Held, &[]),
-            entry(4, QueueState::Held, &[note, "Blocked by o/pm#31 ignored: x"]),
+            entry(
+                4,
+                QueueState::Held,
+                &[note, "Blocked by o/pm#31 ignored: x"],
+            ),
         ];
         let graph = build(&fixture(), Council::Queue(&queue), &repo("o/pm"), false);
-        let at = |n: u64| graph.nodes.iter().position(|x| x.issue.number == n).unwrap();
-        let kinds: Vec<(usize, usize, &EdgeKind)> =
-            graph.edges.iter().map(|e| (e.from, e.to, &e.kind)).collect();
+        let at = |n: u64| {
+            graph
+                .nodes
+                .iter()
+                .position(|x| x.issue.number == n)
+                .unwrap()
+        };
+        let kinds: Vec<(usize, usize, &EdgeKind)> = graph
+            .edges
+            .iter()
+            .map(|e| (e.from, e.to, &e.kind))
+            .collect();
         assert!(kinds.contains(&(at(1), at(2), &EdgeKind::Prerequisite)));
         assert!(kinds.contains(&(at(2), at(3), &EdgeKind::Prerequisite)));
         let ignored = EdgeKind::Ignored {
@@ -832,7 +863,14 @@ mod tests {
     fn states_fall_back_to_the_project_status() {
         let queue = vec![entry(1, QueueState::Ready, &[])];
         let graph = build(&fixture(), Council::Queue(&queue), &repo("o/pm"), false);
-        let state = |n: u64| &graph.nodes.iter().find(|x| x.issue.number == n).unwrap().state;
+        let state = |n: u64| {
+            &graph
+                .nodes
+                .iter()
+                .find(|x| x.issue.number == n)
+                .unwrap()
+                .state
+        };
         assert_eq!(state(1), &NodeState::Queue(QueueState::Ready));
         assert_eq!(
             state(6),
@@ -967,17 +1005,49 @@ mod tests {
         // Two nodes high under the label band: 10 + 20 + 40 + 10 + 40 + 10.
         assert_eq!(g.height, 130.0);
         assert_eq!(g.columns, vec![10.0, 160.0, 310.0]);
-        let at = |n: u64| graph.nodes.iter().position(|x| x.issue.number == n).unwrap();
-        assert_eq!(g.boxes[at(1)], Some(Rect { x: 10.0, y: 30.0, w: 100.0, h: 40.0 }));
-        assert_eq!(g.boxes[at(4)], Some(Rect { x: 10.0, y: 80.0, w: 100.0, h: 40.0 }));
+        let at = |n: u64| {
+            graph
+                .nodes
+                .iter()
+                .position(|x| x.issue.number == n)
+                .unwrap()
+        };
+        assert_eq!(
+            g.boxes[at(1)],
+            Some(Rect {
+                x: 10.0,
+                y: 30.0,
+                w: 100.0,
+                h: 40.0
+            })
+        );
+        assert_eq!(
+            g.boxes[at(4)],
+            Some(Rect {
+                x: 10.0,
+                y: 80.0,
+                w: 100.0,
+                h: 40.0
+            })
+        );
         assert_eq!(g.boxes[at(2)].map(|b| (b.x, b.y)), Some((160.0, 30.0)));
         assert_eq!(g.boxes[at(6)], None);
     }
 
     #[test]
     fn edges_route_out_across_and_in() {
-        let from = Rect { x: 10.0, y: 30.0, w: 100.0, h: 40.0 };
-        let to = Rect { x: 160.0, y: 80.0, w: 100.0, h: 40.0 };
+        let from = Rect {
+            x: 10.0,
+            y: 30.0,
+            w: 100.0,
+            h: 40.0,
+        };
+        let to = Rect {
+            x: 160.0,
+            y: 80.0,
+            w: 100.0,
+            h: 40.0,
+        };
         assert_eq!(
             route(from, to),
             [(110.0, 50.0), (135.0, 50.0), (135.0, 100.0), (160.0, 100.0)]

@@ -1,9 +1,11 @@
 //! Quorum's screens, its design tokens, status vocabulary, words and its
 //! own component library.
 
+mod agenda;
 mod command;
 mod config;
 mod icons;
+mod implementations;
 mod issues;
 mod lang;
 mod overview;

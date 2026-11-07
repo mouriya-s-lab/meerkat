@@ -12,9 +12,11 @@ use nsh_base::{button, theme};
 use nsh_core::{element::Tokens, keymap::When, prelude::*};
 
 use super::{
+    agenda::AgendaState,
     command::{self, Palette},
     config::{self, ConfigState},
     icons::{Icon, icon},
+    implementations::{self, ImplementationsState},
     issues::{self, IssuesState, Settings},
     lang::localized,
     overview,
@@ -41,7 +43,7 @@ use crate::{
 /// The width from which the sidebar shows.
 const WIDE: f32 = 900.0;
 
-fn wide() -> bool {
+pub(super) fn wide() -> bool {
     window().width >= px(WIDE)
 }
 
@@ -61,12 +63,15 @@ pub(super) struct Split {
 /// inspector full width under a 返回 bar.
 pub(super) fn split(parts: Split, beside: impl Fn(&Split) -> AnyElement + 'static) -> View {
     let narrow = parts.clone();
-    view().flex_1().min_h(Points::ZERO).child(when(wide, move || beside(&parts)).otherwise(move || {
-        let open = narrow.open.clone();
-        let shown = narrow.clone();
-        let list = narrow.list.clone();
-        when(move || open(), move || detail(&shown)).otherwise(move || list())
-    }))
+    view()
+        .flex_1()
+        .min_h(Points::ZERO)
+        .child(when(wide, move || beside(&parts)).otherwise(move || {
+            let open = narrow.open.clone();
+            let shown = narrow.clone();
+            let list = narrow.list.clone();
+            when(move || open(), move || detail(&shown)).otherwise(move || list())
+        }))
 }
 
 /// What is open, full width, under a bar that goes back to the list.
@@ -83,9 +88,20 @@ fn detail(parts: &Split) -> View {
                 .px(len(Space4))
                 .border_b_1()
                 .border_b_color(color(Border))
-                .child(action(Msg::Back, Some(Icon::ArrowLeft), Look::Link, || false, move || back())),
+                .child(action(
+                    Msg::Back,
+                    Some(Icon::ArrowLeft),
+                    Look::Link,
+                    || false,
+                    move || back(),
+                )),
         )
-        .child(view().flex_1().min_h(Points::ZERO).child((parts.inspector)()))
+        .child(
+            view()
+                .flex_1()
+                .min_h(Points::ZERO)
+                .child((parts.inspector)()),
+        )
 }
 
 /// The inspector beside a list: its width, and a rule on its left.
@@ -103,6 +119,7 @@ pub(super) fn side(inspector: AnyElement) -> View {
 pub enum Page {
     Overview,
     Issues,
+    Implementations,
     Sessions,
     Runtime,
     Config,
@@ -116,12 +133,20 @@ enum Group {
 }
 
 impl Page {
-    pub const ALL: [Page; 5] = [Page::Overview, Page::Issues, Page::Sessions, Page::Runtime, Page::Config];
+    pub const ALL: [Page; 6] = [
+        Page::Overview,
+        Page::Issues,
+        Page::Implementations,
+        Page::Sessions,
+        Page::Runtime,
+        Page::Config,
+    ];
 
     pub fn title(self) -> Msg {
         match self {
             Page::Overview => Msg::PageOverview,
             Page::Issues => Msg::PageIssues,
+            Page::Implementations => Msg::PageImplementations,
             Page::Sessions => Msg::PageSessions,
             Page::Runtime => Msg::PageRuntime,
             Page::Config => Msg::PageConfig,
@@ -132,6 +157,7 @@ impl Page {
         match self {
             Page::Overview => Icon::Overview,
             Page::Issues => Icon::Graph,
+            Page::Implementations => Icon::Code,
             Page::Sessions => Icon::Sessions,
             Page::Runtime => Icon::Runtime,
             Page::Config => Icon::Config,
@@ -141,7 +167,7 @@ impl Page {
     fn group(self) -> Option<Group> {
         match self {
             Page::Overview => None,
-            Page::Issues | Page::Sessions => Some(Group::Council),
+            Page::Issues | Page::Implementations | Page::Sessions => Some(Group::Council),
             Page::Runtime | Page::Config => Some(Group::Run),
         }
     }
@@ -168,6 +194,8 @@ impl Nav {
 
 /// What the pages need besides their sources.
 pub struct Context {
+    /// The GitHub client, once its credential is in.
+    pub github: Memo<Option<Rc<GitHub>>>,
     pub council: ProgramClient,
     pub guardians: ProgramClient,
     pub attention: Attention,
@@ -181,6 +209,9 @@ pub struct Context {
     /// The 「议题」 page's settings and what the user set on it.
     pub issues_settings: Rc<Settings>,
     pub issues: IssuesState,
+    /// The agenda issue open in detail, and what is chosen in it.
+    pub agenda: AgendaState,
+    pub implementations: ImplementationsState,
     pub sessions: SessionsState,
     /// The 「配置」 page's selection and unsaved text.
     pub config: ConfigState,
@@ -208,9 +239,41 @@ impl Context {
     /// Shows `issue` selected on the 「议题」 page.
     pub fn open_issue(&self, nav: Nav, issue: IssueRef) {
         batch(|| {
+            self.agenda.close();
             self.issues.select(Some(issue));
             nav.page.set(Page::Issues);
         });
+    }
+
+    /// Shows the detail of the agenda issue `issue` (#4 「议题详情」).
+    pub fn open_detail(&self, nav: Nav, issue: IssueRef) {
+        batch(|| {
+            self.issues.select(Some(issue.clone()));
+            self.agenda.open(issue);
+            nav.page.set(Page::Issues);
+        });
+    }
+
+    /// Shows the implementation issue `issue` on the 「实现」 page.
+    pub fn open_implementation(&self, nav: Nav, issue: IssueRef) {
+        batch(|| {
+            self.implementations.select(Some(issue));
+            nav.page.set(Page::Implementations);
+        });
+    }
+
+    /// Shows `issue` in its detail: an agenda issue's on 「议题」, any other
+    /// (an implementation issue) on 「实现」.
+    pub fn open_any(&self, nav: Nav, issue: IssueRef) {
+        let agenda = self
+            .all_issues
+            .get_untracked()
+            .is_some_and(|graph| graph.nodes.iter().any(|node| node.issue == issue));
+        if agenda {
+            self.open_detail(nav, issue);
+        } else {
+            self.open_implementation(nav, issue);
+        }
     }
 }
 
@@ -248,9 +311,8 @@ fn shell(config: &AppConfig) -> View {
         now.set(time::now_ms())
     });
     let attention_settings = config.attention.clone();
-    let needs = computed(move || {
-        Rc::new(attention::needs(concerns_of(sources, &attention_settings)))
-    });
+    let needs =
+        computed(move || Rc::new(attention::needs(concerns_of(sources, &attention_settings))));
     let settings = Rc::new(Settings {
         pm: config.repos.pm.repo.clone(),
         fields: config.fields.clone(),
@@ -258,6 +320,7 @@ fn shell(config: &AppConfig) -> View {
     let pm = settings.pm.clone();
     let all_issues = computed(move || graph_of(sources, &pm, false));
     let context = Rc::new(Context {
+        github,
         council: ProgramClient::new(Program::Council, config.endpoints.council.clone()),
         guardians: ProgramClient::new(Program::Guardians, config.endpoints.guardians.clone()),
         attention: config.attention.clone(),
@@ -267,6 +330,8 @@ fn shell(config: &AppConfig) -> View {
         rewarms: Rewarms::new(),
         issues: IssuesState::new(config.filters),
         issues_settings: settings,
+        agenda: AgendaState::new(),
+        implementations: ImplementationsState::new(),
         sessions: SessionsState::new(),
         config: ConfigState::new(),
         config_repo,
@@ -329,7 +394,11 @@ fn shell(config: &AppConfig) -> View {
 
 /// The agenda issues, once the Project and the queue (or its failure) are
 /// in; only human issues and their successors when `human_only`.
-pub fn graph_of(sources: Sources, pm: &crate::config::RepoName, human_only: bool) -> Option<Rc<Graph>> {
+pub fn graph_of(
+    sources: Sources,
+    pm: &crate::config::RepoName,
+    human_only: bool,
+) -> Option<Rc<Graph>> {
     let unreachable = sources.queue.with_error(|e| e.is_some());
     sources.project.with(|project| {
         let items = &project?.data;
@@ -350,7 +419,20 @@ fn concerns_of(sources: Sources, settings: &Attention) -> Vec<Concern> {
     let data = |s: &crate::sources::Source<Vec<crate::programs::Session>>| s.get().map(|l| l.data);
     let bases = sources.bases.get().map(|l| l.data);
     let queue = sources.queue.get().map(|l| l.data);
-    let escalations = sources.escalations.get().map(|l| l.data);
+    let now = time::instant(time::now_ms());
+    let escalations: Option<Vec<crate::detail::OpenEscalation>> =
+        sources.implementations.with(|loaded| {
+            loaded.map(|loaded| {
+                loaded
+                    .data
+                    .iter()
+                    .flat_map(|i| {
+                        let timeline = crate::detail::ask_timeline(i.item.text(), &i.comments, now);
+                        crate::detail::open_escalations(&i.item.issue, &timeline)
+                    })
+                    .collect()
+            })
+        });
     let rate = sources.rate.get().map(|l| l.data);
     let council_sessions = data(&sources.council.sessions);
     let guardians_sessions = data(&sources.guardians.sessions);
@@ -376,7 +458,12 @@ fn concerns_of(sources: Sources, settings: &Attention) -> Vec<Concern> {
             queue: queue.as_deref(),
             escalations: escalations.as_deref(),
             rate: rate.as_ref(),
-            council: view(&sources.council, &council_error, council_at, &council_sessions),
+            council: view(
+                &sources.council,
+                &council_error,
+                council_at,
+                &council_sessions,
+            ),
             guardians: view(
                 &sources.guardians,
                 &guardians_error,
@@ -401,6 +488,9 @@ fn main(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
             match nav.page.get() {
                 Page::Overview => overview::page(sources, context, nav).into_element(),
                 Page::Issues => issues::page(sources, context, nav).into_element(),
+                Page::Implementations => {
+                    implementations::page(sources, context, nav).into_element()
+                }
                 Page::Sessions => sessions::page(sources, context, nav).into_element(),
                 Page::Runtime => runtime::page(sources, context, nav).into_element(),
                 Page::Config => config::page(sources, context, nav).into_element(),
@@ -408,10 +498,83 @@ fn main(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
         }))
 }
 
-/// The page's title (and its window, for the sessions), and how fresh the
+/// The page's title (and its window, for the sessions; the agenda issue
+/// open in detail under 「议题」, with its GitHub link), and how fresh the
 /// data is with the refresh button: the only place that says so.
 fn toolbar(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
     let hours = context.hours();
+    let detail = {
+        let context = context.clone();
+        move || match nav.page.get() {
+            Page::Issues => context.agenda.opened(),
+            _ => None,
+        }
+    };
+    let title = {
+        let (context, detail) = (context.clone(), detail.clone());
+        dynamic(move || {
+            let page = nav.page.get();
+            match detail() {
+                Some(issue) => {
+                    let agenda = super::issues::agenda_of(&context, &issue);
+                    let back = context.clone();
+                    view()
+                        .flex_row()
+                        .items_center()
+                        .gap(len(Space2))
+                        .min_w(Points::ZERO)
+                        .child(
+                            button()
+                                .on_press(move || back.agenda.close())
+                                .accessibility_label(SharedString::from(page.title()))
+                                .rounded(len(RadiusControl))
+                                .hover(|s| s.bg(color(Accent)))
+                                .cursor_pointer()
+                                .child(
+                                    text(SharedString::from(page.title()))
+                                        .ty(Type::Body)
+                                        .text_color(color(Ink3)),
+                                ),
+                        )
+                        .child(icon(Icon::ChevronRight, || color(Ink3)))
+                        .child(text(agenda).ty(Type::Title).number_of_lines(1))
+                        .into_element()
+                }
+                None => text(SharedString::from(page.title()))
+                    .ty(Type::Title)
+                    .into_element(),
+            }
+        })
+    };
+    let github_link = {
+        let context = context.clone();
+        dynamic(move || {
+            let Some(issue) = detail() else {
+                return nothing();
+            };
+            let url = sources.project.with(|items| {
+                items.and_then(|items| {
+                    items
+                        .data
+                        .iter()
+                        .find(|i| i.issue == issue)
+                        .map(|i| i.url.clone())
+                })
+            });
+            let _ = &context;
+            match url {
+                Some(url) => action(
+                    Msg::OpenOnGitHub,
+                    Some(Icon::External),
+                    Look::Plain,
+                    || false,
+                    move || drop(open_url(url.clone())),
+                )
+                .into_element(),
+                None => nothing(),
+            }
+        })
+    };
     view()
         .flex_row()
         .flex_shrink_0()
@@ -421,7 +584,7 @@ fn toolbar(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
         .px(len(Space6))
         .border_b_1()
         .border_b_color(color(Border))
-        .child(text(move || SharedString::from(nav.page.get().title())).ty(Type::Title))
+        .child(title)
         .child(dynamic(move || match nav.page.get() {
             Page::Sessions => small(SharedString::from(Msg::LastHours(hours))).into_element(),
             _ => nothing(),
@@ -433,7 +596,10 @@ fn toolbar(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
                 context.now.get(),
             )))
         }))
-        .child(icon_button(Icon::Refresh, Msg::Refresh, move || sources.refresh()))
+        .child(github_link)
+        .child(icon_button(Icon::Refresh, Msg::Refresh, move || {
+            sources.refresh()
+        }))
 }
 
 /// A page's count in the sidebar, and the role of its color: only what
@@ -449,6 +615,7 @@ fn count(sources: Sources, context: &Context, page: Page) -> Option<(usize, Role
         Page::Issues => sources
             .queue
             .with(|q| q.map(|q| plain(q.data.iter().filter(|e| !e.state.settled()).count()))),
+        Page::Implementations => implementations::waiting(sources).filter(|n| *n > 0).map(plain),
         Page::Sessions => {
             let running = [sources.council.sessions, sources.guardians.sessions]
                 .into_iter()
@@ -566,7 +733,11 @@ fn search_button(nav: Nav) -> nsh_base::ButtonElement {
         .hover(|s| s.border_color(color(BorderStrong)))
         .cursor_pointer()
         .child(icon(Icon::Search, || color(Ink3)))
-        .child(small(SharedString::from(Msg::SearchHint)).flex_1().number_of_lines(1))
+        .child(
+            small(SharedString::from(Msg::SearchHint))
+                .flex_1()
+                .number_of_lines(1),
+        )
         .child(kbd(Msg::KeyPalette))
 }
 
@@ -585,18 +756,40 @@ fn nav_item(sources: Sources, context: Rc<Context>, nav: Nav, page: Page) -> imp
         .pr(len(Space2))
         .rounded(len(RadiusControl))
         .border_l(mark())
-        .border_l_color(move || if current() { color(Selection) } else { super::parts::clear() })
-        .bg(move || if current() { color(NavSelected) } else { super::parts::clear() })
+        .border_l_color(move || {
+            if current() {
+                color(Selection)
+            } else {
+                super::parts::clear()
+            }
+        })
+        .bg(move || {
+            if current() {
+                color(NavSelected)
+            } else {
+                super::parts::clear()
+            }
+        })
         .hover(|s| s.bg(color(Accent)))
         .cursor_pointer()
         .child(icon(page.icon(), move || {
-            if current() { color(Foreground) } else { color(Ink2) }
+            if current() {
+                color(Foreground)
+            } else {
+                color(Ink2)
+            }
         }))
         .child(
             text(SharedString::from(page.title()))
                 .ty(Type::Body)
                 .flex_1()
-                .text_color(move || if current() { color(Foreground) } else { color(Ink2) }),
+                .text_color(move || {
+                    if current() {
+                        color(Foreground)
+                    } else {
+                        color(Ink2)
+                    }
+                }),
         )
         .child(dynamic(move || match count(sources, &context, page) {
             Some((n, role)) => text(n.to_string())
@@ -642,13 +835,27 @@ fn program_line(program: ProgramSources) -> View {
                 }
             }
         }))
-        .child(text(SharedString::from(Msg::Program(name))).ty(Type::Small).flex_shrink_0())
-        .child(view().flex_1().min_w(Points::ZERO).items_end().child(dynamic(move || {
-            match health.with(|l| l.map(|l| (l.data.short_version().to_owned(), l.data.version.clone()))) {
-                Some((short, full)) => small(short).truncate().tooltip(hint(full)).into_element(),
-                None => nothing(),
-            }
-        })))
+        .child(
+            text(SharedString::from(Msg::Program(name)))
+                .ty(Type::Small)
+                .flex_shrink_0(),
+        )
+        .child(
+            view()
+                .flex_1()
+                .min_w(Points::ZERO)
+                .items_end()
+                .child(dynamic(move || {
+                    match health.with(|l| {
+                        l.map(|l| (l.data.short_version().to_owned(), l.data.version.clone()))
+                    }) {
+                        Some((short, full)) => {
+                            small(short).truncate().tooltip(hint(full)).into_element()
+                        }
+                        None => nothing(),
+                    }
+                })),
+        )
 }
 
 fn rate_block(sources: Sources, context: Rc<Context>) -> View {
@@ -683,9 +890,18 @@ fn rate_block(sources: Sources, context: Rc<Context>) -> View {
                         .gap(len(Space2))
                         .child(text(SharedString::from(Msg::GitHubApi)).ty(Type::Small).flex_1())
                         .children(low.then(|| status::glyph(status::Glyph::Triangle, Role::Warn)))
-                        .child(small(Msg::Allowance(bucket.remaining, bucket.limit).to_string())),
+                        .child(small(
+                            Msg::Allowance(bucket.remaining, bucket.limit).to_string(),
+                        )),
                 )
-                .child(meter(share, if low { Role::Warn.ink() } else { Role::Ok.ink() }))
+                .child(meter(
+                    share,
+                    if low {
+                        Role::Warn.ink()
+                    } else {
+                        Role::Ok.ink()
+                    },
+                ))
                 .child(small(
                     Msg::Resets(time::hm(bucket.reset as f64 * 1000.0)).to_string(),
                 ))
@@ -727,12 +943,24 @@ fn top_bar(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
                         .h(len(Control))
                         .px(len(Space2))
                         .rounded(len(RadiusControl))
-                        .bg(move || if current() { color(NavSelected) } else { super::parts::clear() })
+                        .bg(move || {
+                            if current() {
+                                color(NavSelected)
+                            } else {
+                                super::parts::clear()
+                            }
+                        })
                         .cursor_pointer()
                         .child(
                             text(SharedString::from(page.title()))
                                 .ty(Type::Label)
-                                .text_color(move || if current() { color(Foreground) } else { color(Ink2) }),
+                                .text_color(move || {
+                                    if current() {
+                                        color(Foreground)
+                                    } else {
+                                        color(Ink2)
+                                    }
+                                }),
                         )
                         .child(dynamic(move || match count(sources, &context, page) {
                             Some((n, role)) => text(n.to_string())
@@ -744,7 +972,9 @@ fn top_bar(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
                 })),
         )
         .child(view().flex_1())
-        .child(icon_button(Icon::Search, Msg::SearchHint, move || nav.palette.set(true)))
+        .child(icon_button(Icon::Search, Msg::SearchHint, move || {
+            nav.palette.set(true)
+        }))
 }
 
 /// The config could not be read: which file, which key and why (the

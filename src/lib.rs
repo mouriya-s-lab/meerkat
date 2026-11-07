@@ -5,9 +5,9 @@
 
 pub mod attention;
 pub mod config;
-pub mod digest;
 pub mod dag;
 pub mod detail;
+pub mod digest;
 pub mod failure;
 pub mod gh;
 mod http;

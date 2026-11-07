@@ -336,7 +336,10 @@ mod tests {
 
     #[test]
     fn a_marker_not_last_is_none() {
-        assert_eq!(parse("<!-- pm:reply {\"v\":1,\"ask\":1,\"decision\":null} -->\nmore"), None);
+        assert_eq!(
+            parse("<!-- pm:reply {\"v\":1,\"ask\":1,\"decision\":null} -->\nmore"),
+            None
+        );
     }
 
     #[test]
@@ -347,8 +350,14 @@ mod tests {
 
     #[test]
     fn wrong_version_or_type_is_none() {
-        assert_eq!(parse("<!-- pm:reply {\"v\":2,\"ask\":1,\"decision\":null} -->"), None);
-        assert_eq!(parse("<!-- pm:reply {\"v\":1,\"ask\":\"1\",\"decision\":null} -->"), None);
+        assert_eq!(
+            parse("<!-- pm:reply {\"v\":2,\"ask\":1,\"decision\":null} -->"),
+            None
+        );
+        assert_eq!(
+            parse("<!-- pm:reply {\"v\":1,\"ask\":\"1\",\"decision\":null} -->"),
+            None
+        );
     }
 
     #[test]
@@ -360,7 +369,9 @@ mod tests {
             "marker line is not <!-- pm:<kind> <JSON> -->"
         );
         assert!(reason("<!-- pm:nudge {\"v\":1} -->").starts_with("pm:nudge: unknown kind"));
-        assert!(reason("<!-- pm:reply {\"v\":1,\"ask\":\"1\",\"decision\":null} -->")
-            .starts_with("pm:reply: "));
+        assert!(
+            reason("<!-- pm:reply {\"v\":1,\"ask\":\"1\",\"decision\":null} -->")
+                .starts_with("pm:reply: ")
+        );
     }
 }

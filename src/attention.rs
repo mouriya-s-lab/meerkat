@@ -7,10 +7,10 @@
 
 use crate::{
     config::Attention,
+    detail::OpenEscalation,
     failure::Failure,
     gh::{
         IssueRef,
-        escalations::OpenEscalation,
         rate::{Api, Bucket, RateLimit},
     },
     programs::{Base, BaseState, Program, QueueEntry, QueueState, Session, SessionState},
@@ -22,7 +22,10 @@ use crate::{
 pub enum Concern {
     BaseFailed(Base),
     BaseStale(Base),
-    SessionFailed { program: Program, session: Session },
+    SessionFailed {
+        program: Program,
+        session: Session,
+    },
     AgendaFailed(QueueEntry),
     EscalationOpen(OpenEscalation),
     Unreachable {
@@ -30,7 +33,10 @@ pub enum Concern {
         error: Failure,
         last_success: Option<f64>,
     },
-    RateLow { api: Api, bucket: Bucket },
+    RateLow {
+        api: Api,
+        bucket: Bucket,
+    },
 }
 
 /// A program's state as the concerns read it.
@@ -149,7 +155,9 @@ impl Concern {
                 time::parse_ms(session.ended_at.as_deref().unwrap_or(&session.started_at))
             }
             Concern::EscalationOpen(escalation) => time::parse_ms(&escalation.created_at),
-            Concern::AgendaFailed(_) | Concern::Unreachable { .. } | Concern::RateLow { .. } => None,
+            Concern::AgendaFailed(_) | Concern::Unreachable { .. } | Concern::RateLow { .. } => {
+                None
+            }
         }
     }
 }
@@ -379,7 +387,10 @@ mod tests {
         let Need::Sessions(vote) = &needs[1] else {
             panic!("{needs:?}")
         };
-        assert_eq!((vote.program, vote.kind.as_str()), (Program::Council, "vote"));
+        assert_eq!(
+            (vote.program, vote.kind.as_str()),
+            (Program::Council, "vote")
+        );
         let Need::Sessions(proxy) = &needs[0] else {
             panic!("{needs:?}")
         };
@@ -387,8 +398,11 @@ mod tests {
         let ids: Vec<&str> = proxy.sessions.iter().map(|s| s.id.as_str()).collect();
         assert_eq!(ids, vec!["b", "c", "e", "a"]);
         assert_eq!(proxy.issues(), vec![(issue(30), 3), (issue(38), 1)]);
-        let causes: Vec<(&str, usize)> =
-            proxy.causes.iter().map(|c| (c.line.as_str(), c.count)).collect();
+        let causes: Vec<(&str, usize)> = proxy
+            .causes
+            .iter()
+            .map(|c| (c.line.as_str(), c.count))
+            .collect();
         assert_eq!(causes, vec![("timeout", 3), ("aborted", 1)]);
         assert_eq!(proxy.causes[0].issues, vec![(issue(30), 2), (issue(38), 1)]);
         assert_eq!(proxy.models(), vec!["m"]);

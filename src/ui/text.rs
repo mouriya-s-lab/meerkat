@@ -9,12 +9,14 @@ use std::fmt;
 
 use nsh_core::prelude::SharedString;
 
+use super::agenda::DraftField;
 use super::lang::Lang::{self, En, Zh};
 use crate::{
     config::{ConfigError, Problem, Reader},
     dag::{Closed, Fallback, Group},
+    detail::{ImplGroup, Stance},
     failure::{Failure, NoCredential},
-    gh::rate::Api,
+    gh::{markers::Outcome, project::PullState, rate::Api},
     programs::{BaseState, Program, QueueState, SessionState},
     time::{Ago, Took},
 };
@@ -79,7 +81,10 @@ pub enum Msg {
     RateLow,
     /// The Project's status field (named) has no value.
     StatusUnset(String),
-    Fallback { word: String, why: Fallback },
+    Fallback {
+        word: String,
+        why: Fallback,
+    },
 
     // -- command bar ------------------------------------------------------
     GoTo(Box<Msg>),
@@ -125,7 +130,9 @@ pub enum Msg {
     StaleBases(usize),
     NothingNeedsYou,
     WithinHours(u32),
-    ListSep { last: bool },
+    ListSep {
+        last: bool,
+    },
     WaitForYou,
     NeedsYou,
     NothingNeedsYouLine,
@@ -136,8 +143,15 @@ pub enum Msg {
     AgendaFailed(String),
     ProgramUnreachable(Program),
     BaseFailedTitle(String),
-    SessionFailedOne { program: Program, kind: String, about: Option<String> },
-    SessionsFailed { program: Program, kind: String },
+    SessionFailedOne {
+        program: Program,
+        kind: String,
+        about: Option<String>,
+    },
+    SessionsFailed {
+        program: Program,
+        kind: String,
+    },
     EscalationTitle(String),
     /// The implementation issue and the ask's number.
     EscalationFrom(String, u64),
@@ -159,15 +173,29 @@ pub enum Msg {
     Programs,
     Deliberating(Option<usize>),
     AsksRunning(Option<usize>),
-    ProgramLine { online: bool, up: Option<Ago>, work: Box<Msg> },
+    ProgramLine {
+        online: bool,
+        up: Option<Ago>,
+        work: Box<Msg>,
+    },
     Hours(u32),
     Total,
-    BasesNote { ready: usize, total: usize, stale: usize },
+    BasesNote {
+        ready: usize,
+        total: usize,
+        stale: usize,
+    },
     Bases,
     NoBases,
-    ModelNote { model: String, stale: bool },
+    ModelNote {
+        model: String,
+        stale: bool,
+    },
     SessionErrors,
-    ErrorsNote { hours: u32, sessions: usize },
+    ErrorsNote {
+        hours: u32,
+        sessions: usize,
+    },
     NoErrors,
 
     // -- runtime ----------------------------------------------------------
@@ -178,7 +206,11 @@ pub enum Msg {
     RewarmFailed(Failure),
     Rewarm,
     RewarmConfirm,
-    RewarmDetail { guardian: String, repo: String, model: String },
+    RewarmDetail {
+        guardian: String,
+        repo: String,
+        model: String,
+    },
     Cancel,
     Fraction(usize, usize),
     OldestWarm,
@@ -196,13 +228,22 @@ pub enum Msg {
     BaseId,
     SessionId,
     RewarmNote,
-    ForksNote { forks: usize, failed: usize },
+    ForksNote {
+        forks: usize,
+        failed: usize,
+    },
     AllForks(usize),
     Running(Ago),
-    QueueWork { open: usize, deliberating: usize },
+    QueueWork {
+        open: usize,
+        deliberating: usize,
+    },
     WorkAndChecked(Option<Box<Msg>>, Option<Ago>),
     Limits,
-    LimitedSessions { hours: u32, sessions: usize },
+    LimitedSessions {
+        hours: u32,
+        sessions: usize,
+    },
     LimitedNote,
 
     // -- sessions ---------------------------------------------------------
@@ -226,12 +267,18 @@ pub enum Msg {
     ForkedFrom,
     SessionEnded,
     DecisionLog,
-    LogCounts { entries: usize, lines: usize },
+    LogCounts {
+        entries: usize,
+        lines: usize,
+    },
     OnlyErrors,
     Compact,
     Json,
     /// Bytes in the record and bytes parsed.
-    Truncated { total: usize, kept: usize },
+    Truncated {
+        total: usize,
+        kept: usize,
+    },
     Unreadable(usize),
     NothingAbnormal,
     /// The attempt's number and its error (empty: none shown).
@@ -253,7 +300,11 @@ pub enum Msg {
 
     // -- issues -----------------------------------------------------------
     Human,
-    RoundVoted { round: u32, voted: usize, seats: usize },
+    RoundVoted {
+        round: u32,
+        voted: usize,
+        seats: usize,
+    },
     /// Completed and total sub-issues.
     Implemented(u32, u32),
     WaitsFor(String),
@@ -267,7 +318,10 @@ pub enum Msg {
     ClosedMode(Closed),
     FilterHuman,
     OnOff(bool),
-    OpenOfTotal { open: usize, total: usize },
+    OpenOfTotal {
+        open: usize,
+        total: usize,
+    },
     IssuesFilterHint,
     Agenda,
     Title,
@@ -282,7 +336,10 @@ pub enum Msg {
     WaitingForData,
     CanMove(usize),
     WaitsColumn(usize),
-    FoldedClosed { closed: usize, chains: Vec<String> },
+    FoldedClosed {
+        closed: usize,
+        chains: Vec<String>,
+    },
     SelectIssue,
     ThisRound,
     RoundSummary { round: u32, version: Option<u32>, voted: usize, seats: usize },
@@ -301,7 +358,11 @@ pub enum Msg {
     NotCounted,
     CouncilNotes,
     OpenOnGitHub,
-    IssueMeta { human: bool, proposer: Option<String>, updated: Option<Ago> },
+    IssueMeta {
+        human: bool,
+        proposer: Option<String>,
+        updated: Option<Ago>,
+    },
     OpenDetail,
 
     // -- config -----------------------------------------------------------
@@ -353,6 +414,181 @@ pub enum Msg {
     Behind { branch: String, commits: u32 },
     Pull,
     Pulling,
+
+    // -- shell (#4) -------------------------------------------------------
+    PageImplementations,
+
+    // -- agenda detail ------------------------------------------------------
+    /// A human issue or an agenda issue, and who drafted it.
+    IssueKind {
+        human: bool,
+        proposer: Option<String>,
+    },
+    CreatedAt(String),
+    StepDraft {
+        round: u32,
+        version: u32,
+    },
+    StepRevision {
+        from: u32,
+        to: u32,
+    },
+    /// A step's start and, unless it still runs, its end.
+    StepSpan {
+        from: String,
+        to: Option<String>,
+    },
+    StepObjections(usize),
+    StepVoted {
+        voted: usize,
+        seats: usize,
+    },
+    StepDecided,
+    StepChanged(Vec<String>),
+    NoDraftYet,
+    Votes,
+    VotesNote {
+        round: u32,
+        version: u32,
+    },
+    Rule(u32),
+    DecisionRow,
+    SeatSessionFailed,
+    StanceGlyph(Stance),
+    Stance(Stance),
+    Reached,
+    /// Approvals, the threshold once decided, and the seats still to vote.
+    Approvals {
+        approve: usize,
+        threshold: Option<u32>,
+        waiting: usize,
+    },
+    HasCounterexample,
+    HasVeto,
+    Outcome(Outcome),
+    OutcomeCount {
+        outcome: Outcome,
+        approve: u32,
+        threshold: u32,
+    },
+    Ruled(String),
+    /// A cell's name for screen readers: seat, row, stance.
+    Cell {
+        seat: String,
+        row: String,
+        stance: Stance,
+    },
+    Counterexample,
+    Citation,
+    Classification,
+    OpenSession,
+    Comment,
+    NoReason,
+    DraftChange,
+    Draft,
+    VersionArrow {
+        from: u32,
+        to: u32,
+    },
+    Version(u32),
+    DraftUnchanged(Vec<String>),
+    RevisionWhy {
+        round: u32,
+        seats: Vec<String>,
+        ruler: Option<String>,
+    },
+    RowAdded,
+    RowRemoved,
+    Body,
+    NoBody,
+    InvalidMarkers,
+    Decision,
+    NotDecided,
+    DecidedAt(String),
+    /// The latest round's panel stopped: its round, the council's verdict
+    /// for it, and when.
+    RoundStopped {
+        round: u32,
+        state: QueueState,
+        at: String,
+    },
+    Rulings,
+    RulingLine {
+        row: String,
+        category: String,
+    },
+    RulingMeta {
+        seat: String,
+        round: u32,
+        at: String,
+    },
+    NoRulings,
+    CouncilSessions,
+    RoundNumber(u32),
+    NoCouncilSessions,
+    Relations,
+    Implementations,
+    Supersedes,
+    SupersededBy,
+    AfterDecision,
+    LoadingComments,
+    CommentsFailed(Failure),
+
+    // -- implementations ----------------------------------------------------
+    ImplGroup(ImplGroup),
+    /// The issue, and the agenda issue it came from.
+    ImplFrom {
+        issue: String,
+        agenda: Option<String>,
+    },
+    WaitsGuardians,
+    WaitsCouncil(String),
+    WorkerRan(Ago),
+    PullRequest {
+        number: u64,
+        state: PullState,
+    },
+    Timeline,
+    SelectImplementation,
+    NoImplementations,
+    ImplStarted,
+    ImplResumed,
+    ImplSession {
+        session: String,
+        host: String,
+        pid: u64,
+    },
+    Worker,
+    /// An ask's head: its number, its time, how long until the guardians
+    /// took it and until it became an agenda issue.
+    AskHead {
+        n: usize,
+        at: String,
+        answered: Option<Ago>,
+        escalated: Option<Ago>,
+    },
+    WorkerAsks,
+    GuardianReply,
+    CouncilReply(String),
+    Escalate(String),
+    ReplacedBy(String),
+    Replaces(String),
+    After(Ago),
+    WaitDecision(String),
+    WaitGuardians,
+    Waited(Ago),
+    InvalidMarker,
+    /// A council session's kind and the seat it sat for.
+    SessionSeat {
+        kind: String,
+        seat: Option<String>,
+    },
+    DraftField(DraftField),
+    /// How long, in words: 「41 分钟」.
+    Lasted(Ago),
+    /// The agenda issue an implementation came from.
+    FromAgenda(String),
+    NoMarkers,
 }
 
 /// The words for `lang`.
@@ -537,6 +773,26 @@ fn reader(r: Reader, lang: Lang) -> &'static str {
         Reader::Guardians => pick(lang, "守护", "Guardians"),
         Reader::Quorum => "Quorum",
         Reader::Dispatch => "dispatch",
+    }
+}
+
+/// A vote's stance in words.
+fn stance_word(stance: Stance, lang: Lang) -> &'static str {
+    match stance {
+        Stance::Approve => pick(lang, "赞成", "Approve"),
+        Stance::Oppose => pick(lang, "反对", "Oppose"),
+        Stance::Veto => pick(lang, "否决", "Veto"),
+        Stance::Counterexample => pick(lang, "反例", "Counterexample"),
+        Stance::Pending => pick(lang, "未投", "Not voted"),
+    }
+}
+
+/// A decision row's outcome in words.
+fn outcome_word(outcome: Outcome, lang: Lang) -> &'static str {
+    match outcome {
+        Outcome::Passed => pick(lang, "通过", "Passed"),
+        Outcome::Rejected => pick(lang, "未通过", "Rejected"),
+        Outcome::Withdrawn => pick(lang, "撤回", "Withdrawn"),
     }
 }
 
@@ -1386,6 +1642,313 @@ impl Msg {
             },
             Msg::Pull => say(f, "拉取", "Pull"),
             Msg::Pulling => say(f, "拉取中…", "Pulling…"),
+
+            // -- shell (#4)
+            Msg::PageImplementations => say(f, "实现", "Implementations"),
+
+            // -- agenda detail
+            Msg::IssueKind { human, proposer } => {
+                f.write_str(match (human, lang) {
+                    (true, Zh) => "人类议题",
+                    (false, Zh) => "议程",
+                    (true, En) => "Human issue",
+                    (false, En) => "Agenda",
+                })?;
+                match (proposer, lang) {
+                    (Some(proposer), Zh) => write!(f, " · {proposer}起草"),
+                    (Some(proposer), En) => write!(f, " · drafted by {proposer}"),
+                    (None, _) => Ok(()),
+                }
+            }
+            Msg::CreatedAt(at) => match lang {
+                Zh => write!(f, "{at} 创建"),
+                En => write!(f, "created {at}"),
+            },
+            Msg::StepDraft { round, version } | Msg::VotesNote { round, version } => match lang {
+                Zh => write!(f, "第 {round} 轮 · 草案 v{version}"),
+                En => write!(f, "Round {round} · draft v{version}"),
+            },
+            Msg::StepRevision { from, to } => match lang {
+                Zh => write!(f, "修订 v{from} → v{to}"),
+                En => write!(f, "Revision v{from} → v{to}"),
+            },
+            Msg::StepSpan { from, to: Some(to) } => write!(f, "{from} – {to}"),
+            Msg::StepSpan { from, to: None } => match lang {
+                Zh => write!(f, "{from} – 进行中"),
+                En => write!(f, "{from} – running"),
+            },
+            Msg::StepObjections(n) => match lang {
+                Zh => write!(f, "{n} 行有反对"),
+                En => write!(f, "{n} {}", plural(*n, "row opposed", "rows opposed")),
+            },
+            Msg::StepVoted { voted, seats } => match lang {
+                Zh => write!(f, "{voted}/{seats} 席已投"),
+                En => write!(f, "{voted}/{seats} seats voted"),
+            },
+            Msg::StepDecided => say(f, "已定案", "Decided"),
+            Msg::StepChanged(rows) => match lang {
+                Zh => write!(f, "改写 {}", rows.join("、")),
+                En => write!(f, "Rewrote {}", rows.join(", ")),
+            },
+            Msg::NoDraftYet => say(f, "还没有草案", "No draft yet"),
+            Msg::Votes => say(f, "表决", "Votes"),
+            Msg::Rule(threshold) => match lang {
+                Zh => write!(f, "每行需 ≥{threshold} 赞成"),
+                En => write!(f, "Each row needs ≥{threshold} approvals"),
+            },
+            Msg::DecisionRow => say(f, "决策行", "Decision row"),
+            Msg::SeatSessionFailed => say(f, "会话失败", "Session failed"),
+            // The glyphs, the same in both languages.
+            Msg::StanceGlyph(stance) => f.write_str(match stance {
+                Stance::Approve => "✓",
+                Stance::Oppose => "✕",
+                Stance::Veto => "⊘",
+                Stance::Counterexample => "?",
+                Stance::Pending => "·",
+            }),
+            Msg::Stance(stance) => f.write_str(stance_word(*stance, lang)),
+            Msg::Reached => say(f, "已达门槛", "Threshold reached"),
+            Msg::Approvals { approve, threshold, waiting } => {
+                match (threshold, lang) {
+                    (Some(threshold), _) => write!(f, "{approve}/{threshold}")?,
+                    (None, Zh) => write!(f, "赞成 {approve}")?,
+                    (None, En) => write!(f, "{approve} approve")?,
+                }
+                match lang {
+                    _ if *waiting == 0 => Ok(()),
+                    Zh => write!(f, " · 等 {waiting} 席"),
+                    En => write!(f, " · {waiting} to vote"),
+                }
+            }
+            Msg::HasCounterexample => say(f, "有反例", "Has a counterexample"),
+            Msg::HasVeto => say(f, "有否决", "Has a veto"),
+            Msg::Outcome(outcome) => f.write_str(outcome_word(*outcome, lang)),
+            Msg::OutcomeCount { outcome, approve, threshold } => {
+                let outcome = outcome_word(*outcome, lang);
+                match lang {
+                    Zh => write!(f, "{outcome} · 赞成 {approve} / 门槛 {threshold}"),
+                    En => write!(f, "{outcome} · {approve} approve / threshold {threshold}"),
+                }
+            }
+            Msg::Ruled(category) => match lang {
+                Zh => write!(f, "裁决：{category}"),
+                En => write!(f, "Ruled: {category}"),
+            },
+            Msg::Cell { seat, row, stance } => write!(f, "{seat} · {row} · {}", stance_word(*stance, lang)),
+            Msg::Counterexample => say(f, "反例", "Counterexample"),
+            Msg::Citation => say(f, "引用", "Citation"),
+            Msg::Classification => say(f, "分类意见", "Classification"),
+            Msg::OpenSession => say(f, "打开会话", "Open session"),
+            Msg::Comment => say(f, "评论", "Comment"),
+            Msg::NoReason => say(f, "投票评论在标记之上没有正文", "The vote comment has no text above its marker"),
+            Msg::DraftChange => say(f, "草案变更", "Draft changes"),
+            Msg::Draft => say(f, "草案", "Draft"),
+            Msg::VersionArrow { from, to } => write!(f, "v{from} → v{to}"),
+            Msg::Version(version) => write!(f, "v{version}"),
+            Msg::DraftUnchanged(rows) => match lang {
+                Zh => write!(f, "{} 未变", rows.join("、")),
+                En => write!(f, "{} unchanged", rows.join(", ")),
+            },
+            Msg::RevisionWhy { round, seats, ruler } => {
+                match (seats.is_empty(), lang) {
+                    (true, Zh) => write!(f, "修订理由：第 {round} 轮没有席位反对")?,
+                    (false, Zh) => write!(f, "修订理由：第 {round} 轮 {} 反对", seats.join("、"))?,
+                    (true, En) => write!(f, "Why revised: no seat opposed in round {round}")?,
+                    (false, En) => write!(f, "Why revised: {} opposed in round {round}", seats.join(", "))?,
+                }
+                match (ruler, lang) {
+                    (Some(ruler), Zh) => write!(f, " · 由 {ruler} 仲裁"),
+                    (Some(ruler), En) => write!(f, " · ruled by {ruler}"),
+                    (None, _) => Ok(()),
+                }
+            }
+            Msg::RowAdded => say(f, "新增", "Added"),
+            Msg::RowRemoved => say(f, "删除", "Removed"),
+            Msg::Body => say(f, "正文", "Body"),
+            Msg::NoBody => say(f, "正文为空", "The body is empty"),
+            Msg::InvalidMarkers => say(f, "无法读取的标记", "Unreadable markers"),
+            Msg::Decision => say(f, "决策", "Decision"),
+            Msg::NotDecided => say(f, "尚未定案", "Not decided yet"),
+            Msg::DecidedAt(at) => match lang {
+                Zh => write!(f, "{at} 定案"),
+                En => write!(f, "decided {at}"),
+            },
+            Msg::RoundStopped { round, state, at } => {
+                let state = Msg::Queue(*state);
+                match lang {
+                    Zh => write!(f, "第 {round} 轮{} · {at}", state.in_lang(lang)),
+                    En => write!(f, "Round {round} {} · {at}", state.in_lang(lang)),
+                }
+            }
+            Msg::Rulings => say(f, "裁决", "Rulings"),
+            Msg::RulingLine { row, category } => match lang {
+                Zh => write!(f, "{row} 裁定为「{category}」"),
+                En => write!(f, "{row} ruled as {category}"),
+            },
+            Msg::RulingMeta { seat, round, at } => match lang {
+                Zh => write!(f, "{seat} · 第 {round} 轮 · {at}"),
+                En => write!(f, "{seat} · round {round} · {at}"),
+            },
+            Msg::NoRulings => say(f, "没有裁决", "No rulings"),
+            Msg::CouncilSessions => say(f, "审议会话", "Council sessions"),
+            Msg::RoundNumber(round) => match lang {
+                Zh => write!(f, "第 {round} 轮"),
+                En => write!(f, "Round {round}"),
+            },
+            Msg::NoCouncilSessions => say(
+                f,
+                "议会最近的会话里没有这个议题的会话",
+                "The council's recent sessions include none for this issue",
+            ),
+            Msg::Relations => say(f, "关系", "Relations"),
+            Msg::Implementations => say(f, "实现", "Implementations"),
+            Msg::Supersedes => say(f, "变更", "Supersedes"),
+            Msg::SupersededBy => say(f, "被变更于", "Superseded by"),
+            Msg::AfterDecision => say(f, "定案后创建", "Created after the decision"),
+            Msg::LoadingComments => say(f, "读取评论中…", "Loading comments…"),
+            Msg::CommentsFailed(error) => {
+                f.write_str(pick(lang, "读取评论失败：", "Could not load the comments: "))?;
+                failure(f, error, lang)
+            }
+
+            // -- implementations
+            Msg::ImplGroup(group) => f.write_str(match group {
+                ImplGroup::Waiting => pick(lang, "等答复", "Awaiting reply"),
+                ImplGroup::Running => pick(lang, "进行中", "In progress"),
+                ImplGroup::Todo => pick(lang, "待办", "To do"),
+                ImplGroup::Done => pick(lang, "完成", "Done"),
+            }),
+            Msg::ImplFrom { issue, agenda } => {
+                f.write_str(issue)?;
+                match (agenda, lang) {
+                    (Some(agenda), Zh) => write!(f, " · 来自 {agenda}"),
+                    (Some(agenda), En) => write!(f, " · from {agenda}"),
+                    (None, _) => Ok(()),
+                }
+            }
+            Msg::WaitsGuardians => say(f, "询问等守护", "Ask waiting for the guardians"),
+            Msg::WaitsCouncil(agenda) => match lang {
+                Zh => write!(f, "询问已提为议题 {agenda}"),
+                En => write!(f, "Ask escalated to {agenda}"),
+            },
+            Msg::WorkerRan(at) => {
+                say(f, "工人运行 ", "worker running ")?;
+                span(f, *at, lang)
+            }
+            Msg::PullRequest { number, state } => write!(
+                f,
+                "PR #{number} {}",
+                match state {
+                    PullState::Open => pick(lang, "打开", "open"),
+                    PullState::Closed => pick(lang, "已关闭", "closed"),
+                    PullState::Merged => pick(lang, "已合并", "merged"),
+                }
+            ),
+            Msg::Timeline => say(f, "时间线", "Timeline"),
+            Msg::SelectImplementation => say(
+                f,
+                "选中一个实现 issue，查看它的标记时间线",
+                "Select an implementation issue to see its marker timeline",
+            ),
+            Msg::NoImplementations => say(f, "Project 里没有实现 issue", "The Project has no implementation issue"),
+            Msg::ImplStarted => say(f, "开始实现", "Implementation started"),
+            Msg::ImplResumed => say(f, "恢复实现", "Implementation resumed"),
+            Msg::ImplSession { session, host, pid } => match lang {
+                Zh => write!(f, "会话 {session} · {host} · pid {pid}"),
+                En => write!(f, "session {session} · {host} · pid {pid}"),
+            },
+            Msg::Worker => say(f, "工人", "Worker"),
+            Msg::AskHead { n, at, answered, escalated } => {
+                match lang {
+                    Zh => write!(f, "询问 Q{n} · {at}")?,
+                    En => write!(f, "Ask Q{n} · {at}")?,
+                }
+                if let Some(answered) = answered {
+                    match lang {
+                        Zh => {
+                            f.write_str(" · ")?;
+                            span(f, *answered, lang)?;
+                            f.write_str("受理")?;
+                        }
+                        En => {
+                            f.write_str(" · taken in ")?;
+                            span(f, *answered, lang)?;
+                        }
+                    }
+                }
+                if let Some(escalated) = escalated {
+                    match lang {
+                        Zh => {
+                            f.write_str(" · ")?;
+                            span(f, *escalated, lang)?;
+                            f.write_str("后提为议题")?;
+                        }
+                        En => {
+                            f.write_str(" · escalated after ")?;
+                            span(f, *escalated, lang)?;
+                        }
+                    }
+                }
+                Ok(())
+            }
+            Msg::WorkerAsks => say(f, "工人提问", "Worker asks"),
+            Msg::GuardianReply => say(f, "守护答复", "Guardians reply"),
+            Msg::CouncilReply(agenda) => match lang {
+                Zh => write!(f, "议会答复（{agenda} 定案）"),
+                En => write!(f, "Council reply ({agenda} decided)"),
+            },
+            Msg::Escalate(agenda) => match lang {
+                Zh => write!(f, "提为议题 {agenda}"),
+                En => write!(f, "Escalated to {agenda}"),
+            },
+            Msg::ReplacedBy(issue) => match lang {
+                Zh => write!(f, "被 {issue} 取代"),
+                En => write!(f, "Replaced by {issue}"),
+            },
+            Msg::Replaces(issue) => match lang {
+                Zh => write!(f, "取代 {issue}"),
+                En => write!(f, "Replaces {issue}"),
+            },
+            Msg::After(at) => match lang {
+                Zh => {
+                    span(f, *at, lang)?;
+                    f.write_str("后")
+                }
+                En => {
+                    span(f, *at, lang)?;
+                    f.write_str(" later")
+                }
+            },
+            Msg::WaitDecision(agenda) => match lang {
+                Zh => write!(f, "等待 {agenda} 定案"),
+                En => write!(f, "Waiting for {agenda} to be decided"),
+            },
+            Msg::WaitGuardians => say(f, "等待守护受理", "Waiting for the guardians"),
+            Msg::Waited(at) => {
+                say(f, "已等 ", "waited ")?;
+                span(f, *at, lang)
+            }
+            Msg::InvalidMarker => say(f, "无法读取的标记", "Unreadable marker"),
+            Msg::SessionSeat { kind: k, seat } => {
+                f.write_str(kind(k, lang))?;
+                if let Some(seat) = seat {
+                    write!(f, " · {seat}")?;
+                }
+                Ok(())
+            }
+            Msg::DraftField(field) => f.write_str(match field {
+                DraftField::What => pick(lang, "内容", "What"),
+                DraftField::Where => pick(lang, "位置", "Where"),
+                DraftField::How => pick(lang, "做法", "How"),
+                DraftField::Tradeoff => pick(lang, "取舍", "Trade-off"),
+                DraftField::Category => pick(lang, "分类", "Category"),
+            }),
+            Msg::Lasted(at) => span(f, *at, lang),
+            Msg::FromAgenda(agenda) => match lang {
+                Zh => write!(f, "来自 {agenda}"),
+                En => write!(f, "from {agenda}"),
+            },
+            Msg::NoMarkers => say(f, "这个 issue 上还没有标记", "This issue has no markers yet"),
         }
     }
 }

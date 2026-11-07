@@ -1,9 +1,9 @@
 //! The overview's data: one `resource` per source, each loading, failing
 //! and keeping its last value on its own. A refresh refetches every source
-//! that reads a remote directly; the open escalations follow the Project,
-//! loading again whenever its items load. The sources that read GitHub
-//! wait for its credential (fetched apart on macOS) and load once it is in;
-//! the programs' load at once.
+//! that reads a remote directly; the implementation issues under way
+//! follow the Project, loading their comments again whenever its items
+//! load. The sources that read GitHub wait for its credential (fetched
+//! apart on macOS) and load once it is in; the programs' load at once.
 
 use std::{future::Future, rc::Rc};
 
@@ -14,7 +14,7 @@ use crate::{
     failure::Failure,
     gh::{
         Credential, GitHub,
-        escalations::{self, OpenEscalation},
+        implementations::{self, Implementation},
         project::{self, ProjectItem},
         rate::{self, RateLimit},
     },
@@ -53,7 +53,7 @@ pub struct Sources {
     pub credential: Signal<Option<Credential>>,
     pub project: Source<Vec<ProjectItem>>,
     pub rate: Source<RateLimit>,
-    pub escalations: Source<Vec<OpenEscalation>>,
+    pub implementations: Source<Vec<Implementation>>,
     pub council: ProgramSources,
     pub queue: Source<Vec<QueueEntry>>,
     pub guardians: ProgramSources,
@@ -128,14 +128,14 @@ impl Sources {
             move || github.get(),
             |github| async move { rate::rate_limit(&github).await },
         );
-        let escalations = source_from(
+        let implementations = source_from(
             move || {
                 let github = github.get()?;
                 project.with(|items| {
-                    items.map(|items| (github, escalations::unfinished_implementations(&items.data)))
+                    items.map(|items| (github, implementations::unfinished(&items.data)))
                 })
             },
-            |(github, issues)| async move { escalations::open_escalations(&github, issues).await },
+            |(github, items)| async move { implementations::load(&github, items).await },
         );
         let program = |client: &Rc<ProgramClient>| ProgramSources {
             program: client.program,
@@ -186,7 +186,7 @@ impl Sources {
             credential,
             project,
             rate,
-            escalations,
+            implementations,
             council: program(&council),
             queue,
             guardians: program(&guardians),
@@ -213,4 +213,5 @@ impl Sources {
             self.config_files.refetch();
         });
     }
+
 }

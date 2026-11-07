@@ -15,17 +15,18 @@ that file to the config repository's branch once all of them pass.
 
 Windows at least 900 pt wide show a sidebar: Quorum's name, a search field
 that opens the command bar, the pages with a count each (概览: what needs
-you; 议题: unsettled agenda issues; 会话: running sessions; 运行状况: failed and
-stale bases; 配置: files a program runs an older version of than the
-branch has), and at its foot the two programs with their versions (a Go
-pseudo-version as its 12-digit commit, the full version in its tooltip)
-and what is left of the GitHub API allowance. Narrower windows show the pages
-as tabs in a top bar; there 议题, 会话, 运行状况 and 配置 show their list
-alone, and what is selected opens full width under a 返回 bar instead of in
-an inspector beside the list. Each page opens under a toolbar with its
-title, how long ago its data loaded and a refresh button. ⌘K opens the
-command bar (agenda issues, sessions and commands, picked with ↑↓ and ↵),
-⌘1–⌘5 open the pages and ⌘R refreshes every source.
+you; 议题: unsettled agenda issues; 实现: implementation issues waiting on
+an answer; 会话: running sessions; 运行状况: failed and stale bases; 配置:
+files a program runs an older version of than the branch has), and at its
+foot the two programs with their versions (a Go pseudo-version as its
+12-digit commit, the full version in its tooltip) and what is left of the
+GitHub API allowance. Narrower windows show the pages as tabs in a top
+bar; there 议题, 实现, 会话, 运行状况 and 配置 show their list alone, and
+what is selected opens full width under a 返回 bar instead of in an
+inspector beside the list. Each page opens under a toolbar with its title,
+how long ago its data loaded and a refresh button. ⌘K opens the command
+bar (agenda issues, sessions and commands, picked with ↑↓ and ↵), ⌘1–⌘6
+open the pages and ⌘R refreshes every source.
 
 The pages:
 
@@ -60,10 +61,31 @@ The pages:
   relations the council counts: 可推进 first, then each column waiting on
   the one before; settled issues fold into one line naming their chains.
   Selecting an issue keeps it and the issues next to it bright, dims the
-  rest when it has any, and the inspector shows its round, why it has
-  not started, its prerequisites, what it blocks, the "Blocked by" the
-  council does not count and buttons that open it. Drag pans the graph;
-  the zoom bar, Control + wheel and trackpad pinches zoom it.
+  rest when it has any, and the inspector shows its state, the seat × row
+  votes of its latest draft, why it has not started, its prerequisites,
+  what it blocks, the "Blocked by" the council does not count and buttons
+  that open its detail or GitHub. Drag pans the graph; the zoom bar,
+  Control + wheel and trackpad pinches zoom it.
+- **议题详情** (an agenda issue, opened from the list, the graph, the
+  overview or any link to it; the toolbar's 议题 goes back): its state,
+  number, kind, drafting seat and title; a track of its rounds and
+  revisions, the selected step's seat × row matrix (✓ approve, ✕ oppose,
+  ⊘ veto, ? counterexample, · not yet; a failed session's column hatched;
+  a cell opens the vote's reason, counterexample, citation and
+  classification), each row's result and threshold, a revision's row diff
+  with its reason and the markers the council rejected; its body; the
+  decision (until there is one, why: a panel that failed, was interrupted
+  or waits for a prerequisite, with the error it posted, also ends its
+  step on the track), rulings, its council sessions by round (each
+  expands to its reduced decision log), its prerequisites, what it blocks
+  and the implementation issues it created.
+- **实现** (implementation issues: Project `Kind` implementation), grouped
+  by what they wait on (等答复, 进行中, 待办, 完成), each with its
+  repository, number, parent agenda issue, worker run and how long an open
+  ask has waited. Selecting one shows its body or its marker timeline:
+  worker runs and each ask framed with the guardian's reply, its
+  replacement or its escalation to an agenda issue and the council's
+  answer, the silent gaps between them, and open asks last.
 - **会话** (sessions): the sessions of both programs in one table with
   their count by hour, filtered by state, program and kind and searched by
   issue, model or error. Selecting one shows its facts, its error, and its
@@ -282,18 +304,20 @@ through too), and `SITE_DIR` is served for everything else.
 | `src/lib.rs` | The root component `App` (config, appearance, tokens) and the NSH module |
 | `src/main.rs` | `cargo run`: the macOS window, opened in the config's appearance |
 | `src/config/` | The config files as types (`schema.rs`, `theme.rs`, the design tokens), how each end loads them from bytes, and the git blob sha of each loaded file |
-| `src/gh/` | The GitHub reader: Project items (GraphQL), comments, PM markers, open escalations, rate limit, and the one write (`PUT`) |
+| `src/gh/` | The GitHub reader: Project items (GraphQL), comments, PM markers, implementation issues' comments, rate limit, and the one write (`PUT`) |
 | `src/programs/` | The program reader: health, sessions, session records, bases, rewarm, queue |
 | `src/pmconfig/` | The config repository's branch: its files, opening one, every reader's check of an edited file, the commit, what each program runs against the branch (`mod.rs`); line diffs, top-level sections and key paths to lines (`lines.rs`); the macOS checkout's fetch, distance and pull (`checkout.rs`) |
 | `src/digest.rs` | The decision log: a session record reduced by the `digest` rules (tests over real session files in `tests/fixtures/`) |
 | `src/sources.rs` | One `resource` per source, refreshed together |
 | `src/attention.rs` | What needs a person, in order of consequence, failed sessions grouped by program and kind |
 | `src/dag.rs` | The 「议题」 model: the issue graph, its groups, readiness columns, folded settled issues and filters |
+| `src/detail.rs` | An agenda issue's history (rounds, drafts, votes per seat and row, rulings, decision, its council sessions) and an implementation issue's ask timeline, from their markers |
 | `src/time.rs` | Timestamps, "how long ago", durations and hourly counts |
 | `src/failure.rs` | Why something Quorum asked for did not come: its own reasons as variants (worded by `src/ui/text.rs`), others' words as they are |
 | `src/ui/shell.rs` | The sidebar or top bar, the toolbar, the shortcuts, a list beside its inspector or (narrow) the inspector full width under 返回, and the configuration error |
 | `src/ui/command.rs` | The command bar (⌘K) |
-| `src/ui/overview.rs`, `issues.rs`, `sessions.rs`, `runtime.rs`, `config.rs` | The five pages |
+| `src/ui/overview.rs`, `issues.rs`, `implementations.rs`, `sessions.rs`, `runtime.rs`, `config.rs` | The six pages |
+| `src/ui/agenda.rs` | The agenda detail and the inspector's vote matrix |
 | `src/ui/parts.rs`, `status.rs`, `icons.rs`, `tokens.rs` | The app's own controls, its state words and glyphs, icons, and the theme's tokens as NSH tokens and type roles |
 | `src/ui/text.rs` | Every word the UI shows, in Chinese and English |
 | `src/ui/lang.rs` | Which of the two the UI speaks, and redrawing in a new one |

@@ -134,7 +134,11 @@ pub fn histogram(sessions: &[(Program, Session)], hours: usize, height: Points) 
                             view()
                                 .h(relative((n - f) as f32 / most))
                                 .min_h(len(Space1) / 2.0)
-                                .bg(if n == 0 { color(Ink4).opacity(0.5) } else { color(BorderStrong) }),
+                                .bg(if n == 0 {
+                                    color(Ink4).opacity(0.5)
+                                } else {
+                                    color(BorderStrong)
+                                }),
                         )
                         .child(view().h(relative(f as f32 / most)).bg(Role::Fail.ink()))
                 })),
@@ -186,7 +190,9 @@ impl SessionsState {
         let query = self.query.get().to_lowercase();
         self.state.get().is_none_or(|want| want == session.state)
             && self.program.get().is_none_or(|want| want == program)
-            && self.kind.with(|k| k.as_ref().is_none_or(|want| *want == session.kind))
+            && self
+                .kind
+                .with(|k| k.as_ref().is_none_or(|want| *want == session.kind))
             && (query.is_empty()
                 || [
                     session.id.as_str(),
@@ -229,8 +235,10 @@ pub fn page(sources: Sources, context: Rc<Context>, nav: Nav) -> impl IntoElemen
             return;
         }
         let at = nav.session.with_untracked(|open| {
-            open.as_ref()
-                .and_then(|o| rows.iter().position(|(p, s)| *p == o.program && s.id == o.id))
+            open.as_ref().and_then(|o| {
+                rows.iter()
+                    .position(|(p, s)| *p == o.program && s.id == o.id)
+            })
         });
         let next = match at {
             Some(at) => (at as isize + by).clamp(0, rows.len() as isize - 1) as usize,
@@ -261,7 +269,8 @@ pub fn page(sources: Sources, context: Rc<Context>, nav: Nav) -> impl IntoElemen
                         .child(dynamic(move || {
                             let shown = shown.get();
                             untracked(move || {
-                                histogram(&shown, hours as usize, len(Space8) + len(Space3)).into_element()
+                                histogram(&shown, hours as usize, len(Space8) + len(Space3))
+                                    .into_element()
                             })
                         })),
                 )
@@ -296,7 +305,15 @@ pub fn page(sources: Sources, context: Rc<Context>, nav: Nav) -> impl IntoElemen
 /// the text filter.
 fn filter_bar(recent: Memo<Rc<Vec<(Program, Session)>>>, state: SessionsState) -> View {
     let count = move |want: Option<SessionState>| {
-        move || Some(recent.get().iter().filter(|(_, s)| want.is_none_or(|w| w == s.state)).count())
+        move || {
+            Some(
+                recent
+                    .get()
+                    .iter()
+                    .filter(|(_, s)| want.is_none_or(|w| w == s.state))
+                    .count(),
+            )
+        }
     };
     let segment = |want: Option<SessionState>| {
         Choice::new(
@@ -375,40 +392,42 @@ fn filter_bar(recent: Memo<Rc<Vec<(Program, Session)>>>, state: SessionsState) -
 
 /// The columns' widths: glyph, start, (session), model, duration.
 fn columns() -> [Points; 4] {
-    [len(Space4), len(Space8) * 2.0, len(Space8) * 4.0, len(Space8) * 2.0]
+    [
+        len(Space4),
+        len(Space8) * 2.0,
+        len(Space8) * 4.0,
+        len(Space8) * 2.0,
+    ]
 }
 
 fn table(shown: Memo<Rc<Vec<(Program, Session)>>>, context: Rc<Context>, nav: Nav) -> View {
     let [glyph, start, model, took] = columns();
     let _ = context;
-    view()
-        .flex_1()
-        .min_h(Points::ZERO)
-        .child(
-            scroll().flex_1().child(
-                view()
-                    .child(head_row(vec![
-                        view().w(glyph).into_element(),
-                        th(Msg::Started).w(start).into_element(),
-                        th(Msg::SessionColumn).flex_1().into_element(),
-                        th(Msg::Model).w(model).into_element(),
-                        th(Msg::Duration).w(took).text_right().into_element(),
-                    ]))
-                    .child(dynamic(move || {
-                        let shown = shown.get();
-                        untracked(move || {
-                            if shown.is_empty() {
-                                return empty(Msg::NoSessions).into_element();
-                            }
-                            view()
-                                .children(shown.iter().map(|(program, session)| {
-                                    session_row(*program, session.clone(), nav)
-                                }))
-                                .into_element()
-                        })
-                    })),
-            ),
-        )
+    view().flex_1().min_h(Points::ZERO).child(
+        scroll().flex_1().child(
+            view()
+                .child(head_row(vec![
+                    view().w(glyph).into_element(),
+                    th(Msg::Started).w(start).into_element(),
+                    th(Msg::SessionColumn).flex_1().into_element(),
+                    th(Msg::Model).w(model).into_element(),
+                    th(Msg::Duration).w(took).text_right().into_element(),
+                ]))
+                .child(dynamic(move || {
+                    let shown = shown.get();
+                    untracked(move || {
+                        if shown.is_empty() {
+                            return empty(Msg::NoSessions).into_element();
+                        }
+                        view()
+                            .children(shown.iter().map(|(program, session)| {
+                                session_row(*program, session.clone(), nav)
+                            }))
+                            .into_element()
+                    })
+                })),
+        ),
+    )
 }
 
 fn session_row(program: Program, session: Session, nav: Nav) -> impl IntoElement {
@@ -422,28 +441,58 @@ fn session_row(program: Program, session: Session, nav: Nav) -> impl IntoElement
         move || nav.session.with(|s| s.as_ref() == Some(&open))
     };
     let state = status::session(session.state);
-    row(current, title(&session), move || nav.session.set(Some(open.clone())))
-        .child(view().w(glyph).flex_shrink_0().child(status::glyph(state.glyph, state.role)))
-        .child(mono(time::parse_ms(&session.started_at).map(time::clock).unwrap_or_default()).w(start).flex_shrink_0())
-        .child(
-            view()
-                .flex_row()
-                .items_center()
-                .gap(len(Space2))
-                .flex_1()
-                .min_w(Points::ZERO)
-                .overflow_hidden()
-                .child(small(Msg::Kind(session.kind.clone()).to_string()).flex_shrink_0())
-                .child(text(subject(&session)).ty(Type::Body).flex_shrink(1.0).number_of_lines(1))
-                .children(session.error.as_deref().map(|error| {
-                    error_text(first_line(error).to_owned())
-                        .flex_1()
-                        .min_w(Points::ZERO)
-                        .number_of_lines(1)
-                })),
+    row(current, title(&session), move || {
+        nav.session.set(Some(open.clone()))
+    })
+    .child(
+        view()
+            .w(glyph)
+            .flex_shrink_0()
+            .child(status::glyph(state.glyph, state.role)),
+    )
+    .child(
+        mono(
+            time::parse_ms(&session.started_at)
+                .map(time::clock)
+                .unwrap_or_default(),
         )
-        .child(small(short_model(&session.model)).w(model).flex_shrink_0().number_of_lines(1))
-        .child(mono(duration(&session)).w(took).flex_shrink_0().text_right())
+        .w(start)
+        .flex_shrink_0(),
+    )
+    .child(
+        view()
+            .flex_row()
+            .items_center()
+            .gap(len(Space2))
+            .flex_1()
+            .min_w(Points::ZERO)
+            .overflow_hidden()
+            .child(small(Msg::Kind(session.kind.clone()).to_string()).flex_shrink_0())
+            .child(
+                text(subject(&session))
+                    .ty(Type::Body)
+                    .flex_shrink(1.0)
+                    .number_of_lines(1),
+            )
+            .children(session.error.as_deref().map(|error| {
+                error_text(first_line(error).to_owned())
+                    .flex_1()
+                    .min_w(Points::ZERO)
+                    .number_of_lines(1)
+            })),
+    )
+    .child(
+        small(short_model(&session.model))
+            .w(model)
+            .flex_shrink_0()
+            .number_of_lines(1),
+    )
+    .child(
+        mono(duration(&session))
+            .w(took)
+            .flex_shrink_0()
+            .text_right(),
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -507,7 +556,9 @@ fn inspector(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
                 let context = context.clone();
                 async move {
                     let bytes = context.program(open.program).log(&open.id).await?;
-                    reduce(open, bytes, context.digest.clone()).await.map(Rc::new)
+                    reduce(open, bytes, context.digest.clone())
+                        .await
+                        .map(Rc::new)
                 }
             },
         )
@@ -530,7 +581,9 @@ fn inspector(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
         let only_errors = state.only_errors.get();
         let context = context.clone();
         untracked(move || {
-            let count = current.as_ref().map(|r| (r.log.entries.len(), r.lines.len()));
+            let count = current
+                .as_ref()
+                .map(|r| (r.log.entries.len(), r.lines.len()));
             let content = match (current, error) {
                 (_, Some(error)) if !loading => error_text(Msg::RecordFailed(error).to_string())
                     .selectable(true)
@@ -571,12 +624,21 @@ fn header(open: &OpenSession, session: Option<&Session>, context: &Rc<Context>, 
     let link = s.reference.clone().map(|issue| {
         let context = context.clone();
         let label = Msg::OpenAgenda(super::issues::agenda_of(&context, &issue));
-        action(label, Some(Icon::ArrowRight), Look::Link, || false, move || {
-            context.open_issue(nav, issue.clone())
-        })
+        action(
+            label,
+            Some(Icon::ArrowRight),
+            Look::Link,
+            || false,
+            move || context.open_any(nav, issue.clone()),
+        )
     });
     let at = |text: Option<&str>| text.map(time::seconds).unwrap_or_default();
-    let value = |text: String| mono(text).text_color(color(Foreground)).number_of_lines(1).selectable(true);
+    let value = |text: String| {
+        mono(text)
+            .text_color(color(Foreground))
+            .number_of_lines(1)
+            .selectable(true)
+    };
     view()
         .gap(len(Space3))
         .child(
@@ -599,7 +661,11 @@ fn header(open: &OpenSession, session: Option<&Session>, context: &Rc<Context>, 
                 .child(kv(Msg::Duration, value(duration(s))))
                 .child(kv(Msg::Started, value(at(Some(&s.started_at)))))
                 .child(kv(Msg::Ended, value(at(s.ended_at.as_deref()))))
-                .children(s.parent.clone().map(|parent| kv(Msg::ForkedFrom, value(parent))))
+                .children(
+                    s.parent
+                        .clone()
+                        .map(|parent| kv(Msg::ForkedFrom, value(parent))),
+                )
                 .child(kv(Msg::SessionColumn, value(s.id.clone()))),
         )
 }
@@ -635,10 +701,14 @@ fn error_callout(session: &Session) -> View {
                         .selectable(true),
                 )
                 .child(
-                    small(if rest.is_empty() { Msg::SessionEnded.to_string() } else { rest })
-                        .text_color(Role::Fail.text())
-                        .number_of_lines(3)
-                        .selectable(true),
+                    small(if rest.is_empty() {
+                        Msg::SessionEnded.to_string()
+                    } else {
+                        rest
+                    })
+                    .text_color(Role::Fail.text())
+                    .number_of_lines(3)
+                    .selectable(true),
                 ),
         )
 }
@@ -653,9 +723,9 @@ fn log_head(state: SessionsState, count: Option<(usize, usize)>) -> View {
         .border_b_1()
         .border_b_color(color(Border))
         .child(text(SharedString::from(Msg::DecisionLog)).ty(Type::Heading))
-        .children(count.map(|(entries, lines)| {
-            small(Msg::LogCounts { entries, lines }.to_string())
-        }))
+        .children(
+            count.map(|(entries, lines)| small(Msg::LogCounts { entries, lines }.to_string())),
+        )
         .child(view().flex_1())
         .child(
             button()
@@ -668,15 +738,33 @@ fn log_head(state: SessionsState, count: Option<(usize, usize)>) -> View {
                 .rounded_full()
                 .border_1()
                 .border_color(move || {
-                    if state.only_errors.get() { color(Selection) } else { color(Input) }
+                    if state.only_errors.get() {
+                        color(Selection)
+                    } else {
+                        color(Input)
+                    }
                 })
-                .bg(move || if state.only_errors.get() { color(Selected) } else { clear() })
+                .bg(move || {
+                    if state.only_errors.get() {
+                        color(Selected)
+                    } else {
+                        clear()
+                    }
+                })
                 .cursor_pointer()
                 .child(text(SharedString::from(Msg::OnlyErrors)).ty(Type::Label)),
         )
         .child(segmented(vec![
-            Choice::new(Msg::Compact, move || !state.json.get(), move || state.json.set(false)),
-            Choice::new(Msg::Json, move || state.json.get(), move || state.json.set(true)),
+            Choice::new(
+                Msg::Compact,
+                move || !state.json.get(),
+                move || state.json.set(false),
+            ),
+            Choice::new(
+                Msg::Json,
+                move || state.json.get(),
+                move || state.json.set(true),
+            ),
         ]))
 }
 
@@ -729,13 +817,26 @@ fn abnormal(line: &Line<'_>) -> bool {
 }
 
 fn decision_log(record: &Record, only_errors: bool) -> AnyElement {
-    let log = &record.log;
+    scroll()
+        .flex_1()
+        .child(log_body(&record.log, only_errors))
+        .into_element()
+}
+
+/// The log's notes and lines, `only_errors` keeping the abnormal ones.
+fn log_body(log: &DecisionLog, only_errors: bool) -> View {
     let mut notes: Vec<AnyElement> = Vec::new();
     if let Some(cut) = log.truncated {
         notes.push(
-            small(Msg::Truncated { total: cut.total, kept: cut.total - cut.skipped }.to_string())
-                .text_color(Role::Warn.text())
-                .into_element(),
+            small(
+                Msg::Truncated {
+                    total: cut.total,
+                    kept: cut.total - cut.skipped,
+                }
+                .to_string(),
+            )
+            .text_color(Role::Warn.text())
+            .into_element(),
         );
     }
     if log.unreadable > 0 {
@@ -746,19 +847,41 @@ fn decision_log(record: &Record, only_errors: bool) -> AnyElement {
         .filter(|line| !only_errors || abnormal(line))
         .map(log_line)
         .collect();
-    scroll()
-        .flex_1()
-        .child(
-            view()
-                .pb(len(Space4))
-                .children(notes)
-                .children(if shown.is_empty() {
-                    vec![empty(Msg::NothingAbnormal).into_element()]
-                } else {
-                    shown
-                }),
-        )
-        .into_element()
+    view()
+        .pb(len(Space4))
+        .children(notes)
+        .children(if shown.is_empty() {
+            vec![empty(Msg::NothingAbnormal).into_element()]
+        } else {
+            shown
+        })
+}
+
+/// A session's decision log in place, as the 「会话」 page reduces it
+/// (#4: the agenda detail's sessions): fetched and parsed when it shows.
+pub fn session_log(context: Rc<Context>, open: OpenSession) -> View {
+    let record = resource(
+        move || Some(open.clone()),
+        move |open: OpenSession, _| {
+            let context = context.clone();
+            async move {
+                let bytes = context.program(open.program).log(&open.id).await?;
+                reduce(open, bytes, context.digest.clone())
+                    .await
+                    .map(Rc::new)
+            }
+        },
+    );
+    view().child(dynamic(move || {
+        let current = record.with(|r| r.cloned());
+        match (current, record.error()) {
+            (_, Some(error)) => error_text(Msg::RecordFailed(error).to_string())
+                .selectable(true)
+                .into_element(),
+            (Some(record), None) => log_body(&record.log, false).into_element(),
+            (None, None) => small(SharedString::from(Msg::Parsing)).into_element(),
+        }
+    }))
 }
 
 fn clock_of(at: &str) -> String {
@@ -831,14 +954,21 @@ fn log_row(
                 .gap(len(Space3))
                 .h(len(RowLog))
                 .px(len(Space2))
-                .when(has_more, |b| b.cursor_pointer().hover(|s| s.bg(color(Accent))))
+                .when(has_more, |b| {
+                    b.cursor_pointer().hover(|s| s.bg(color(Accent)))
+                })
                 .child(mono(at).text_color(color(Ink3)).w(len(Space8) * 2.0))
                 .child(icon(lead, move || role.map_or(color(Ink3), Role::text)))
                 .child(
                     text(what)
-                        .ty(if mono_what { Type::Mono } else { Type::BodyStrong })
+                        .ty(if mono_what {
+                            Type::Mono
+                        } else {
+                            Type::BodyStrong
+                        })
                         .text_color(ink)
-                        .flex_shrink_0()
+                        .flex_shrink(1.0)
+                        .min_w(Points::ZERO)
                         .number_of_lines(1),
                 )
                 .child(
@@ -849,7 +979,7 @@ fn log_row(
                         .min_w(Points::ZERO)
                         .number_of_lines(1),
                 )
-                .child(small(right)),
+                .child(small(right).flex_shrink_0()),
         )
         .child(dynamic(move || match (&more, open.get()) {
             (Some(more), true) => untracked(|| {
@@ -933,7 +1063,16 @@ fn log_line(line: Line<'_>) -> AnyElement {
         ),
         DigestItem::AssistantText(t) => {
             let c = Body::Text(t.clone());
-            log_row(at, Icon::Message, Msg::Assistant.to_string(), one_line(&c), String::new(), None, false, content(&c))
+            log_row(
+                at,
+                Icon::Message,
+                Msg::Assistant.to_string(),
+                one_line(&c),
+                String::new(),
+                None,
+                false,
+                content(&c),
+            )
         }
         DigestItem::ToolCall { name, args, result } => {
             let took = result
@@ -957,7 +1096,11 @@ fn log_line(line: Line<'_>) -> AnyElement {
                         .child(small(SharedString::from(Msg::Arguments)))
                         .child(json_tree(None, &args_, 0))
                         .children(result_.as_ref().map(|r| {
-                            small(SharedString::from(if r.is_error { Msg::ToolFailed } else { Msg::Result }))
+                            small(SharedString::from(if r.is_error {
+                                Msg::ToolFailed
+                            } else {
+                                Msg::Result
+                            }))
                         }))
                         .children(result_.as_ref().map(|r| body(&r.body)))
                         .into_element()
@@ -984,7 +1127,9 @@ fn log_line(line: Line<'_>) -> AnyElement {
                 String::new(),
                 Some(Role::Fail),
                 true,
-                Some(Rc::new(move || error_text(e.clone()).selectable(true).into_element())),
+                Some(Rc::new(move || {
+                    error_text(e.clone()).selectable(true).into_element()
+                })),
             )
         }
         DigestItem::Retry { attempt, error, .. } => log_row(
@@ -1055,7 +1200,10 @@ fn json_tree(key: Option<String>, value: &Value, depth: usize) -> View {
         _ => "{…}",
     };
     let children: Vec<(Option<String>, Value)> = match value {
-        Value::Object(fields) => fields.iter().map(|(k, v)| (Some(k.clone()), v.clone())).collect(),
+        Value::Object(fields) => fields
+            .iter()
+            .map(|(k, v)| (Some(k.clone()), v.clone()))
+            .collect(),
         Value::Array(values) => values
             .iter()
             .enumerate()
@@ -1074,8 +1222,15 @@ fn json_tree(key: Option<String>, value: &Value, depth: usize) -> View {
                 .gap(len(Space1))
                 .cursor_pointer()
                 .child(dynamic(move || {
-                    icon(if open.get() { Icon::ChevronDown } else { Icon::ChevronRight }, || color(Ink3))
-                        .into_element()
+                    icon(
+                        if open.get() {
+                            Icon::ChevronDown
+                        } else {
+                            Icon::ChevronRight
+                        },
+                        || color(Ink3),
+                    )
+                    .into_element()
                 }))
                 .children(name)
                 .child(mono(brackets).text_color(color(Ink3)))
@@ -1093,7 +1248,11 @@ fn json_tree(key: Option<String>, value: &Value, depth: usize) -> View {
                     .ml(len(Space1))
                     .border_l_1()
                     .border_l_color(color(Border))
-                    .children(children.iter().map(|(k, v)| json_tree(k.clone(), v, depth + 1)))
+                    .children(
+                        children
+                            .iter()
+                            .map(|(k, v)| json_tree(k.clone(), v, depth + 1)),
+                    )
                     .into_element()
             })
         }))
@@ -1114,7 +1273,11 @@ fn raw_lines(record: Rc<Record>) -> AnyElement {
             .py(len(Space1))
             .border_b_1()
             .border_b_color(color(Border))
-            .child(mono(move || (at.index() + 1).to_string()).text_color(color(Ink3)).w(len(Space6)))
+            .child(
+                mono(move || (at.index() + 1).to_string())
+                    .text_color(color(Ink3))
+                    .w(len(Space6)),
+            )
             .child(mono(line).number_of_lines(4).flex_1().selectable(true))
     })
     .estimated_item_size(len(Row))

@@ -38,14 +38,16 @@ use crate::{
 pub fn page(sources: Sources, context: Rc<Context>, nav: Nav) -> impl IntoElement {
     let below = context.clone();
     scroll().flex_1().child(
-        when(rail_beside, move || columns(sources, context.clone(), nav, true))
-            .otherwise(move || columns(sources, below.clone(), nav, false)),
+        when(rail_beside, move || {
+            columns(sources, context.clone(), nav, true)
+        })
+        .otherwise(move || columns(sources, below.clone(), nav, false)),
     )
 }
 
 /// Whether the rail fits beside the main column: the sidebar, a main
 /// column one and a half inspectors wide, the rail and the page's gaps.
-fn rail_beside() -> bool {
+pub(super) fn rail_beside() -> bool {
     window().width >= len(SidebarWidth) + len(InspectorWidth) * 2.5 + len(Space8) * 3.0
 }
 
@@ -89,7 +91,9 @@ fn status_sentence(sources: Sources, context: Rc<Context>) -> View {
             let council = !sources.council.health.with_error(|e| e.is_some());
             let guardians = !sources.guardians.health.with_error(|e| e.is_some());
             let state = status::program(council && guardians);
-            status::glyph(state.glyph, state.role).mt(len(Space1) / 2.0).into_element()
+            status::glyph(state.glyph, state.role)
+                .mt(len(Space1) / 2.0)
+                .into_element()
         }))
         .child(dynamic(move || {
             let council = !sources.council.health.with_error(|e| e.is_some());
@@ -247,7 +251,11 @@ fn need_row(need: Need, sources: Sources, context: Rc<Context>, nav: Nav) -> Any
                 .cursor_pointer()
                 .child(dynamic(move || {
                     icon(
-                        if open.get() { Icon::ChevronDown } else { Icon::ChevronRight },
+                        if open.get() {
+                            Icon::ChevronDown
+                        } else {
+                            Icon::ChevronRight
+                        },
                         || color(Ink3),
                     )
                     .into_element()
@@ -283,7 +291,11 @@ fn need_row(need: Need, sources: Sources, context: Rc<Context>, nav: Nav) -> Any
                         .gap(len(Space2))
                         .min_w(Points::ZERO)
                         .children(line.meta.into_iter().map(|item| {
-                            view().flex_shrink(1.0).min_w(Points::ZERO).overflow_hidden().child(item)
+                            view()
+                                .flex_shrink(1.0)
+                                .min_w(Points::ZERO)
+                                .overflow_hidden()
+                                .child(item)
                         })),
                 ),
         )
@@ -318,7 +330,11 @@ fn spark(counts: Vec<u32>) -> View {
             view()
                 .w(len(Space1) / 2.0)
                 .h(relative(if n == 0 { 0.08 } else { n as f32 / most }))
-                .bg(if n == 0 { color(Ink4) } else { Role::Fail.ink() })
+                .bg(if n == 0 {
+                    color(Ink4)
+                } else {
+                    Role::Fail.ink()
+                })
         }))
 }
 
@@ -329,7 +345,12 @@ fn causes(group: &SessionGroup, context: &Context, now: Signal<f64>) -> View {
         .pl(len(Space8) + len(Space4))
         .pr(len(Space4))
         .pb(len(Space3))
-        .children(group.causes.iter().map(|cause| cause_row(cause, context, now)))
+        .children(
+            group
+                .causes
+                .iter()
+                .map(|cause| cause_row(cause, context, now)),
+        )
 }
 
 fn cause_row(cause: &Cause, context: &Context, now: Signal<f64>) -> View {
@@ -347,9 +368,29 @@ fn cause_row(cause: &Cause, context: &Context, now: Signal<f64>) -> View {
         .h(len(RowLog))
         .border_t_1()
         .border_t_color(color(Border))
-        .child(mono(cause.line.clone()).text_color(color(Foreground)).flex_1().min_w(Points::ZERO).number_of_lines(1))
-        .child(mono(Msg::Times(cause.count).to_string()).w(len(Space8)))
-        .child(small(about).w(len(InspectorWidth) / 2.0).number_of_lines(1))
+        // The error line takes the room left (its own width first); the
+        // issues give way before it, so an ellipsis cuts it only when
+        // even that is too little.
+        .child(
+            mono(cause.line.clone())
+                .text_color(color(Foreground))
+                .flex_grow(1.0)
+                .flex_shrink(1.0)
+                .min_w(Points::ZERO)
+                .number_of_lines(1),
+        )
+        .child(
+            mono(Msg::Times(cause.count).to_string())
+                .w(len(Space8))
+                .flex_shrink_0(),
+        )
+        .child(
+            small(about)
+                .max_w(len(InspectorWidth) / 2.0)
+                .flex_shrink(4.0)
+                .min_w(Points::ZERO)
+                .number_of_lines(1),
+        )
         .child(small(move || {
             at.map(|at| SharedString::from(Msg::Ago(time::ago(at, now.get()))))
                 .unwrap_or_default()
@@ -362,18 +403,23 @@ fn line_of(need: &Need, context: &Context) -> Line {
     match need {
         Need::One(Concern::AgendaFailed(entry)) => {
             let note = entry.notes.first().map(|n| first_line(n).to_owned());
-            let title = context
-                .all_issues
-                .get_untracked()
-                .and_then(|g| g.nodes.iter().find(|n| n.issue == entry.reference).map(|n| n.title.clone()));
+            let title = context.all_issues.get_untracked().and_then(|g| {
+                g.nodes
+                    .iter()
+                    .find(|n| n.issue == entry.reference)
+                    .map(|n| n.title.clone())
+            });
             Line {
                 status: status::queue(entry.state),
                 title: Msg::AgendaFailed(agenda(context, &entry.reference)).to_string(),
                 count: None,
-                meta: [title.map(|t| small(t).number_of_lines(1).into_element()), note.map(|n| mono(n).number_of_lines(1).into_element())]
-                    .into_iter()
-                    .flatten()
-                    .collect(),
+                meta: [
+                    title.map(|t| small(t).number_of_lines(1).into_element()),
+                    note.map(|n| mono(n).number_of_lines(1).into_element()),
+                ]
+                .into_iter()
+                .flatten()
+                .collect(),
                 at,
             }
         }
@@ -396,9 +442,11 @@ fn line_of(need: &Need, context: &Context) -> Line {
             status: status::base(BaseState::Failed),
             title: Msg::BaseFailedTitle(base_name(base)).to_string(),
             count: None,
-            meta: vec![error_text(first_line(base.error.as_deref().unwrap_or_default()).to_owned())
-                .number_of_lines(1)
-                .into_element()],
+            meta: vec![
+                error_text(first_line(base.error.as_deref().unwrap_or_default()).to_owned())
+                    .number_of_lines(1)
+                    .into_element(),
+            ],
             at,
         },
         Need::Sessions(group) if group.sessions.len() == 1 => {
@@ -418,7 +466,9 @@ fn line_of(need: &Need, context: &Context) -> Line {
                         .number_of_lines(1)
                         .into_element(),
                     sep(),
-                    mono(session.model.clone()).number_of_lines(1).into_element(),
+                    mono(session.model.clone())
+                        .number_of_lines(1)
+                        .into_element(),
                 ],
                 at,
             }
@@ -441,7 +491,9 @@ fn line_of(need: &Need, context: &Context) -> Line {
                 meta: vec![
                     small(issues).into_element(),
                     sep(),
-                    mono(group.models().join(", ")).number_of_lines(1).into_element(),
+                    mono(group.models().join(", "))
+                        .number_of_lines(1)
+                        .into_element(),
                 ],
                 at,
             }
@@ -457,7 +509,12 @@ fn line_of(need: &Need, context: &Context) -> Line {
             status: status::escalated(),
             title: Msg::EscalationTitle(agenda(context, &escalation.agenda)).to_string(),
             count: None,
-            meta: vec![small(Msg::EscalationFrom(escalation.issue.to_string(), escalation.ask).to_string()).into_element()],
+            meta: vec![
+                small(
+                    Msg::EscalationFrom(escalation.issue.to_string(), escalation.ask).to_string(),
+                )
+                .into_element(),
+            ],
             at,
         },
         Need::One(Concern::BaseStale(base)) => Line {
@@ -465,7 +522,9 @@ fn line_of(need: &Need, context: &Context) -> Line {
             title: Msg::BaseStaleTitle(base_name(base)).to_string(),
             count: None,
             meta: vec![
-                mono(base.stale_reason.clone()).number_of_lines(1).into_element(),
+                mono(base.stale_reason.clone())
+                    .number_of_lines(1)
+                    .into_element(),
                 sep(),
                 small(
                     base.warmed_at
@@ -482,15 +541,17 @@ fn line_of(need: &Need, context: &Context) -> Line {
             status: status::rate_low(),
             title: Msg::RateLowTitle(*api).to_string(),
             count: None,
-            meta: vec![small(
-                Msg::RateLeft {
-                    remaining: bucket.remaining,
-                    limit: bucket.limit,
-                    reset: time::hm(bucket.reset as f64 * 1000.0),
-                }
-                .to_string(),
-            )
-            .into_element()],
+            meta: vec![
+                small(
+                    Msg::RateLeft {
+                        remaining: bucket.remaining,
+                        limit: bucket.limit,
+                        reset: time::hm(bucket.reset as f64 * 1000.0),
+                    }
+                    .to_string(),
+                )
+                .into_element(),
+            ],
             at,
         },
     }
@@ -500,7 +561,7 @@ fn line_of(need: &Need, context: &Context) -> Line {
 fn need_action(need: &Need, sources: Sources, context: Rc<Context>, nav: Nav) -> AnyElement {
     let open_issue = |issue: IssueRef, look: Look, label: Msg| {
         let context = context.clone();
-        press(label, look, move || context.open_issue(nav, issue.clone())).into_element()
+        press(label, look, move || context.open_detail(nav, issue.clone())).into_element()
     };
     match need {
         Need::One(Concern::AgendaFailed(entry)) => {
@@ -521,17 +582,24 @@ fn need_action(need: &Need, sources: Sources, context: Rc<Context>, nav: Nav) ->
                 program: group.program,
                 id: group.sessions[0].id.clone(),
             };
-            press(Msg::ViewSession, Look::Plain, move || nav.open_session(open.clone())).into_element()
+            press(Msg::ViewSession, Look::Plain, move || {
+                nav.open_session(open.clone())
+            })
+            .into_element()
         }
         Need::Sessions(group) => {
             let (program, kind) = (group.program, group.kind.clone());
             let sessions = context.sessions;
-            press(Msg::ViewSessions(group.sessions.len()), Look::Plain, move || {
-                batch(|| {
-                    sessions.focus_failed(program, kind.clone());
-                    nav.page.set(Page::Sessions);
-                })
-            })
+            press(
+                Msg::ViewSessions(group.sessions.len()),
+                Look::Plain,
+                move || {
+                    batch(|| {
+                        sessions.focus_failed(program, kind.clone());
+                        nav.page.set(Page::Sessions);
+                    })
+                },
+            )
             .into_element()
         }
         Need::One(Concern::SessionFailed { program, session }) => {
@@ -539,7 +607,10 @@ fn need_action(need: &Need, sources: Sources, context: Rc<Context>, nav: Nav) ->
                 program: *program,
                 id: session.id.clone(),
             };
-            press(Msg::ViewSession, Look::Plain, move || nav.open_session(open.clone())).into_element()
+            press(Msg::ViewSession, Look::Plain, move || {
+                nav.open_session(open.clone())
+            })
+            .into_element()
         }
         Need::One(Concern::EscalationOpen(escalation)) => open_issue(
             escalation.agenda.clone(),
@@ -561,14 +632,20 @@ fn queue_section(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
                 .all_issues
                 .get()
                 .map(|g| {
-                    SharedString::from(Msg::OpenCount(g.nodes.iter().filter(|n| !n.state.closed()).count()))
+                    SharedString::from(Msg::OpenCount(
+                        g.nodes.iter().filter(|n| !n.state.closed()).count(),
+                    ))
                 })
                 .unwrap_or_default()
         }
     };
-    let link = action(Msg::AllIssues, Some(Icon::ArrowRight), Look::Link, || false, move || {
-        nav.page.set(Page::Issues)
-    })
+    let link = action(
+        Msg::AllIssues,
+        Some(Icon::ArrowRight),
+        Look::Link,
+        || false,
+        move || nav.page.set(Page::Issues),
+    )
     .into_element();
     view()
         .gap(len(Space2))
@@ -584,8 +661,9 @@ fn queue_section(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
                     let now = context.now;
                     let context = context.clone();
                     untracked(move || {
-                        let open: Vec<usize> =
-                            (0..graph.nodes.len()).filter(|&i| !graph.nodes[i].state.closed()).collect();
+                        let open: Vec<usize> = (0..graph.nodes.len())
+                            .filter(|&i| !graph.nodes[i].state.closed())
+                            .collect();
                         if open.is_empty() {
                             return super::parts::empty(Msg::QueueEmpty).into_element();
                         }
@@ -595,18 +673,22 @@ fn queue_section(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
                         view()
                             .children(open.into_iter().map(|i| {
                                 let node = graph.nodes[i].clone();
-                                let state = status::node(&node.state, &context.issues_settings.fields);
+                                let state =
+                                    status::node(&node.state, &context.issues_settings.fields);
                                 let issue = node.issue.clone();
                                 let context2 = context.clone();
                                 let updated = time::parse_ms(&node.updated_at);
-                                row(|| false, node.title.clone(), move || {
-                                    context2.open_issue(nav, issue.clone())
-                                })
-                                .child(status::glyph(state.glyph, state.role))
-                                .child(
-                                    small(node.agenda.clone().unwrap_or_default())
-                                        .w(len(Space8) + len(Space2)),
+                                row(
+                                    || false,
+                                    node.title.clone(),
+                                    move || context2.open_detail(nav, issue.clone()),
                                 )
+                                .child(status::glyph(state.glyph, state.role))
+                                .child(small(node.agenda.clone().unwrap_or_default()).w(len(
+                                    Space8,
+                                ) + len(
+                                    Space2,
+                                )))
                                 .child(
                                     view()
                                         .flex_row()
@@ -615,7 +697,12 @@ fn queue_section(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
                                         .flex_1()
                                         .min_w(Points::ZERO)
                                         .overflow_hidden()
-                                        .child(text(node.title.clone()).ty(Type::Body).flex_shrink(1.0).number_of_lines(1))
+                                        .child(
+                                            text(node.title.clone())
+                                                .ty(Type::Body)
+                                                .flex_shrink(1.0)
+                                                .number_of_lines(1),
+                                        )
                                         .children(issues::human_tag(&node)),
                                 )
                                 .child(view().w(progress_w).flex_shrink_0().overflow_hidden().child(progress(&graph, i)))
@@ -638,8 +725,14 @@ fn queue_section(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
 // The rail
 
 fn rail_link(nav: Nav, page: Page) -> AnyElement {
-    action(Msg::View, Some(Icon::ArrowRight), Look::Link, || false, move || nav.page.set(page))
-        .into_element()
+    action(
+        Msg::View,
+        Some(Icon::ArrowRight),
+        Look::Link,
+        || false,
+        move || nav.page.set(page),
+    )
+    .into_element()
 }
 
 fn programs_panel(sources: Sources, context: Rc<Context>) -> View {
@@ -667,25 +760,37 @@ fn program_row(sources: Sources, program: ProgramSources, context: Rc<Context>) 
             let state = status::program(!failed);
             status::glyph(state.glyph, state.role).into_element()
         }))
-        .child(text(SharedString::from(Msg::Program(program.program))).ty(Type::BodyStrong).flex_shrink_0())
-        .child(small(move || {
-            let failed = program.health.with_error(|e| e.is_some());
-            let up = program
-                .health
-                .with(|l| l.and_then(|l| time::parse_ms(&l.data.started_at)))
-                .map(|at| time::ago(at, now.get()));
-            let work = match program.program {
-                Program::Council => Msg::Deliberating(sources.queue.with(|q| {
-                    q.map(|q| q.data.iter().filter(|e| e.state == QueueState::Deliberating).count())
-                })),
-                Program::Guardians => Msg::AsksRunning(running_asks(program)),
-            };
-            SharedString::from(Msg::ProgramLine {
-                online: !failed,
-                up,
-                work: Box::new(work),
+        .child(
+            text(SharedString::from(Msg::Program(program.program)))
+                .ty(Type::BodyStrong)
+                .flex_shrink_0(),
+        )
+        .child(
+            small(move || {
+                let failed = program.health.with_error(|e| e.is_some());
+                let up = program
+                    .health
+                    .with(|l| l.and_then(|l| time::parse_ms(&l.data.started_at)))
+                    .map(|at| time::ago(at, now.get()));
+                let work = match program.program {
+                    Program::Council => Msg::Deliberating(sources.queue.with(|q| {
+                        q.map(|q| {
+                            q.data
+                                .iter()
+                                .filter(|e| e.state == QueueState::Deliberating)
+                                .count()
+                        })
+                    })),
+                    Program::Guardians => Msg::AsksRunning(running_asks(program)),
+                };
+                SharedString::from(Msg::ProgramLine {
+                    online: !failed,
+                    up,
+                    work: Box::new(work),
+                })
             })
-        }).flex_shrink_0())
+            .flex_shrink_0(),
+        )
         .child(dynamic(move || {
             match program.health.with(|l| l.map(|l| (l.data.short_version().to_owned(), l.data.version.clone()))) {
                 Some((short, full)) => {
@@ -711,7 +816,11 @@ pub fn running_asks(guardians: ProgramSources) -> Option<usize> {
 fn sessions_panel(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
     let hours = context.hours();
     panel()
-        .child(panel_head(Msg::PageSessions, SharedString::from(Msg::Hours(hours)), vec![rail_link(nav, Page::Sessions)]))
+        .child(panel_head(
+            Msg::PageSessions,
+            SharedString::from(Msg::Hours(hours)),
+            vec![rail_link(nav, Page::Sessions)],
+        ))
         .child(source_bar(sources.council.sessions, 0))
         .child(source_bar(sources.guardians.sessions, 0))
         .child(dynamic(move || {
@@ -741,10 +850,22 @@ fn sessions_panel(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
                         view()
                             .flex_row()
                             .child(figure(recent.len(), Msg::Total, None))
-                            .child(figure(count(SessionState::Running), Msg::Session(SessionState::Running), None))
-                            .child(figure(failed, Msg::Session(SessionState::Failed), (failed > 0).then_some(Role::Fail))),
+                            .child(figure(
+                                count(SessionState::Running),
+                                Msg::Session(SessionState::Running),
+                                None,
+                            ))
+                            .child(figure(
+                                failed,
+                                Msg::Session(SessionState::Failed),
+                                (failed > 0).then_some(Role::Fail),
+                            )),
                     )
-                    .child(histogram(&recent, hours as usize, len(Space8) + len(Space4)))
+                    .child(histogram(
+                        &recent,
+                        hours as usize,
+                        len(Space8) + len(Space4),
+                    ))
                     .into_element()
             })
         }))
@@ -756,7 +877,11 @@ fn bases_panel(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
             .bases
             .with(|b| {
                 b.map(|b| {
-                    let ready = b.data.iter().filter(|b| b.state == BaseState::Ready).count();
+                    let ready = b
+                        .data
+                        .iter()
+                        .filter(|b| b.state == BaseState::Ready)
+                        .count();
                     let stale = b.data.iter().filter(|b| b.stale).count();
                     SharedString::from(Msg::BasesNote {
                         ready,
@@ -768,7 +893,11 @@ fn bases_panel(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
             .unwrap_or_default()
     };
     panel()
-        .child(panel_head(Msg::Bases, note, vec![rail_link(nav, Page::Runtime)]))
+        .child(panel_head(
+            Msg::Bases,
+            note,
+            vec![rail_link(nav, Page::Runtime)],
+        ))
         .child(source_bar(sources.bases, 3))
         .child(dynamic(move || {
             let Some(bases) = sources.bases.get().map(|l| l.data) else {
@@ -781,7 +910,11 @@ fn bases_panel(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
                 }
                 view()
                     .children(bases.into_iter().map(|base| {
-                        let state = if base.stale { status::stale() } else { status::base(base.state) };
+                        let state = if base.stale {
+                            status::stale()
+                        } else {
+                            status::base(base.state)
+                        };
                         let warmed = base.warmed_at.as_deref().and_then(time::parse_ms);
                         view()
                             .flex_row()
@@ -798,17 +931,21 @@ fn bases_panel(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
                                     .number_of_lines(1),
                             )
                             .child(
-                                small(Msg::ModelNote {
-                                    model: super::runtime::short_model(&base.model),
-                                    stale: base.stale,
-                                }
-                                .to_string())
+                                small(
+                                    Msg::ModelNote {
+                                        model: super::runtime::short_model(&base.model),
+                                        stale: base.stale,
+                                    }
+                                    .to_string(),
+                                )
                                 .flex_1()
                                 .number_of_lines(1),
                             )
                             .child(small(move || {
                                 warmed
-                                    .map(|at| SharedString::from(Msg::Ago(time::ago(at, now.get()))))
+                                    .map(|at| {
+                                        SharedString::from(Msg::Ago(time::ago(at, now.get())))
+                                    })
                                     .unwrap_or_default()
                             }))
                             .into_element()
@@ -846,7 +983,12 @@ fn errors_panel(sources: Sources, context: Rc<Context>) -> View {
     panel()
         .child(panel_head(
             Msg::SessionErrors,
-            move || SharedString::from(Msg::ErrorsNote { hours, sessions: errors().1 }),
+            move || {
+                SharedString::from(Msg::ErrorsNote {
+                    hours,
+                    sessions: errors().1,
+                })
+            },
             Vec::new(),
         ))
         .child(dynamic(move || {
@@ -865,8 +1007,18 @@ fn errors_panel(sources: Sources, context: Rc<Context>) -> View {
                             .gap(len(Space3))
                             .h(len(RowLog))
                             .px(len(Space4))
-                            .child(mono(line).text_color(color(Foreground)).flex_1().min_w(Points::ZERO).number_of_lines(1))
-                            .child(view().w(len(Space8) * 2.0).child(meter(n as f32 / most, color(Ink3))))
+                            .child(
+                                mono(line)
+                                    .text_color(color(Foreground))
+                                    .flex_1()
+                                    .min_w(Points::ZERO)
+                                    .number_of_lines(1),
+                            )
+                            .child(
+                                view()
+                                    .w(len(Space8) * 2.0)
+                                    .child(meter(n as f32 / most, color(Ink3))),
+                            )
                             .child(small(n.to_string()).w(len(Space5)).text_right())
                             .into_element()
                     }))
