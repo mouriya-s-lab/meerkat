@@ -1,12 +1,15 @@
 # Serves the dashboard's web build and, on the same origin, the GitHub API
 # and the two programs it reads. The browser holds no credential: the
 # GitHub token comes from this process's environment. That token may be able
-# to write, so /gh/* passes only reads and answers every write with 403.
+# to write, so /gh/* passes reads, passes one kind of write (a PUT of a single
+# file in the config repo), and answers every other write with 403.
 #
 # Environment:
 #   LISTEN         address to listen on, e.g. :8088
 #   SITE_DIR       the web build (`nsh package --target web` output)
 #   GH_TOKEN       token sent to the GitHub API (may be able to write)
+#   CONFIG_REPO    the config repo whose files the web build may save, e.g.
+#                  oh-my-omp/pm-config; unset: no write is passed
 #   COUNCIL_URL    the council daemon, e.g. http://127.0.0.1:7421
 #   GUARDIANS_URL  the guardians program, e.g. http://127.0.0.1:7410
 {
@@ -14,16 +17,30 @@
 	auto_https off
 }
 
+# The one write /gh/* passes: PUT of a single file under CONFIG_REPO's contents.
+# An unset CONFIG_REPO expands to "", which would let the path match
+# /repos//contents/...; the leading guard keeps the matcher empty then.
+# Path hygiene: no "..", "%", "//" or backslash in the decoded path.
+(configWriteMatch) {
+	method PUT
+	path /repos/{$CONFIG_REPO}/contents/*
+	expression `"{$CONFIG_REPO}" != "" && !({http.request.uri.path}.contains("..") || {http.request.uri.path}.contains("%") || {http.request.uri.path}.contains("//") || {http.request.uri.path}.contains("\\"))`
+}
+
 {$LISTEN} {
 	handle_path /gh/* {
-		# Only reads go upstream. REST: GET and HEAD. GraphQL: POST /graphql
-		# whose body names no mutation and has no \u escape (an escaped
-		# "mutation" would otherwise pass the text check). Anything else: 403.
+		# Reads go upstream. REST: GET and HEAD. GraphQL: POST /graphql whose
+		# body names no mutation and has no \u escape (an escaped "mutation"
+		# would otherwise pass the text check). Config writes go upstream too
+		# (configWriteMatch). Anything else: 403.
 		@ghWrite {
 			not method GET HEAD
 			not {
 				method POST
 				path /graphql
+			}
+			not {
+				import configWriteMatch
 			}
 		}
 		respond @ghWrite 403
