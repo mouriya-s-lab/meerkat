@@ -1317,11 +1317,16 @@ mod tests {
 
     #[test]
     fn the_programs_line_tells_the_queue_only_when_it_answered() {
-        let line = |council, guardians, queue| Msg::ProgramsLine { council, guardians, queue }.to_string();
-        assert_eq!(line(true, true, Some(QueueMotion::Moving)), "。议会与守护在线，议会队列在推进；");
-        assert_eq!(line(true, true, Some(QueueMotion::Idle)), "。议会与守护在线，议会队列没有在审的议题；");
-        assert_eq!(line(true, false, Some(QueueMotion::Moving)), "。议会队列在推进；");
-        assert_eq!(line(true, true, None), "。议会与守护在线；");
-        assert_eq!(line(false, true, None), "。");
+        let line = |council, guardians, queue| Msg::ProgramsLine { council, guardians, queue };
+        assert_eq!(zh(line(true, true, Some(QueueMotion::Moving))), "。议会与守护在线，议会队列在推进；");
+        assert_eq!(zh(line(true, true, Some(QueueMotion::Idle))), "。议会与守护在线，议会队列没有在审的议题；");
+        assert_eq!(zh(line(true, false, Some(QueueMotion::Moving))), "。议会队列在推进；");
+        assert_eq!(zh(line(true, true, None)), "。议会与守护在线；");
+        assert_eq!(zh(line(false, true, None)), "。");
+        assert_eq!(en(line(true, true, Some(QueueMotion::Moving))), ". Council and guardians are online; the council queue is moving; ");
+        assert_eq!(en(line(true, true, Some(QueueMotion::Idle))), ". Council and guardians are online; no agenda issue is in deliberation; ");
+        assert_eq!(en(line(true, false, Some(QueueMotion::Moving))), "; the council queue is moving; ");
+        assert_eq!(en(line(true, true, None)), ". Council and guardians are online; ");
+        assert_eq!(en(line(false, true, None)), "; ");
     }
 }
