@@ -30,6 +30,7 @@ use crate::{
     attention::first_line,
     config::{ColorToken::*, Digest, LengthToken::*},
     digest::{self, Body, DecisionLog, DigestItem, Entry},
+    failure::Failure,
     programs::{Program, Session, SessionState},
     sources::Sources,
     time,
@@ -54,7 +55,7 @@ fn duration_ms(session: &Session) -> Option<f64> {
 
 /// How long a session ran, or has run so far.
 pub fn duration(session: &Session) -> String {
-    duration_ms(session).map(time::span).unwrap_or_default()
+    duration_ms(session).map(|ms| Msg::Took(time::took(ms)).to_string()).unwrap_or_default()
 }
 
 /// What a session was about, without its kind: its label with an issue
@@ -482,16 +483,16 @@ impl Record {
 
 /// Reduces `bytes` on the runtime's blocking threads.
 #[cfg(not(target_arch = "wasm32"))]
-async fn reduce(session: OpenSession, bytes: Vec<u8>, rules: Digest) -> Result<Record, String> {
+async fn reduce(session: OpenSession, bytes: Vec<u8>, rules: Digest) -> Result<Record, Failure> {
     blocking(move || Record::new(session, bytes, &rules))
         .await
-        .map_err(|error| Msg::ParseStopped(error.to_string()).to_string())
+        .map_err(|error| Failure::ParseStopped(error.to_string()))
 }
 
 /// Reduces `bytes` on the engine thread (WebAssembly has no other), after
 /// the frame that says it is parsing.
 #[cfg(target_arch = "wasm32")]
-async fn reduce(session: OpenSession, bytes: Vec<u8>, rules: Digest) -> Result<Record, String> {
+async fn reduce(session: OpenSession, bytes: Vec<u8>, rules: Digest) -> Result<Record, Failure> {
     next_frame().await;
     Result::Ok(Record::new(session, bytes, &rules))
 }
@@ -938,7 +939,7 @@ fn log_line(line: Line<'_>) -> AnyElement {
             let took = result
                 .as_ref()
                 .and_then(|r| Some(time::parse_ms(&r.at)? - time::parse_ms(&entry.at)?))
-                .map(time::span)
+                .map(|ms| Msg::Took(time::took(ms)).to_string())
                 .unwrap_or_else(|| Msg::NoResult.to_string());
             let failed = result.as_ref().is_some_and(|r| r.is_error);
             let (args_, result_) = (args.clone(), result.clone());

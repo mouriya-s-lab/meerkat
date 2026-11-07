@@ -42,7 +42,7 @@ impl RateLimit {
 }
 
 /// The current limits.
-pub async fn rate_limit(github: &GitHub) -> Result<RateLimit, String> {
+pub async fn rate_limit(github: &GitHub) -> Result<RateLimit, crate::failure::Failure> {
     #[derive(Deserialize)]
     struct Answer {
         resources: Resources,

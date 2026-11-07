@@ -118,6 +118,21 @@ Every page draws from one design system: the colors, type sizes,
 spacings, radii and graph lengths of `quorum/theme.json`, and one
 vocabulary of state words and glyphs shared by all pages.
 
+## Language
+
+Quorum speaks Chinese or English, following the oh-my-omp convention for
+person-facing text: `OMOMP_LANG` (`en` or `zh`), then the first of
+`LC_ALL`, `LC_MESSAGES` and `LANG` that is set (`zh…` is Chinese), then the
+platform's preferred languages (macOS: the system's, web: the browser's;
+Chinese when a `zh…` language comes before the first `en…` one), then
+English. The web has no environment, so only the browser's languages
+count there. When the browser's language changes, the page switches
+without a reload. Any `zh…` reads Simplified Chinese; the app's name is
+Quorum in both. Data (issue titles, repositories, models, seats) and the
+errors programs, GitHub and the config parser give are shown as they are.
+For example `OMOMP_LANG=en Quorum.app/Contents/MacOS/Quorum` opens it in
+English.
+
 ## Configuration
 
 Both builds read the PM config directory (the layout shared with
@@ -272,11 +287,13 @@ through too), and `SITE_DIR` is served for everything else.
 | `src/sources.rs` | One `resource` per source, refreshed together |
 | `src/attention.rs` | What needs a person, in order of consequence, failed sessions grouped by program and kind |
 | `src/dag.rs` | The 「议题」 model: the issue graph, its groups, readiness columns, folded decided issues and filters |
-| `src/time.rs` | Timestamps, "how long ago" and hourly counts |
+| `src/time.rs` | Timestamps, "how long ago", durations and hourly counts |
+| `src/failure.rs` | Why something Quorum asked for did not come: its own reasons as variants (worded by `src/ui/text.rs`), others' words as they are |
 | `src/ui/shell.rs` | The sidebar or top bar, the toolbar, the shortcuts, a list beside its inspector or (narrow) the inspector full width under 返回, and the configuration error |
 | `src/ui/command.rs` | The command bar (⌘K) |
 | `src/ui/overview.rs`, `issues.rs`, `sessions.rs`, `runtime.rs`, `config.rs` | The five pages |
 | `src/ui/parts.rs`, `status.rs`, `icons.rs`, `tokens.rs` | The app's own controls, its state words and glyphs, icons, and the theme's tokens as NSH tokens and type roles |
-| `src/ui/text.rs` | Every word the UI shows |
+| `src/ui/text.rs` | Every word the UI shows, in Chinese and English |
+| `src/ui/lang.rs` | Which of the two the UI speaks, and redrawing in a new one |
 | `deploy/Caddyfile` | The web build's same-origin proxy: the site, its `/config`, GitHub, the two programs and the dispatch launcher's check |
 | `config.example/` | A PM config directory for local runs |

@@ -16,6 +16,7 @@ use super::{
 };
 use crate::{
     config::{ColorToken::*, LengthToken::*},
+    failure::Failure,
     gh::Credential,
     sources::Source,
     time,
@@ -433,7 +434,8 @@ pub fn group_header(lead: AnyElement, title: impl Into<SharedString>, count: usi
 
 /// An inline error bar over a panel whose source failed: the glyph, why,
 /// when it last loaded, and 「重试」.
-pub fn error_bar(error: String, last: Option<f64>, retry: impl Fn() + 'static) -> View {
+pub fn error_bar(error: Failure, last: Option<f64>, retry: impl Fn() + 'static) -> View {
+    let error = Msg::Failure(error).to_string();
     view()
         .flex_row()
         .items_center()

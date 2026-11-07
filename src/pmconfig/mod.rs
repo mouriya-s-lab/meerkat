@@ -19,7 +19,8 @@ use nsh_core::prelude::{HttpRequest, Memo};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    config::{self, BaseUrl, ConfigRepo, Endpoints, Reader},
+    config::{self, BaseUrl, ConfigRepo, Endpoints, Problem, Reader},
+    failure::Failure,
     gh::GitHub,
     http,
 };
@@ -62,7 +63,7 @@ pub struct Opened {
 pub struct Violation {
     pub file: String,
     pub key: String,
-    pub message: String,
+    pub message: Problem,
 }
 
 /// A reader's conclusion on a candidate.
@@ -73,9 +74,9 @@ pub enum Verdict {
     /// It does not: every error the reader reported.
     Fail(Vec<Violation>),
     /// The reader gave no conclusion: why.
-    Unreachable(String),
+    Unreachable(Failure),
     /// The candidate set could not be read from the branch: why.
-    NoInput(String),
+    NoInput(Failure),
 }
 
 /// What a program reports it loaded at startup (`GET /v1/config`).
@@ -160,23 +161,21 @@ impl ConfigRepoClient {
 
     /// The GitHub handle once the credential is in; `None`'s wait text
     /// before that.
-    fn github(&self) -> Result<Rc<GitHub>, String> {
-        self.github
-            .get()
-            .ok_or_else(|| "正在获取 GitHub 凭据".to_owned())
+    fn github(&self) -> Result<Rc<GitHub>, Failure> {
+        self.github.get().ok_or(Failure::CredentialPending)
     }
 
     /// The branch's head commit and every file in it. The head is read as
     /// it is now; the tree is named by that commit, so any copy of it is
     /// the same tree.
-    pub async fn listing(&self) -> Result<Listing, String> {
+    pub async fn listing(&self) -> Result<Listing, Failure> {
         let github = self.github()?;
         self.listing_with(&github).await
     }
 
     /// [`listing`] with its GitHub handle already resolved (the caller's
     /// reactive gate decides when it may run).
-    pub async fn listing_with(&self, github: &GitHub) -> Result<Listing, String> {
+    pub async fn listing_with(&self, github: &GitHub) -> Result<Listing, Failure> {
         #[derive(Deserialize)]
         struct Branch {
             commit: Commit,
@@ -206,7 +205,7 @@ impl ConfigRepoClient {
             .get(&format!("/repos/{repo}/git/trees/{head}?recursive=1"))
             .await?;
         if tree.truncated {
-            return Err(format!("{repo}@{head}: GitHub 截断了文件树"));
+            return Err(Failure::TreeTruncated { repo: repo.to_owned(), head });
         }
         let files = tree
             .tree
@@ -222,7 +221,7 @@ impl ConfigRepoClient {
 
     /// `path` as the branch has it now: its text, and the sha a save
     /// replaces.
-    pub async fn open(&self, path: &str) -> Result<Opened, String> {
+    pub async fn open(&self, path: &str) -> Result<Opened, Failure> {
         #[derive(Deserialize)]
         struct Contents {
             sha: String,
@@ -238,13 +237,13 @@ impl ConfigRepoClient {
             ))
             .await?;
         if contents.encoding != "base64" {
-            return Err(format!("{path}: 内容编码为 {}", contents.encoding));
+            return Err(Failure::Encoding { path: path.to_owned(), encoding: contents.encoding });
         }
         let packed: String = contents.content.split_whitespace().collect();
         let bytes = STANDARD
             .decode(packed)
-            .map_err(|error| format!("{path}: {error}"))?;
-        let text = String::from_utf8(bytes).map_err(|_| format!("{path}: 不是 UTF-8 文本"))?;
+            .map_err(|error| Failure::Said(format!("{path}: {error}")))?;
+        let text = String::from_utf8(bytes).map_err(|_| Failure::NotUtf8 { path: path.to_owned() })?;
         Ok(Opened {
             path: path.to_owned(),
             sha: contents.sha,
@@ -259,7 +258,7 @@ impl ConfigRepoClient {
         paths: impl IntoIterator<Item = String>,
         path: &str,
         draft: &str,
-    ) -> Result<Files, String> {
+    ) -> Result<Files, Failure> {
         let others: Vec<String> = paths.into_iter().filter(|other| other != path).collect();
         let texts = try_join_all(others.iter().map(|other| self.open(other))).await?;
         let mut files: Files = texts
@@ -329,7 +328,7 @@ impl ConfigRepoClient {
 
     /// Commits `draft` as `opened.path` on the branch, replacing the file
     /// that was opened (`quorum: edit <path>`).
-    pub async fn save(&self, opened: &Opened, draft: &str) -> Result<Saved, String> {
+    pub async fn save(&self, opened: &Opened, draft: &str) -> Result<Saved, Failure> {
         #[derive(Serialize)]
         struct Put<'a> {
             message: String,
@@ -361,8 +360,7 @@ impl ConfigRepoClient {
             .await?;
         match response.status() {
             200 | 201 => {
-                let answer: Answer = serde_json::from_slice(&response.body)
-                    .map_err(|error| format!("{}: 响应无法解析：{error}", github.url(&path)))?;
+                let answer: Answer = http::parse(&github.url(&path), &response.body)?;
                 Ok(Saved::Committed {
                     commit: answer.commit.sha,
                     url: answer.commit.html_url,
@@ -378,7 +376,7 @@ impl ConfigRepoClient {
 const DISPATCH_FILES: [&str; 3] = ["shared/repos.yaml", "shared/project.yaml", "dispatch/delivery.yaml"];
 
 /// What the program at `base` loaded at startup (`GET /v1/config`).
-pub async fn running(base: &BaseUrl) -> Result<Running, String> {
+pub async fn running(base: &BaseUrl) -> Result<Running, Failure> {
     http::json(HttpRequest::get(base.join("/v1/config"))).await
 }
 
@@ -396,7 +394,7 @@ async fn ask(url: String, files: &Files) -> Verdict {
     }
     let body = match serde_json::to_vec(&Body { files }) {
         Ok(body) => body,
-        Err(error) => return Verdict::Unreachable(error.to_string()),
+        Err(error) => return Verdict::Unreachable(Failure::Said(error.to_string())),
     };
     let request = HttpRequest::post(url, body).header("Content-Type", "application/json");
     match http::json::<Answer>(request).await {
@@ -449,5 +447,6 @@ mod tests {
         )
         .unwrap();
         assert_eq!(violation.key, "bogus");
+        assert_eq!(violation.message, Problem::Said("unknown field \"bogus\"".to_owned()));
     }
 }

@@ -7,7 +7,7 @@
 
 use serde_json::{Map, Value};
 
-use super::schema::{ConfigError, HexColor};
+use super::schema::{ConfigError, HexColor, Problem};
 
 /// `quorum/theme.json`, relative to the PM config directory.
 pub const THEME_FILE: &str = "quorum/theme.json";
@@ -334,13 +334,13 @@ impl Theme {
 /// Parses `quorum/theme.json`: the first missing, unknown or bad token,
 /// with its key path (`cssVars.light.ok-text`).
 pub fn parse(text: &str) -> Result<Theme, ConfigError> {
-    let error = |path: String, message: String| ConfigError {
+    let error = |path: String, message: Problem| ConfigError {
         file: THEME_FILE.to_owned(),
         path,
         message,
     };
-    let root: Value =
-        serde_json::from_str(text).map_err(|e| error(String::new(), format!("不是 JSON：{e}")))?;
+    let root: Value = serde_json::from_str(text)
+        .map_err(|e| error(String::new(), Problem::NotJson(e.to_string())))?;
     let root = object(&root, "", &["cssVars"]).map_err(|(p, m)| error(p, m))?;
     let vars = object(&root["cssVars"], "cssVars", &["theme", "light", "dark"])
         .map_err(|(p, m)| error(p, m))?;
@@ -361,7 +361,7 @@ pub fn parse(text: &str) -> Result<Theme, ConfigError> {
         let path = format!("cssVars.{section}.{name}");
         match &fields[name] {
             Value::String(text) => Ok((path, text.clone())),
-            other => Err(error(path, format!("应为字符串，实为 {other}"))),
+            other => Err(error(path, Problem::NotString(other.to_string()))),
         }
     };
     let font = |token: FontToken| {
@@ -370,7 +370,7 @@ pub fn parse(text: &str) -> Result<Theme, ConfigError> {
             .split(',')
             .any(|family| family.trim().trim_matches(['"', '\'']).is_empty())
         {
-            return Err(error(path, format!("{text:?} 不是 CSS 字体族列表")));
+            return Err(error(path, Problem::NotFontList(text)));
         }
         Ok(text)
     };
@@ -379,11 +379,11 @@ pub fn parse(text: &str) -> Result<Theme, ConfigError> {
         text.strip_suffix("px")
             .and_then(|n| n.parse::<f32>().ok())
             .filter(|n| n.is_finite() && *n > 0.0)
-            .ok_or_else(|| error(path, format!("{text:?} 不是正的 <数字>px")))
+            .ok_or_else(|| error(path, Problem::NotLength(text.clone())))
     };
     let color = |section: &str, fields: &Map<String, Value>, token: ColorToken| {
         let (path, text) = value(section, fields, token.name())?;
-        HexColor::try_from(text).map_err(|message| error(path, message))
+        HexColor::try_from(text.clone()).map_err(|_| error(path, Problem::NotColor(text)))
     };
 
     let mut fonts: [String; FontToken::ALL.len()] = Default::default();
@@ -418,7 +418,7 @@ fn object<'a>(
     value: &'a Value,
     path: &str,
     names: &[&str],
-) -> Result<&'a Map<String, Value>, (String, String)> {
+) -> Result<&'a Map<String, Value>, (String, Problem)> {
     let join = |name: &str| {
         if path.is_empty() {
             name.to_owned()
@@ -427,13 +427,13 @@ fn object<'a>(
         }
     };
     let Value::Object(fields) = value else {
-        return Err((path.to_owned(), format!("应为对象，实为 {value}")));
+        return Err((path.to_owned(), Problem::NotObject(value.to_string())));
     };
     if let Some(missing) = names.iter().find(|name| !fields.contains_key(**name)) {
-        return Err((join(missing), "缺少该 token".to_owned()));
+        return Err((join(missing), Problem::MissingToken));
     }
     if let Some(extra) = fields.keys().find(|key| !names.contains(&key.as_str())) {
-        return Err((join(extra), "不认识的 token".to_owned()));
+        return Err((join(extra), Problem::UnknownToken));
     }
     Ok(fields)
 }
@@ -478,7 +478,7 @@ mod tests {
         let error = error_of(&text);
         assert_eq!(error.file, THEME_FILE);
         assert_eq!(error.path, "cssVars.light.ok-text");
-        assert!(error.to_string().contains("ok-text"), "{error}");
+        assert_eq!(error.message, Problem::MissingToken);
         let text = edited(|json| {
             json["cssVars"]["theme"]
                 .as_object_mut()
@@ -495,7 +495,7 @@ mod tests {
         });
         let error = error_of(&text);
         assert_eq!(error.path, "cssVars.dark.chart-1");
-        assert_eq!(error.message, "不认识的 token");
+        assert_eq!(error.message, Problem::UnknownToken);
         let text = edited(|json| json["shadows"] = Value::from(1));
         assert_eq!(error_of(&text).path, "shadows");
     }

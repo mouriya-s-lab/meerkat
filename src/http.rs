@@ -4,15 +4,25 @@
 use nsh_core::prelude::{HttpRequest, HttpResponse, fetch};
 use serde::{Deserialize, de::DeserializeOwned};
 
+use crate::failure::Failure;
+
 /// Sends `request` and parses a 2xx body as `T`.
-pub(crate) async fn json<T: DeserializeOwned>(request: HttpRequest) -> Result<T, String> {
+pub(crate) async fn json<T: DeserializeOwned>(request: HttpRequest) -> Result<T, Failure> {
     let url = request.url.clone();
     let body = bytes(request).await?;
-    serde_json::from_slice(&body).map_err(|error| format!("{url}: 响应无法解析：{error}"))
+    parse(&url, &body)
+}
+
+/// `body`, the answer at `url`, parsed as `T`.
+pub(crate) fn parse<T: DeserializeOwned>(url: &str, body: &[u8]) -> Result<T, Failure> {
+    serde_json::from_slice(body).map_err(|error| Failure::Unparsable {
+        url: url.to_owned(),
+        error: error.to_string(),
+    })
 }
 
 /// Sends `request` and gives a 2xx body as it is.
-pub(crate) async fn bytes(request: HttpRequest) -> Result<Vec<u8>, String> {
+pub(crate) async fn bytes(request: HttpRequest) -> Result<Vec<u8>, Failure> {
     let url = request.url.clone();
     let response = send(request).await?;
     if !response.ok() {
@@ -23,21 +33,21 @@ pub(crate) async fn bytes(request: HttpRequest) -> Result<Vec<u8>, String> {
 
 /// Sends `request`; any status is a response, only a request that got no
 /// answer is an error.
-pub(crate) async fn send(request: HttpRequest) -> Result<HttpResponse, String> {
+pub(crate) async fn send(request: HttpRequest) -> Result<HttpResponse, Failure> {
     let url = request.url.clone();
-    fetch(request).await.map_err(|error| format!("{url}: {error}"))
+    fetch(request).await.map_err(|error| Failure::Said(format!("{url}: {error}")))
 }
 
 /// What a response that is not the expected one says: the URL, the status
 /// and the server's message.
-pub(crate) fn failure(url: &str, response: &HttpResponse) -> String {
-    format!(
+pub(crate) fn failure(url: &str, response: &HttpResponse) -> Failure {
+    Failure::Said(format!(
         "{url}: HTTP {}{}",
         response.status(),
         error_message(&response.body)
             .map(|message| format!(" {message}"))
             .unwrap_or_default()
-    )
+    ))
 }
 
 /// The message of an error body: the programs' `{"error","message"}`,

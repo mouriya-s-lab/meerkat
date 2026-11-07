@@ -23,16 +23,44 @@ pub const PROJECT_FILE: &str = "shared/project.yaml";
 pub struct ConfigError {
     pub file: String,
     pub path: String,
-    pub message: String,
+    pub message: Problem,
 }
 
-impl fmt::Display for ConfigError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.path.is_empty() {
-            write!(f, "{}: {}", self.file, self.message)
-        } else {
-            write!(f, "{}: {}: {}", self.file, self.path, self.message)
-        }
+/// What is wrong with a config file. Quorum's own findings are variants
+/// (the UI words them); the parser's and the system's words pass through.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(from = "String")]
+pub enum Problem {
+    /// The YAML parser's, a reader's or the system's words, as they are.
+    Said(String),
+    /// Not UTF-8: the decoder's error.
+    NotUtf8(String),
+    /// The variable naming the PM config directory is not set.
+    DirUnset,
+    /// Not JSON: the parser's error.
+    NotJson(String),
+    /// Not a string: the value found, as JSON.
+    NotString(String),
+    /// Not a list of CSS font families: the text.
+    NotFontList(String),
+    /// Not a positive `<number>px`: the text.
+    NotLength(String),
+    /// Not `#rrggbb`: the text.
+    NotColor(String),
+    /// Not an object: the value found, as JSON.
+    NotObject(String),
+    /// A token the theme must define is missing.
+    MissingToken,
+    /// A key that is no token.
+    UnknownToken,
+    /// The site's `/config/` answered with an error.
+    Unreachable(Box<crate::failure::Failure>),
+}
+
+impl From<String> for Problem {
+    /// Another's words.
+    fn from(said: String) -> Self {
+        Problem::Said(said)
     }
 }
 
@@ -77,7 +105,7 @@ fn parse_file<T: DeserializeOwned>(file: &str, text: &str) -> Result<T, ConfigEr
         ConfigError {
             file: file.to_owned(),
             path,
-            message,
+            message: Problem::Said(message),
         }
     })
 }
@@ -533,13 +561,9 @@ mod tests {
         assert_eq!(error.file, QUORUM_FILE);
         assert_eq!(error.path, "appearance");
         assert!(
-            error.message.starts_with("unknown variant `dim`"),
-            "{}",
+            matches!(&error.message, Problem::Said(said) if said.starts_with("unknown variant `dim`")),
+            "{:?}",
             error.message
-        );
-        assert_eq!(
-            error.to_string(),
-            format!("{QUORUM_FILE}: appearance: {}", error.message)
         );
         assert_eq!(of("Dark").unwrap_err().path, "appearance");
     }
@@ -549,8 +573,8 @@ mod tests {
         let error = with_appearance("").unwrap_err();
         assert_eq!(error.file, QUORUM_FILE);
         assert!(
-            error.message.contains("missing field `appearance`"),
-            "{}",
+            matches!(&error.message, Problem::Said(said) if said.contains("missing field `appearance`")),
+            "{:?}",
             error.message
         );
     }

@@ -9,6 +9,9 @@
 //! `PM_CONFIG_DIR`. A test that answers some requests itself passes its own
 //! routes to [`Fixture::start_with`]; they come before the recorded ones.
 
+// Each test crate (`credential`, `i18n`) uses a part of the fixture.
+#![allow(dead_code)]
+
 use std::{
     ffi::OsString,
     path::{Path, PathBuf},
@@ -22,7 +25,7 @@ use nsh_core::{
 };
 use nsh_engine::EngineConfig;
 use nsh_testing::{Headless, StubNetwork, StubResponse, StubRoute};
-use quorum::Msg;
+use quorum::{Lang, Msg};
 
 /// The stub network's GitHub host: `targets.*.githubApi` in
 /// `tests/fixtures/config/quorum/quorum.yaml`.
@@ -50,6 +53,9 @@ const PROJECT: &str = include_str!("../fixtures/responses/github-project.json");
 const RATE_LIMIT: &str = include_str!("../fixtures/responses/github-rate-limit.json");
 const CONFIG_BRANCH: &str = include_str!("../fixtures/responses/github-config-branch.json");
 const CONFIG_TREE: &str = include_str!("../fixtures/responses/github-config-tree.json");
+// `gh api repos/oh-my-omp/pm-e2e-agenda/contents/README.md?ref=main`, its
+// `download_url` without the raw-content token GitHub appends.
+const CONFIG_README: &str = include_str!("../fixtures/responses/github-config-readme.json");
 
 /// A JSON answer with `status`.
 // `StubResponse` is `#[non_exhaustive]`: it cannot be built as a literal here.
@@ -83,6 +89,7 @@ fn recorded() -> Vec<(String, StubRoute)> {
         (format!("GET {GITHUB}/rate_limit"), RATE_LIMIT),
         (format!("GET {GITHUB}/repos/{PM}/branches/main"), CONFIG_BRANCH),
         (format!("GET {GITHUB}/repos/{PM}/git/trees/*"), CONFIG_TREE),
+        (format!("GET {GITHUB}/repos/{PM}/contents/README.md?ref=main"), CONFIG_README),
     ];
     answers
         .into_iter()
@@ -90,26 +97,34 @@ fn recorded() -> Vec<(String, StubRoute)> {
         .collect()
 }
 
-/// Quorum running on the headless engine: the window's contents, and what it
-/// asked the stub network.
+/// Quorum running on the headless engine in one language: the window's
+/// contents, and what it asked the stub network.
 pub struct Fixture {
     app: Headless,
     network: Arc<StubNetwork>,
+    lang: Lang,
 }
 
 impl Fixture {
-    /// Starts Quorum on the recorded answers, in the fixture config
-    /// directory, and waits for its first frame.
-    pub fn start() -> Fixture {
-        Fixture::start_with(Vec::new())
+    /// Starts Quorum in `lang` on the recorded answers, in the fixture
+    /// config directory, and waits for its first frame.
+    pub fn start(lang: Lang) -> Fixture {
+        Fixture::start_with(lang, Vec::new())
     }
 
-    /// Starts Quorum with `routes` ahead of the recorded ones, so a test
-    /// answers some requests itself.
-    pub fn start_with(routes: Vec<(String, StubRoute)>) -> Fixture {
-        // SAFETY: the credential tests run one at a time (`--test-threads=1`),
-        // so nothing else reads the environment while it is written.
-        unsafe { std::env::set_var(quorum::config::CONFIG_DIR_VAR, config_dir()) };
+    /// Starts Quorum in `lang` with `routes` ahead of the recorded ones, so a
+    /// test answers some requests itself.
+    pub fn start_with(lang: Lang, routes: Vec<(String, StubRoute)>) -> Fixture {
+        Fixture::start_in(lang, &config_dir(), routes)
+    }
+
+    /// Starts Quorum in `lang` on the config directory `dir`, with `routes`
+    /// ahead of the recorded ones.
+    pub fn start_in(lang: Lang, dir: &Path, routes: Vec<(String, StubRoute)>) -> Fixture {
+        set_language(lang);
+        // SAFETY: the tests that write the environment run one at a time
+        // (`--test-threads=1`), so nothing else reads it while it is written.
+        unsafe { std::env::set_var(quorum::config::CONFIG_DIR_VAR, dir) };
         let mut routes = routes;
         routes.extend(recorded());
         let network = Arc::new(StubNetwork::new(routes));
@@ -121,12 +136,38 @@ impl Fixture {
         let mut app = Headless::start(config).expect("the app starts headless");
         app.first_render()
             .unwrap_or_else(|error| panic!("Quorum's first frame: {error}"));
-        Fixture { app, network }
+        Fixture { app, network, lang }
+    }
+
+    /// `msg` in the language the fixture set.
+    pub fn say(&self, msg: &Msg) -> String {
+        msg.in_lang(self.lang).to_string()
     }
 
     /// Presses the sidebar's button for `page`, as a person does.
     pub fn open(&mut self, page: Msg) -> Result<(), String> {
-        self.app.press(&format!("label:{page}"))
+        let label = self.say(&page);
+        self.app.press(&format!("label:{label}"))
+    }
+
+    /// Presses the one view `selector` names (`label:…`, `text:…`).
+    pub fn press(&mut self, selector: &str) -> Result<(), String> {
+        self.app.press(selector)
+    }
+
+    /// Sets the language variable to `lang` and reports a locale change, as
+    /// the platform does when the user's language changes: the same engine
+    /// goes on running.
+    pub fn change_language(&mut self, lang: Lang, locale: &str) -> Result<(), String> {
+        set_language(lang);
+        self.lang = lang;
+        let locale = nsh_core::platform::Locale::parse(locale).ok_or("a locale identifier")?;
+        self.app.set_environment("locale", |environment| environment.locale = locale)
+    }
+
+    /// Every text the window shows now, in tree order.
+    pub fn texts(&self) -> Vec<String> {
+        self.app.screen().texts().into_iter().map(str::to_owned).collect()
     }
 
     /// Whether the window shows `text` (one text, whole, as read).
@@ -138,6 +179,13 @@ impl Fixture {
     pub fn wait_for(&mut self, text: &str, timeout: Duration) -> Result<(), String> {
         self.app
             .wait_until(&format!("`{text}` showing"), timeout, |screen| screen.shows(text))
+    }
+
+    /// Waits for a text that contains `part`.
+    pub fn wait_for_containing(&mut self, part: &str, timeout: Duration) -> Result<(), String> {
+        self.app.wait_until(&format!("a text containing `{part}`"), timeout, |screen| {
+            screen.texts().iter().any(|text| text.contains(part))
+        })
     }
 
     /// Waits for the window to show every text of `texts`.
@@ -192,6 +240,16 @@ impl Fixture {
                     >= at_least
             })
     }
+}
+
+/// Sets `OMOMP_LANG`, the variable the oh-my-omp convention reads first.
+pub fn set_language(lang: Lang) {
+    let code = match lang {
+        Lang::Zh => "zh",
+        Lang::En => "en",
+    };
+    // SAFETY: see [`path_with`].
+    unsafe { std::env::set_var("OMOMP_LANG", code) };
 }
 
 /// The bases panel's note, from the recorded guardians answer's counts.
@@ -308,8 +366,29 @@ pub fn clear_github_token() {
 
 /// The PM config directory the app loads: the fixture's copy of
 /// `config.example/`, its endpoints pointing at the stub network's hosts.
-fn config_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/config")
+pub fn config_dir() -> PathBuf {
+    fixtures_dir().join("config")
+}
+
+/// `tests/fixtures/`.
+pub fn fixtures_dir() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures")
+}
+
+/// The lines of the recorded `README.md`, the file the config page opens
+/// first.
+pub fn readme_lines() -> Vec<String> {
+    use base64::Engine as _;
+
+    let answer: serde_json::Value = serde_json::from_str(CONFIG_README).expect("the README's answer");
+    let packed: String = answer["content"].as_str().expect("its content").split_whitespace().collect();
+    let bytes = base64::engine::general_purpose::STANDARD.decode(packed).expect("base64 content");
+    String::from_utf8(bytes)
+        .expect("a UTF-8 README")
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .map(str::to_owned)
+        .collect()
 }
 
 /// A temporary directory of a test's own, removed when dropped.

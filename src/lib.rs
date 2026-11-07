@@ -7,6 +7,7 @@ pub mod attention;
 pub mod config;
 pub mod digest;
 pub mod dag;
+pub mod failure;
 pub mod gh;
 mod http;
 pub mod pmconfig;
@@ -15,7 +16,7 @@ pub mod sources;
 pub mod time;
 mod ui;
 
-pub use ui::Msg;
+pub use ui::{Lang, Msg, QueueMotion};
 
 use nsh_base::theme;
 use nsh_core::prelude::*;
@@ -26,14 +27,15 @@ fn native(registry: &mut Registry) {
     registry.register::<App>();
 }
 
-/// The app's root: the overview for the config it loads, drawn with its
-/// theme's tokens in its appearance, or what is wrong with that config.
-/// macOS's load reads `PM_CONFIG_DIR` and resolves almost at once; the
-/// web's fetches `/config/` from the site, so the first frame says it is
-/// loading (nothing else can be drawn until the theme is known: every
-/// page reads its tokens).
+/// The root: the overview for the config it loads, drawn with its
+/// theme's tokens in its appearance, or what is wrong with that config,
+/// in the UI's language. macOS's load reads `PM_CONFIG_DIR` and resolves
+/// almost at once; the web's fetches `/config/` from the site, so the
+/// first frame says it is loading (nothing else can be drawn until the
+/// theme is known: every page reads its tokens).
 #[component]
 pub fn App() -> impl IntoElement {
+    ui::install_lang();
     let loaded = resource(|| Some(()), |(), _| load_config());
     let content = dynamic(move || {
         if let Some(error) = loaded.error() {
@@ -48,7 +50,7 @@ pub fn App() -> impl IntoElement {
                 }
                 ui::app(config.clone(), tokens).into_elements()
             }
-            None => config_loading().into_elements(),
+            None => ui::config_loading().into_elements(),
         })
     });
     view()
@@ -56,22 +58,6 @@ pub fn App() -> impl IntoElement {
         .bg(move || theme().background)
         .text_color(move || theme().foreground)
         .child(content)
-        .into_element()
-}
-
-/// What shows while the config loads, before its theme is known: NSH's
-/// own theme, since every page reads the config's tokens.
-fn config_loading() -> impl IntoElement {
-    view()
-        .flex_1()
-        .items_center()
-        .justify_center()
-        .p_6()
-        .child(
-            text("正在读取配置…")
-                .text_sm()
-                .text_color(move || theme().muted_foreground),
-        )
         .into_element()
 }
 
