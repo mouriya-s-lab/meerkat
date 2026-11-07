@@ -166,7 +166,7 @@ fn sidebar(nav: Nav) -> View {
         .border_r_1()
         .border_r_color(move || theme().sidebar_border)
         .child(
-            text("PM 仪表盘")
+            text("Quorum")
                 .font_weight(FontWeight::SEMIBOLD)
                 .text_color(move || theme().sidebar_foreground)
                 .px_2()
@@ -250,7 +250,7 @@ fn top_bar(sources: Sources, nav: Nav, narrow: bool) -> View {
                 .flex_row()
                 .items_center()
                 .gap_2()
-                .child(text("PM 仪表盘").font_weight(FontWeight::SEMIBOLD))
+                .child(text("Quorum").font_weight(FontWeight::SEMIBOLD))
                 .child(page_tabs(nav))
                 .into_element()
         } else {
