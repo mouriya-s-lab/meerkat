@@ -27,7 +27,7 @@
 	expression `"{$CONFIG_REPO}" != "" && !({http.request.uri.path}.contains("..") || {http.request.uri.path}.contains("%") || {http.request.uri.path}.contains("//") || {http.request.uri.path}.contains("\\"))`
 }
 
-{$LISTEN} {
+http://{$LISTEN} {
 	handle_path /gh/* {
 		# Reads go upstream. REST: GET and HEAD. GraphQL: POST /graphql whose
 		# body names no mutation and has no \u escape (an escaped "mutation"
