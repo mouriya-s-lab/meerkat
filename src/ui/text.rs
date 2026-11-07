@@ -268,6 +268,8 @@ pub enum Msg {
     SelectIssue,
     ThisRound,
     RoundSummary { round: u32, version: Option<u32>, voted: usize, seats: usize },
+    /// Seat names, as a list.
+    Names(Vec<String>),
     Voted,
     Pending,
     WaitsNothingOpen,
@@ -1105,6 +1107,7 @@ impl Msg {
             Msg::NotCounted => say(f, "议会不计入", "not counted by the council"),
             Msg::CouncilNotes => say(f, "议会备注", "Council notes"),
             Msg::OpenOnGitHub => say(f, "在 GitHub 打开", "Open on GitHub"),
+            Msg::Names(names) => f.write_str(&names.join(pick(lang, "、", ", "))),
             Msg::IssueMeta { human, proposer, updated } => {
                 f.write_str(if *human {
                     pick(lang, "人类议题", "Human issue")

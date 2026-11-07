@@ -996,8 +996,8 @@ fn facts(graph: &Rc<Graph>, at: usize, settings: &Settings, state: IssuesState) 
                         .child(votes_bar(panel.votes.len(), total))
                         .child(text(Msg::RoundSummary { round: panel.round, version: panel.version, voted: panel.votes.len(), seats: total }.to_string()).ty(Type::Body)),
                 )
-                .child(kv(Msg::Voted, text(panel.votes.join("、")).ty(Type::Body)))
-                .child(kv(Msg::Pending, text(panel.pending.join("、")).ty(Type::Body)))
+                .child(kv(Msg::Voted, text(Msg::Names(panel.votes.clone()).to_string()).ty(Type::Body)))
+                .child(kv(Msg::Pending, text(Msg::Names(panel.pending.clone()).to_string()).ty(Type::Body)))
                 .into_element(),
         );
     }
