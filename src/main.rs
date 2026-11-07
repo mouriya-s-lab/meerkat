@@ -7,9 +7,9 @@ fn main() -> impl std::process::Termination {
 
     env_logger::init();
     platform::run_app(
-        platform::AppSource::Rust(platform::Root::of::<pm_dashboard::App>()),
+        platform::AppSource::Rust(platform::Root::of::<quorum::App>()),
         platform::AppOptions {
-            title: "PM 仪表盘".to_owned(),
+            title: "Quorum".to_owned(),
             size: (1200, 820),
             ..Default::default()
         },

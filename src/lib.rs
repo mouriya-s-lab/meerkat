@@ -18,7 +18,7 @@ use nsh_base::theme;
 use nsh_core::prelude::*;
 
 /// The app's UI set (`nsh.json` `"rust"`).
-#[native_module("pm-dashboard/native")]
+#[native_module("quorum/native")]
 fn native(registry: &mut Registry) {
     registry.register::<App>();
 }

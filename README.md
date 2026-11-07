@@ -1,6 +1,6 @@
-# Quorum (议席)
+# Quorum
 
-Quorum (议席): one [NSH](https://nsh.dev) Rust app that runs as a
+Quorum: one [NSH](https://nsh.dev) Rust app that runs as a
 native macOS window and as a static web site. It owns no PM state; it reads
 GitHub (the PM repository's Project, implementation issues and their marker
 comments, the API rate limit) and the council and guardians programs
@@ -133,7 +133,7 @@ CLI is missing).
 
 ```sh
 PATH=/opt/homebrew/opt/llvm/bin:$PATH PM_CONFIG_DIR=$PWD/config.example \
-  nsh package --target web -o /tmp/pm-dashboard-web
+  nsh package --target web -o /tmp/quorum-web
 ```
 
 The site holds no credential. It reaches GitHub and the two programs through
@@ -143,7 +143,7 @@ only reads to GitHub. To run it locally (with the example config's web
 addresses):
 
 ```sh
-LISTEN=:8088 SITE_DIR=/tmp/pm-dashboard-web GH_TOKEN=<token> \
+LISTEN=:8088 SITE_DIR=/tmp/quorum-web GH_TOKEN=<token> \
   COUNCIL_URL=http://127.0.0.1:7421 GUARDIANS_URL=http://127.0.0.1:7410 \
   caddy run --config deploy/Caddyfile --adapter caddyfile
 ```
