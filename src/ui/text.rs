@@ -88,6 +88,8 @@ pub enum Msg {
     /// The clock time of the last successful load, if any.
     LastLoaded(Option<String>),
     Retry,
+    /// A GitHub panel while the credential is fetched.
+    FetchingCredential,
 
     // -- overview ---------------------------------------------------------
     RunningWell,
@@ -482,6 +484,7 @@ impl fmt::Display for Msg {
             Msg::LastLoaded(Some(at)) => write!(f, "上次成功 {at}"),
             Msg::LastLoaded(None) => f.write_str("还没有成功读取过"),
             Msg::Retry => f.write_str("重试"),
+            Msg::FetchingCredential => f.write_str("正在获取 GitHub 凭据"),
 
             // -- overview
             Msg::RunningWell => f.write_str("运行正常"),

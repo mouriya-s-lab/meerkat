@@ -227,8 +227,16 @@ pub fn app(config: AppConfig, tokens: Tokens) -> AnyElement {
 /// The app's sources start now and refresh every `config.refresh`.
 fn shell(config: &AppConfig) -> View {
     let credential = Credential::for_this_build();
+    let api = config.endpoints.github_api.clone();
+    let github = computed(move || {
+        credential.with(|credential| {
+            credential
+                .clone()
+                .map(|credential| Rc::new(GitHub::new(api.clone(), credential)))
+        })
+    });
     let config_repo = Rc::new(ConfigRepoClient::new(
-        GitHub::new(config.endpoints.github_api.clone(), credential.clone()),
+        github,
         config.config_repo.clone(),
         config.endpoints.clone(),
     ));

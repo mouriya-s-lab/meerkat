@@ -1,7 +1,9 @@
 //! The overview's data: one `resource` per source, each loading, failing
 //! and keeping its last value on its own. A refresh refetches every source
 //! that reads a remote directly; the open escalations follow the Project,
-//! loading again whenever its items load.
+//! loading again whenever its items load. The sources that read GitHub
+//! wait for its credential (fetched apart on macOS) and load once it is in;
+//! the programs' load at once.
 
 use std::{future::Future, rc::Rc};
 
@@ -42,9 +44,12 @@ pub struct ProgramSources {
     pub config: Source<Running>,
 }
 
-/// Every source of the overview, and when the last refresh began.
+/// Every source of the overview, the GitHub credential they read with and
+/// when the last refresh began.
 #[derive(Clone, Copy)]
 pub struct Sources {
+    /// `None` while it is fetched: the GitHub sources have not loaded yet.
+    pub credential: Signal<Option<Credential>>,
     pub project: Source<Vec<ProjectItem>>,
     pub rate: Source<RateLimit>,
     pub escalations: Source<Vec<OpenEscalation>>,
@@ -63,24 +68,43 @@ where
     T: 'static,
     Fut: Future<Output = Result<T, String>> + 'static,
 {
-    resource(
-        || Some(()),
-        move |(), _| {
-            let loading = load();
-            async move {
-                loading.await.map(|data| Loaded {
-                    data,
-                    at: time::now_ms(),
-                })
-            }
-        },
-    )
+    source_from(|| Some(()), move |()| load())
+}
+
+/// A source loading `load(from)` whenever `from()` gives a new `Some`, and
+/// again on each refetch while it does; nothing while it gives `None`.
+fn source_from<S, T, Fut>(
+    from: impl Fn() -> Option<S> + 'static,
+    load: impl Fn(S) -> Fut + 'static,
+) -> Source<T>
+where
+    S: 'static,
+    T: 'static,
+    Fut: Future<Output = Result<T, String>> + 'static,
+{
+    resource(from, move |from, _| {
+        let loading = load(from);
+        async move {
+            loading.await.map(|data| Loaded {
+                data,
+                at: time::now_ms(),
+            })
+        }
+    })
 }
 
 impl Sources {
-    /// Starts every source (the caller's owner keeps them).
-    pub fn new(config: &AppConfig, credential: Credential, config_repo: Rc<ConfigRepoClient>) -> Self {
-        let github = Rc::new(GitHub::new(config.endpoints.github_api.clone(), credential));
+    /// Starts every source (the caller's owner keeps them); the GitHub
+    /// ones once `credential` is in.
+    pub fn new(config: &AppConfig, credential: Signal<Option<Credential>>, config_repo: Rc<ConfigRepoClient>) -> Self {
+        let api = config.endpoints.github_api.clone();
+        let github = computed(move || {
+            credential.with(|credential| {
+                credential
+                    .clone()
+                    .map(|credential| Rc::new(GitHub::new(api.clone(), credential)))
+            })
+        });
         let project_ref = Rc::new(config.repos.pm.project.clone());
         let fields = Rc::new(config.fields.clone());
         let council = Rc::new(ProgramClient::new(
@@ -92,38 +116,25 @@ impl Sources {
             config.endpoints.guardians.clone(),
         ));
 
-        let project = source({
-            let github = github.clone();
-            move || {
-                let (github, project_ref, fields) =
-                    (github.clone(), project_ref.clone(), fields.clone());
+        let project = source_from(
+            move || github.get(),
+            move |github| {
+                let (project_ref, fields) = (project_ref.clone(), fields.clone());
                 async move { project::items(&github, &project_ref, &fields).await }
-            }
-        });
-        let rate = source({
-            let github = github.clone();
+            },
+        );
+        let rate = source_from(
+            move || github.get(),
+            |github| async move { rate::rate_limit(&github).await },
+        );
+        let escalations = source_from(
             move || {
-                let github = github.clone();
-                async move { rate::rate_limit(&github).await }
-            }
-        });
-        let escalations = resource(
-            move || {
+                let github = github.get()?;
                 project.with(|items| {
-                    items.map(|items| escalations::unfinished_implementations(&items.data))
+                    items.map(|items| (github, escalations::unfinished_implementations(&items.data)))
                 })
             },
-            move |issues, _| {
-                let github = github.clone();
-                async move {
-                    escalations::open_escalations(&github, issues)
-                        .await
-                        .map(|data| Loaded {
-                            data,
-                            at: time::now_ms(),
-                        })
-                }
-            },
+            |(github, issues)| async move { escalations::open_escalations(&github, issues).await },
         );
         let program = |client: &Rc<ProgramClient>| ProgramSources {
             program: client.program,
@@ -163,11 +174,15 @@ impl Sources {
                 async move { guardians.bases().await }
             }
         });
-        let config_files = source(move || {
-            let config_repo = config_repo.clone();
-            async move { config_repo.listing().await }
-        });
+        let config_files = source_from(
+            move || github.get().map(|github| (github, ())),
+            move |(github, ())| {
+                let config_repo = config_repo.clone();
+                async move { config_repo.listing_with(&github).await }
+            },
+        );
         Sources {
+            credential,
             project,
             rate,
             escalations,
@@ -197,28 +212,4 @@ impl Sources {
             self.config_files.refetch();
         });
     }
-
-    /// How many sources failed their last load (tracked where read).
-    pub fn failing(&self) -> usize {
-        [
-            self.project.error().is_some(),
-            self.rate.error().is_some(),
-            self.escalations.error().is_some(),
-            self.council.health.error().is_some(),
-            self.council.sessions.error().is_some(),
-            self.council.config.error().is_some(),
-            self.queue.error().is_some(),
-            self.guardians.health.error().is_some(),
-            self.guardians.sessions.error().is_some(),
-            self.guardians.config.error().is_some(),
-            self.bases.error().is_some(),
-            self.config_files.error().is_some(),
-        ]
-        .into_iter()
-        .filter(|failed| *failed)
-        .count()
-    }
-
-    /// How many sources there are.
-    pub const COUNT: usize = 12;
 }

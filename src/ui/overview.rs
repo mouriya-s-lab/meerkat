@@ -14,8 +14,8 @@ use super::{
     icons::{Icon, icon},
     issues::{self, deps, progress},
     parts::{
-        Look, Span, action, badge, error_text, hint, meter, mono, nothing, panel, panel_head,
-        press, row, section_head, sentence, small, source_bar,
+        Look, Span, action, badge, error_text, github_bar, hint, meter, mono, nothing, panel,
+        panel_head, press, row, section_head, sentence, small, source_bar,
     },
     runtime::{base_name, rewarm_button},
     sessions::{self, OpenSession, histogram},
@@ -573,7 +573,7 @@ fn queue_section(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
         .child(
             panel()
                 .child(source_bar(sources.queue, 4))
-                .child(source_bar(sources.project, 0))
+                .child(github_bar(sources.credential, sources.project, 0))
                 .child(dynamic(move || {
                     let Some(graph) = context.all_issues.get() else {
                         return nothing();

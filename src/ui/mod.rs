@@ -15,4 +15,5 @@ mod text;
 mod tokens;
 
 pub use shell::{app, config_error};
+pub use text::Msg;
 pub use tokens::of as tokens;

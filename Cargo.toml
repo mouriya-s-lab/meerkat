@@ -20,6 +20,10 @@ serde_path_to_error = "0.1"
 serde_yaml_ng = "0.10"
 sha1 = "0.10"
 
+[dev-dependencies]
+nsh-engine = "0.4"
+nsh-testing = "0.4"
+
 [target.'cfg(target_os = "macos")'.dependencies]
 env_logger = "0.11"
 nsh-platform-macos = { version = "0.4", default-features = false }
