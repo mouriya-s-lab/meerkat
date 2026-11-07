@@ -25,7 +25,6 @@ attention:
 digest:
   keepTools:
     - pm_draft
-    - pm_block
     - pm_vote
     - pm_ruling
     - pm_read_issue
@@ -39,7 +38,6 @@ digest:
     - read
     - grep
     - glob
-    - find
   showAssistantText: true
   maxBytes: 8000000
 filters:

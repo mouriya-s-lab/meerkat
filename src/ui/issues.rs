@@ -1,4 +1,4 @@
-//! 「议题」(C4 `issueDag`, #9 「议题列表」「依赖图的布局」): the agenda
+//! 「议题」(C4 `dagView`, #9 「议题列表」「依赖图的布局」): the agenda
 //! issues as a list grouped by what they wait for, or as a DAG of the
 //! prerequisites the council counts, under shared filters, beside an
 //! inspector of the selected issue. Every visual value comes from the
