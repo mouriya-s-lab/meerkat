@@ -1155,6 +1155,10 @@ fn versions_section(doc: Doc) -> View {
 fn checkout_row(doc: Doc) -> Option<AnyElement> {
     let behind = doc.behind;
     let pull = doc.pull;
+    // The pull outlives this row: `pull.set(Pulling)` draws it again, which
+    // would cancel a task spawned under it. It runs under the page's owner,
+    // as a save does.
+    let owner = doc.state.owner;
     let branch = doc.repo.branch().to_owned();
     Some(
         dynamic(move || {
@@ -1193,17 +1197,22 @@ fn checkout_row(doc: Doc) -> Option<AnyElement> {
                                 move || pulling,
                                 move || {
                                     pull.set(Pull::Pulling);
-                                    spawn(async move {
-                                        let result = async {
-                                            let dir = crate::config::dir().map_err(|error| error.to_string())?;
-                                            crate::pmconfig::checkout::pull(dir).await
-                                        }
-                                        .await;
-                                        pull.set(match result {
-                                            Ok(()) => Pull::Idle,
-                                            Err(error) => Pull::Failed(error),
-                                        });
-                                        behind.refetch();
+                                    owner.with(|owner| {
+                                        owner.run(move || {
+                                            spawn(async move {
+                                                let result = async {
+                                                    let dir = crate::config::dir()
+                                                        .map_err(|error| error.to_string())?;
+                                                    crate::pmconfig::checkout::pull(dir).await
+                                                }
+                                                .await;
+                                                pull.set(match result {
+                                                    Ok(()) => Pull::Idle,
+                                                    Err(error) => Pull::Failed(error),
+                                                });
+                                                behind.refetch();
+                                            })
+                                        })
                                     });
                                 },
                             ))
