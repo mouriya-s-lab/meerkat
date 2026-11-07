@@ -36,3 +36,42 @@ pub fn short(text: &str) -> String {
         None => text.to_owned(),
     }
 }
+
+/// How long before `now` (Unix milliseconds) `at` was: `刚刚`, `12 秒前`,
+/// `5 分钟前`, `3 小时前`, `2 天前`.
+pub fn ago(at: f64, now: f64) -> String {
+    let seconds = ((now - at) / 1000.0).max(0.0) as u64;
+    match seconds {
+        0..5 => "刚刚".to_owned(),
+        5..60 => format!("{seconds} 秒前"),
+        60..3600 => format!("{} 分钟前", seconds / 60),
+        3600..86400 => format!("{} 小时前", seconds / 3600),
+        _ => format!("{} 天前", seconds / 86400),
+    }
+}
+
+/// A duration in milliseconds as the logs show it: `0.4s`, `8s`,
+/// `4m 51s`, `1h 05m`.
+pub fn span(ms: f64) -> String {
+    let ms = ms.max(0.0);
+    if ms < 1000.0 {
+        return format!("{:.1}s", ms / 1000.0);
+    }
+    let seconds = (ms / 1000.0) as u64;
+    match seconds {
+        0..60 => format!("{seconds}s"),
+        60..3600 => format!("{}m {:02}s", seconds / 60, seconds % 60),
+        _ => format!("{}h {:02}m", seconds / 3600, seconds % 3600 / 60),
+    }
+}
+
+/// `HH:MM:SS.mmm` of an RFC 3339 timestamp, or the text as it is.
+pub fn precise(text: &str) -> String {
+    match parse(text) {
+        Some(at) => at
+            .to_zoned(TimeZone::system())
+            .strftime("%H:%M:%S%.3f")
+            .to_string(),
+        None => text.to_owned(),
+    }
+}

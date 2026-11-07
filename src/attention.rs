@@ -7,10 +7,9 @@ use crate::{
     config::Attention,
     gh::{
         escalations::OpenEscalation,
-        project::ProjectItem,
         rate::{Api, Bucket, RateLimit},
     },
-    programs::{Base, BaseState, Program, ProgramClient, QueueEntry, QueueState, Session, SessionState},
+    programs::{Base, BaseState, Program, QueueEntry, QueueState, Session, SessionState},
     time,
 };
 
@@ -51,7 +50,8 @@ pub struct Inputs<'a> {
     pub now_ms: f64,
 }
 
-/// Every concern, grouped in the issue's order.
+/// Every concern, grouped by kind ([`ordered`] puts them in the queue's
+/// order).
 pub fn concerns(inputs: Inputs<'_>, settings: &Attention) -> Vec<Concern> {
     let mut concerns = Vec::new();
     let bases = inputs.bases.unwrap_or_default();
@@ -123,28 +123,45 @@ pub fn concerns(inputs: Inputs<'_>, settings: &Attention) -> Vec<Concern> {
     concerns
 }
 
-/// Where a concern's row goes and what it says.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Row {
-    pub category: &'static str,
-    pub text: String,
-    pub link: Option<String>,
-}
-
-/// What `describe` needs to link a row.
-pub struct Links<'a> {
-    pub council: &'a ProgramClient,
-    pub guardians: &'a ProgramClient,
-    pub project: Option<&'a [ProjectItem]>,
-}
-
-impl Links<'_> {
-    fn program(&self, program: Program) -> &ProgramClient {
-        match program {
-            Program::Council => self.council,
-            Program::Guardians => self.guardians,
+impl Concern {
+    /// Whether something failed (else it waits for a look).
+    pub fn failure(&self) -> bool {
+        match self {
+            Concern::BaseFailed(_)
+            | Concern::SessionFailed { .. }
+            | Concern::AgendaFailed(_)
+            | Concern::Unreachable { .. } => true,
+            Concern::BaseStale(_) | Concern::EscalationOpen(_) | Concern::RateLow { .. } => false,
         }
     }
+
+    /// When it happened, as far as the sources say (Unix milliseconds).
+    pub fn at_ms(&self) -> Option<f64> {
+        match self {
+            Concern::BaseFailed(base) | Concern::BaseStale(base) => {
+                base.warmed_at.as_deref().and_then(time::parse_ms)
+            }
+            Concern::SessionFailed { session, .. } => {
+                time::parse_ms(session.ended_at.as_deref().unwrap_or(&session.started_at))
+            }
+            Concern::EscalationOpen(escalation) => time::parse_ms(&escalation.created_at),
+            Concern::AgendaFailed(_) | Concern::Unreachable { .. } | Concern::RateLow { .. } => None,
+        }
+    }
+}
+
+/// `concerns` in the queue's order: failures first, then what waits for a
+/// look; within each, newest first, those without a time last.
+pub fn ordered(mut concerns: Vec<Concern>) -> Vec<Concern> {
+    concerns.sort_by(|a, b| {
+        b.failure().cmp(&a.failure()).then_with(|| match (a.at_ms(), b.at_ms()) {
+            (Some(a), Some(b)) => b.total_cmp(&a),
+            (Some(_), None) => std::cmp::Ordering::Less,
+            (None, Some(_)) => std::cmp::Ordering::Greater,
+            (None, None) => std::cmp::Ordering::Equal,
+        })
+    });
+    concerns
 }
 
 /// The first line of an error.
@@ -153,111 +170,6 @@ pub fn first_line(text: &str) -> &str {
         .map(str::trim)
         .find(|line| !line.is_empty())
         .unwrap_or_default()
-}
-
-fn base_name(base: &Base) -> String {
-    format!("{} · {} · {}", base.guardian, base.repo, base.model)
-}
-
-fn base_link(base: &Base, links: &Links<'_>) -> String {
-    match &base.session {
-        Some(session) => links.guardians.session_log_url(session),
-        None => links.guardians.base.join("/v1/bases"),
-    }
-}
-
-/// The sentence and link of `concern`.
-pub fn describe(concern: &Concern, links: &Links<'_>) -> Row {
-    match concern {
-        Concern::BaseFailed(base) => Row {
-            category: "基座失败",
-            text: format!(
-                "{}：{}",
-                base_name(base),
-                base.error.as_deref().map(first_line).unwrap_or("没有错误原文")
-            ),
-            link: Some(base_link(base, links)),
-        },
-        Concern::BaseStale(base) => Row {
-            category: "基座过期",
-            text: format!("{}：{}", base_name(base), base.stale_reason),
-            link: Some(base_link(base, links)),
-        },
-        Concern::SessionFailed { program, session } => Row {
-            category: "会话失败",
-            text: format!(
-                "{}{} {} · {}：{}（{}）",
-                program.label(),
-                session.kind,
-                session.label,
-                session.model,
-                session.error.as_deref().map(first_line).unwrap_or("没有错误原文"),
-                time::short(session.ended_at.as_deref().unwrap_or(&session.started_at)),
-            ),
-            link: Some(links.program(*program).session_log_url(&session.id)),
-        },
-        Concern::AgendaFailed(entry) => Row {
-            category: "议题失败",
-            text: format!(
-                "{}{}{}",
-                entry.reference,
-                entry
-                    .agenda
-                    .as_deref()
-                    .map(|agenda| format!("（{agenda}）"))
-                    .unwrap_or_default(),
-                entry
-                    .notes
-                    .first()
-                    .map(|note| format!("：{note}"))
-                    .unwrap_or_default()
-            ),
-            link: links.project.and_then(|items| {
-                items
-                    .iter()
-                    .find(|item| item.issue == entry.reference)
-                    .map(|item| item.url.clone())
-            }),
-        },
-        Concern::EscalationOpen(escalation) => Row {
-            category: "提为议题未了结",
-            text: format!(
-                "{} 的询问 {} 已提为 {}，尚无答复或取代（{}）",
-                escalation.issue,
-                escalation.ask,
-                escalation.agenda,
-                time::short(&escalation.created_at)
-            ),
-            link: Some(escalation.url.clone()),
-        },
-        Concern::Unreachable {
-            program,
-            error,
-            last_success,
-        } => Row {
-            category: "程序不可达",
-            text: format!(
-                "{}程序：{}（{}）",
-                program.label(),
-                first_line(error),
-                last_success
-                    .map(|at| format!("上次成功 {}", time::clock(at)))
-                    .unwrap_or_else(|| "从未成功".to_owned())
-            ),
-            link: Some(links.program(*program).base.join("/v1/health")),
-        },
-        Concern::RateLow { api, bucket } => Row {
-            category: "API 余量低",
-            text: format!(
-                "GitHub {} 剩 {}/{}，{} 重置",
-                api_label(*api),
-                bucket.remaining,
-                bucket.limit,
-                time::clock(bucket.reset as f64 * 1000.0)
-            ),
-            link: None,
-        },
-    }
 }
 
 /// An API's name in the UI.

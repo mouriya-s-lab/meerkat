@@ -1,19 +1,20 @@
 //! The 「议题」 page's model (C4 `issueDag`): the agenda issues of the PM
-//! repository as a DAG of their GitHub "Blocked by" relations, laid out in
-//! layers by their longest prerequisite chain, and the table's order. Pure:
-//! it reads the Project's items and the council's queue as the sources last
-//! loaded them.
+//! repository as a DAG of their GitHub "Blocked by" relations, laid out
+//! left to right in layers by their longest chain of "Blocked by"s, the
+//! issues with no "Blocked by" either way in a grid of their own, and the
+//! table's order. Pure: it reads the Project's items and the council's
+//! queue as the sources last loaded them.
 //!
 //! A node's state is the council's verdict (`/v1/queue` `state`); while the
 //! council is unreachable, or when its queue does not list the issue, it is
 //! the Project's `Status`. Only a human issue is a prerequisite (the
 //! council's rule): a "Blocked by" on any other issue is an ignored edge,
-//! drawn but not counted for layers or for `humanOnly`'s successors.
+//! drawn dashed and not counted for `humanOnly`'s successors.
 
 use std::collections::HashMap;
 
 use crate::{
-    config::{Dag, DagColors, Filters, HexColor, ListColumn, ListSort, RepoName},
+    config::{Filters, ListColumn, ListSort, RepoName},
     gh::{
         IssueRef,
         project::{Kind, ProjectItem, Proposer, Status, SubIssues},
@@ -81,31 +82,6 @@ impl NodeState {
         )
     }
 
-    /// Its color: the queue state's, or for a Project `Status` the state
-    /// it amounts to (Done is decided, Superseded superseded), else the
-    /// `unreachable` color.
-    pub fn color(&self, colors: &DagColors) -> HexColor {
-        match self {
-            NodeState::Queue(state) => match state {
-                QueueState::Decided => colors.decided,
-                QueueState::Superseded => colors.superseded,
-                QueueState::Blocked => colors.blocked,
-                QueueState::Held => colors.held,
-                QueueState::Deliberating => colors.deliberating,
-                QueueState::Interrupted => colors.interrupted,
-                QueueState::Failed => colors.failed,
-                QueueState::Ready => colors.ready,
-            },
-            NodeState::Project { status, .. } => match status {
-                Some(Status::Done) => colors.decided,
-                Some(Status::Superseded) => colors.superseded,
-                Some(Status::Todo | Status::InProgress | Status::Other(_)) | None => {
-                    colors.unreachable
-                }
-            },
-        }
-    }
-
     /// Its place when the table sorts by state: the queue's decision
     /// order, then the Project's statuses.
     fn rank(&self) -> u8 {
@@ -149,10 +125,18 @@ pub struct Node {
     pub blocked_by: Vec<IssueRef>,
     /// The queue's notes on the issue.
     pub notes: Vec<String>,
-    /// Its layer: the length of its longest prerequisite chain.
-    pub layer: usize,
-    /// Its prerequisites form or follow a cycle: it sits in the last layer.
-    pub cycle: bool,
+    pub place: Place,
+}
+
+/// Where a node goes in the drawing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Place {
+    /// In layer `layer`, the length of its longest chain of "Blocked by"s;
+    /// `cycle`: its "Blocked by"s form or follow a cycle, so it sits in the
+    /// last layer.
+    Layer { layer: usize, cycle: bool },
+    /// No "Blocked by" either way: the grid under the layers.
+    Isolated,
 }
 
 /// A "Blocked by": the prerequisite `from` blocks `to` (indices of
@@ -175,14 +159,16 @@ pub enum EdgeKind {
 }
 
 /// The DAG after the filters: nodes in reading order (layer by layer,
-/// each layer in its order), the edges between them, and how many issues
-/// the filters hid.
+/// each layer in its order, then the isolated issues by agenda number),
+/// the edges between them, and how many issues the filters hid.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Graph {
     pub nodes: Vec<Node>,
     pub edges: Vec<Edge>,
     /// The nodes of each layer, as ranges of `nodes`.
     pub layers: Vec<std::ops::Range<usize>>,
+    /// The isolated nodes, a range of `nodes` after the layers'.
+    pub isolated: std::ops::Range<usize>,
     pub hidden: usize,
 }
 
@@ -225,8 +211,7 @@ pub fn build(items: &[ProjectItem], council: Council<'_>, pm: &RepoName, filters
                 sub_issues: item.sub_issues,
                 blocked_by: item.blocked_by.clone(),
                 notes: entry.map(|e| e.notes.clone()).unwrap_or_default(),
-                layer: 0,
-                cycle: false,
+                place: Place::Isolated,
             })
         })
         .collect();
@@ -254,13 +239,23 @@ pub fn build(items: &[ProjectItem], council: Council<'_>, pm: &RepoName, filters
         })
         .collect();
 
-    assign_layers(&mut nodes, &edges);
+    assign_places(&mut nodes, &edges);
 
-    // Reading order: by layer, then human issues, agenda number, issue.
+    // Reading order: by layer, then human issues, agenda number, issue;
+    // the isolated issues after them by agenda number, then issue.
     let mut order: Vec<usize> = (0..nodes.len()).collect();
     order.sort_by(|&a, &b| {
         let (a, b) = (&nodes[a], &nodes[b]);
-        a.layer.cmp(&b.layer).then_with(|| queue_order(a, b))
+        match (a.place, b.place) {
+            (Place::Layer { layer: x, .. }, Place::Layer { layer: y, .. }) => {
+                x.cmp(&y).then_with(|| queue_order(a, b))
+            }
+            (Place::Layer { .. }, Place::Isolated) => std::cmp::Ordering::Less,
+            (Place::Isolated, Place::Layer { .. }) => std::cmp::Ordering::Greater,
+            (Place::Isolated, Place::Isolated) => agenda_key(a)
+                .cmp(&agenda_key(b))
+                .then_with(|| a.issue.cmp(&b.issue)),
+        }
     });
     let mut place = vec![0; nodes.len()];
     for (to, &from) in order.iter().enumerate() {
@@ -281,15 +276,22 @@ pub fn build(items: &[ProjectItem], council: Council<'_>, pm: &RepoName, filters
         .collect();
     let mut layers: Vec<std::ops::Range<usize>> = Vec::new();
     for (i, node) in nodes.iter().enumerate() {
+        let Place::Layer { layer, .. } = node.place else {
+            break;
+        };
         match layers.last_mut() {
-            Some(range) if nodes[range.start].layer == node.layer => range.end = i + 1,
+            Some(range) if matches!(nodes[range.start].place, Place::Layer { layer: l, .. } if l == layer) => {
+                range.end = i + 1
+            }
             _ => layers.push(i..i + 1),
         }
     }
+    let isolated = layers.last().map_or(0, |l| l.end)..nodes.len();
     Graph {
         nodes,
         edges,
         layers,
+        isolated,
         hidden,
     }
 }
@@ -360,21 +362,24 @@ fn shown(nodes: &[Node], edges: &[Edge], filters: Filters) -> Vec<bool> {
         .collect()
 }
 
-/// Gives each node its layer, the length of its longest chain of
-/// prerequisite edges. Nodes left over (a cycle, and what follows it) go
-/// to a layer after the others.
-fn assign_layers(nodes: &mut [Node], edges: &[Edge]) {
-    let prerequisites = || edges.iter().filter(|e| e.kind == EdgeKind::Prerequisite);
+/// Gives each node its place: no edge either way puts it in the grid;
+/// else its layer is the length of its longest chain of edges (ignored
+/// ones too: the drawing shows every "Blocked by"). Nodes left over (a
+/// cycle, and what follows it) go to a layer after the others.
+fn assign_places(nodes: &mut [Node], edges: &[Edge]) {
     let mut waiting = vec![0usize; nodes.len()];
-    for edge in prerequisites() {
+    let mut linked = vec![false; nodes.len()];
+    for edge in edges {
         waiting[edge.to] += 1;
+        linked[edge.from] = true;
+        linked[edge.to] = true;
     }
     let mut layer = vec![0usize; nodes.len()];
     let mut done = vec![false; nodes.len()];
     let mut ready: Vec<usize> = (0..nodes.len()).filter(|&i| waiting[i] == 0).collect();
     while let Some(from) = ready.pop() {
         done[from] = true;
-        for edge in prerequisites().filter(|e| e.from == from) {
+        for edge in edges.iter().filter(|e| e.from == from) {
             layer[edge.to] = layer[edge.to].max(layer[from] + 1);
             waiting[edge.to] -= 1;
             if waiting[edge.to] == 0 {
@@ -383,13 +388,22 @@ fn assign_layers(nodes: &mut [Node], edges: &[Edge]) {
         }
     }
     let last = (0..nodes.len())
-        .filter(|&i| done[i])
+        .filter(|&i| done[i] && linked[i])
         .map(|i| layer[i] + 1)
         .max()
         .unwrap_or(0);
     for (i, node) in nodes.iter_mut().enumerate() {
-        node.cycle = !done[i];
-        node.layer = if done[i] { layer[i] } else { last };
+        node.place = match (linked[i], done[i]) {
+            (false, _) => Place::Isolated,
+            (true, true) => Place::Layer {
+                layer: layer[i],
+                cycle: false,
+            },
+            (true, false) => Place::Layer {
+                layer: last,
+                cycle: true,
+            },
+        };
     }
 }
 
@@ -428,39 +442,61 @@ pub struct Rect {
     pub h: f32,
 }
 
-/// Where the DAG's nodes go: layers top to bottom, each centred across the
-/// widest, `nodeGap` around the drawing.
+/// The lengths the drawing is laid out with (the theme's `dag-*` tokens),
+/// in points.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Sizes {
+    pub node_width: f32,
+    pub node_height: f32,
+    /// Between two layers.
+    pub layer_gap: f32,
+    /// Between two nodes of a layer, and around the drawing.
+    pub node_gap: f32,
+    /// Above the layers, for their labels.
+    pub label: f32,
+}
+
+/// Where the layered nodes go: layers left to right, each a column
+/// centred on the tallest, under a band for the layers' labels.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Geometry {
     pub width: f32,
     pub height: f32,
-    /// One per node of the graph.
+    /// The left edge of each layer.
+    pub columns: Vec<f32>,
+    /// One per layered node (the first `layers`' nodes of the graph).
     pub boxes: Vec<Rect>,
 }
 
-pub fn geometry(graph: &Graph, dag: &Dag) -> Geometry {
-    let (w, h) = (
-        f32::from(dag.node_width.get()),
-        f32::from(dag.node_height.get()),
-    );
-    let (gap, layer_gap) = (f32::from(dag.node_gap), f32::from(dag.layer_gap));
-    let row = |n: usize| n as f32 * w + n.saturating_sub(1) as f32 * gap;
-    let widest = graph.layers.iter().map(|l| row(l.len())).fold(0.0, f32::max);
-    let mut boxes = Vec::with_capacity(graph.nodes.len());
+pub fn geometry(graph: &Graph, sizes: Sizes) -> Geometry {
+    let Sizes {
+        node_width: w,
+        node_height: h,
+        layer_gap,
+        node_gap: gap,
+        label,
+    } = sizes;
+    let column = |n: usize| n as f32 * h + n.saturating_sub(1) as f32 * gap;
+    let tallest = graph.layers.iter().map(|l| column(l.len())).fold(0.0, f32::max);
+    let top = gap + label;
+    let mut boxes = Vec::with_capacity(graph.layers.last().map_or(0, |l| l.end));
+    let mut columns = Vec::with_capacity(graph.layers.len());
     for (i, layer) in graph.layers.iter().enumerate() {
-        let left = gap + (widest - row(layer.len())) / 2.0;
-        let y = gap + i as f32 * (h + layer_gap);
+        let x = gap + i as f32 * (w + layer_gap);
+        let y = top + (tallest - column(layer.len())) / 2.0;
+        columns.push(x);
         boxes.extend((0..layer.len()).map(|slot| Rect {
-            x: left + slot as f32 * (w + gap),
-            y,
+            x,
+            y: y + slot as f32 * (h + gap),
             w,
             h,
         }));
     }
     let n = graph.layers.len();
     Geometry {
-        width: widest + 2.0 * gap,
-        height: n as f32 * h + n.saturating_sub(1) as f32 * layer_gap + 2.0 * gap,
+        width: n as f32 * w + n.saturating_sub(1) as f32 * layer_gap + 2.0 * gap,
+        height: top + tallest + gap,
+        columns,
         boxes,
     }
 }
@@ -521,8 +557,6 @@ fn progress_key(sub: SubIssues) -> (bool, u64, u32) {
 
 #[cfg(test)]
 mod tests {
-    use std::num::NonZeroU16;
-
     use super::*;
     use crate::{gh::project::IssueState, programs::AgendaKind};
 
@@ -597,20 +631,48 @@ mod tests {
         ]
     }
 
-    fn numbers(graph: &Graph) -> Vec<(u64, usize)> {
-        graph.nodes.iter().map(|n| (n.issue.number, n.layer)).collect()
+    /// Each node's issue and layer (`None`: the isolated grid).
+    fn numbers(graph: &Graph) -> Vec<(u64, Option<usize>)> {
+        graph
+            .nodes
+            .iter()
+            .map(|n| match n.place {
+                Place::Layer { layer, .. } => (n.issue.number, Some(layer)),
+                Place::Isolated => (n.issue.number, None),
+            })
+            .collect()
     }
 
     #[test]
-    fn layers_follow_the_longest_prerequisite_chain() {
+    fn layers_follow_the_longest_chain_and_isolated_issues_go_to_the_grid() {
         let graph = build(&fixture(), Council::Unreachable, &repo("o/pm"), ALL);
-        // A2's only "Blocked by" is ignored: it starts a chain of its own.
+        // H1, H2, A1, A2 in layers 1–4: A2's "Blocked by" A1 is ignored by
+        // the council but still drawn, so it still places A2. D6 has no
+        // "Blocked by" either way: the grid.
         assert_eq!(
             numbers(&graph),
-            vec![(1, 0), (4, 0), (6, 0), (2, 1), (3, 2)]
+            vec![(1, Some(0)), (2, Some(1)), (3, Some(2)), (4, Some(3)), (6, None)]
         );
-        assert_eq!(graph.layers, vec![0..3, 3..4, 4..5]);
+        assert_eq!(graph.layers, vec![0..1, 1..2, 2..3, 3..4]);
+        assert_eq!(graph.isolated, 4..5);
         assert_eq!(graph.hidden, 0);
+    }
+
+    #[test]
+    fn isolated_issues_are_in_agenda_order() {
+        let items = vec![
+            item(5, Kind::Agenda, "", &[]),
+            item(4, Kind::Agenda, "D10", &[]),
+            item(3, Kind::Agenda, "D2", &[]),
+            item(2, Kind::Human, "D30", &[]),
+            item(1, Kind::Agenda, "", &[]),
+        ];
+        let graph = build(&items, Council::Unreachable, &repo("o/pm"), ALL);
+        assert!(graph.layers.is_empty());
+        assert_eq!(graph.isolated, 0..5);
+        let order: Vec<u64> = graph.nodes.iter().map(|n| n.issue.number).collect();
+        // By agenda number, human or not; those without one by issue.
+        assert_eq!(order, vec![3, 4, 2, 1, 5]);
     }
 
     #[test]
@@ -621,21 +683,23 @@ mod tests {
             item(3, Kind::Agenda, "D3", &[1, 2]),
         ];
         let graph = build(&items, Council::Unreachable, &repo("o/pm"), ALL);
-        assert_eq!(numbers(&graph), vec![(1, 0), (2, 1), (3, 2)]);
+        assert_eq!(numbers(&graph), vec![(1, Some(0)), (2, Some(1)), (3, Some(2))]);
     }
 
     #[test]
     fn layers_put_human_issues_first_then_agenda_numbers_then_issues() {
         let items = vec![
-            item(5, Kind::Agenda, "", &[]),
-            item(4, Kind::Agenda, "D10", &[]),
-            item(3, Kind::Agenda, "D2", &[]),
-            item(2, Kind::Human, "D30", &[]),
-            item(1, Kind::Agenda, "", &[]),
+            item(9, Kind::Human, "D1", &[]),
+            item(5, Kind::Agenda, "", &[9]),
+            item(4, Kind::Agenda, "D10", &[9]),
+            item(3, Kind::Agenda, "D2", &[9]),
+            item(2, Kind::Human, "D30", &[9]),
+            item(1, Kind::Agenda, "", &[9]),
         ];
         let graph = build(&items, Council::Unreachable, &repo("o/pm"), ALL);
         let order: Vec<u64> = graph.nodes.iter().map(|n| n.issue.number).collect();
-        assert_eq!(order, vec![2, 3, 4, 1, 5]);
+        assert_eq!(order, vec![9, 2, 3, 4, 1, 5]);
+        assert_eq!(graph.layers, vec![0..1, 1..6]);
     }
 
     #[test]
@@ -691,31 +755,6 @@ mod tests {
     }
 
     #[test]
-    fn colors_follow_the_state() {
-        let hex = |n: u32| HexColor::try_from(format!("#{n:06x}")).unwrap();
-        let colors = DagColors {
-            decided: hex(1),
-            superseded: hex(2),
-            blocked: hex(3),
-            held: hex(4),
-            deliberating: hex(5),
-            interrupted: hex(6),
-            failed: hex(7),
-            ready: hex(8),
-            unreachable: hex(9),
-        };
-        let project = |status| NodeState::Project {
-            status,
-            why: Fallback::Unreachable,
-        };
-        assert_eq!(NodeState::Queue(QueueState::Held).color(&colors), hex(4));
-        assert_eq!(project(Some(Status::Done)).color(&colors), hex(1));
-        assert_eq!(project(Some(Status::Superseded)).color(&colors), hex(2));
-        assert_eq!(project(Some(Status::Todo)).color(&colors), hex(9));
-        assert_eq!(project(None).color(&colors), hex(9));
-    }
-
-    #[test]
     fn filters_hide_decided_and_superseded_issues() {
         let mut items = fixture();
         items.push(ProjectItem {
@@ -765,7 +804,8 @@ mod tests {
             ..ALL
         };
         let graph = build(&items, Council::Unreachable, &repo("o/pm"), filters);
-        assert_eq!(numbers(&graph), vec![(2, 0), (4, 0), (3, 1)]);
+        // Issue 6 is decided too, so it goes with 1.
+        assert_eq!(numbers(&graph), vec![(2, Some(0)), (3, Some(1)), (4, Some(2))]);
         assert_eq!(graph.edges.len(), 2);
     }
 
@@ -779,11 +819,14 @@ mod tests {
             item(5, Kind::Agenda, "D5", &[3]),
         ];
         let graph = build(&items, Council::Unreachable, &repo("o/pm"), ALL);
-        assert_eq!(numbers(&graph), vec![(1, 0), (2, 1), (3, 2), (4, 2), (5, 2)]);
+        assert_eq!(
+            numbers(&graph),
+            vec![(1, Some(0)), (2, Some(1)), (3, Some(2)), (4, Some(2)), (5, Some(2))]
+        );
         let cycle: Vec<u64> = graph
             .nodes
             .iter()
-            .filter(|n| n.cycle)
+            .filter(|n| matches!(n.place, Place::Layer { cycle: true, .. }))
             .map(|n| n.issue.number)
             .collect();
         assert_eq!(cycle, vec![3, 4, 5]);
@@ -804,35 +847,44 @@ mod tests {
         assert!(names("o/pm#31 and o/pm#3", &issue(3)));
     }
 
+    const SIZES: Sizes = Sizes {
+        node_width: 100.0,
+        node_height: 40.0,
+        layer_gap: 50.0,
+        node_gap: 10.0,
+        label: 20.0,
+    };
+
     #[test]
-    fn geometry_centres_layers_across_the_widest() {
+    fn geometry_runs_layers_left_to_right() {
         let graph = build(&fixture(), Council::Unreachable, &repo("o/pm"), ALL);
-        let black = || HexColor::try_from(format!("#{:06}", 0)).unwrap();
-        let dag = Dag {
-            colors: DagColors {
-                decided: black(),
-                superseded: black(),
-                blocked: black(),
-                held: black(),
-                deliberating: black(),
-                interrupted: black(),
-                failed: black(),
-                ready: black(),
-                unreachable: black(),
-            },
-            layer_gap: 50,
-            node_gap: 10,
-            node_width: NonZeroU16::new(100).unwrap(),
-            node_height: NonZeroU16::new(40).unwrap(),
-        };
-        let g = geometry(&graph, &dag);
-        // Three nodes in layer 0: 3 × 100 + 2 × 10, plus 10 each side.
-        assert_eq!(g.width, 340.0);
-        // Three layers: 3 × 40 + 2 × 50, plus 10 each side.
-        assert_eq!(g.height, 240.0);
-        assert_eq!(g.boxes[0], Rect { x: 10.0, y: 10.0, w: 100.0, h: 40.0 });
-        assert_eq!(g.boxes[3], Rect { x: 120.0, y: 100.0, w: 100.0, h: 40.0 });
-        assert_eq!(g.boxes[4].y, 190.0);
+        let g = geometry(&graph, SIZES);
+        // Four layers of one: 4 × 100 + 3 × 50, plus 10 each side.
+        assert_eq!(g.width, 570.0);
+        // One node high, under the label band: 10 + 20 + 40 + 10.
+        assert_eq!(g.height, 80.0);
+        assert_eq!(g.columns, vec![10.0, 160.0, 310.0, 460.0]);
+        // Only the layered nodes have boxes: the isolated one is in the grid.
+        assert_eq!(g.boxes.len(), 4);
+        assert_eq!(g.boxes[0], Rect { x: 10.0, y: 30.0, w: 100.0, h: 40.0 });
+        assert!(g.boxes.windows(2).all(|b| b[1].x > b[0].x + b[0].w));
+        assert!(g.boxes.iter().all(|b| b.y == 30.0));
+    }
+
+    #[test]
+    fn geometry_centres_a_short_layer_on_the_tallest() {
+        let items = vec![
+            item(1, Kind::Human, "D1", &[]),
+            item(2, Kind::Human, "D2", &[]),
+            item(3, Kind::Agenda, "D3", &[1, 2]),
+        ];
+        let graph = build(&items, Council::Unreachable, &repo("o/pm"), ALL);
+        let g = geometry(&graph, SIZES);
+        assert_eq!(graph.layers, vec![0..2, 2..3]);
+        // Layer 1 is two high (40 + 10 + 40); layer 2's node sits midway.
+        assert_eq!(g.height, 10.0 + 20.0 + 90.0 + 10.0);
+        assert_eq!((g.boxes[0].y, g.boxes[1].y), (30.0, 80.0));
+        assert_eq!((g.boxes[2].x, g.boxes[2].y), (160.0, 55.0));
     }
 
     #[test]
@@ -882,13 +934,13 @@ mod tests {
                 .map(|i| graph.nodes[i].issue.number)
                 .collect()
         };
-        assert_eq!(rows(None), vec![1, 4, 6, 2, 3]);
+        assert_eq!(rows(None), vec![1, 2, 3, 4, 6]);
         let by = |column, descending| Some(ListSort { column, descending });
         assert_eq!(rows(by(ListColumn::Agenda, false)), vec![1, 2, 3, 4, 6]);
         assert_eq!(rows(by(ListColumn::Agenda, true)), vec![6, 4, 3, 2, 1]);
-        assert_eq!(rows(by(ListColumn::Kind, false)), vec![1, 2, 4, 6, 3]);
-        assert_eq!(rows(by(ListColumn::Progress, true)), vec![4, 3, 1, 6, 2]);
+        assert_eq!(rows(by(ListColumn::Kind, false)), vec![1, 2, 3, 4, 6]);
+        assert_eq!(rows(by(ListColumn::Progress, true)), vec![4, 3, 1, 2, 6]);
         // Done (decided) before Todo.
-        assert_eq!(rows(by(ListColumn::State, false)), vec![6, 1, 4, 2, 3]);
+        assert_eq!(rows(by(ListColumn::State, false)), vec![6, 1, 2, 3, 4]);
     }
 }
