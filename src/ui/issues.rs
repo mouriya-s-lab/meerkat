@@ -387,16 +387,16 @@ fn visible_rows(graph: &Graph, state: IssuesState) -> Vec<usize> {
 }
 
 /// The list's column widths: glyph, agenda, (title), progress, deps,
-/// updated. The progress column fits 「第 N 轮 · 已投 a/b」 with two-digit
-/// counts beside a panel's usual seat bar (more seats narrow the bar, not
-/// the words); the dependency column fits its head. Both are wider in
-/// English, whose words run longer.
+/// updated. The progress column fits 「第 N 轮 · 已投 a/b」 or "Round N ·
+/// voted a/b" beside a panel's usual seat bar (longer counts or more
+/// seats narrow the bar, not the words); the dependency column fits its
+/// head, wider in English.
 pub fn widths() -> [Points; 5] {
-    let (progress, deps) = match Lang::current() {
-        Lang::Zh => (len(Space8) * 5.0 + len(Space4), len(Space8) * 2.0),
-        Lang::En => (len(Space8) * 6.0, len(Space8) * 3.0),
+    let deps = match Lang::current() {
+        Lang::Zh => len(Space8) * 2.0,
+        Lang::En => len(Space8) * 3.0,
     };
-    [len(Space4), len(Space8) + len(Space4), progress, deps, len(Space8) * 2.0]
+    [len(Space4), len(Space8) + len(Space4), len(Space8) * 5.0 + len(Space4), deps, len(Space8) * 2.0]
 }
 
 /// A group's glyph in its header.
