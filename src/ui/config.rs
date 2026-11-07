@@ -454,7 +454,7 @@ fn group_header(
         .flex_row()
         .items_center()
         .gap(len(Space1) + len(Space1) / 2.0)
-        .h(len(Row) - len(Space2))
+        .min_h(len(Row) - len(Space2))
         .mt(len(Space2))
         .px(len(Space2))
         .rounded(len(RadiusControl))
@@ -464,7 +464,13 @@ fn group_header(
         .child(text(name).ty(Type::Mono).text_color(color(Ink2)).number_of_lines(1))
         .child(small(count.to_string()))
         .child(view().flex_1())
-        .children(readers.map(|readers| small(readers).number_of_lines(1).flex_shrink(1.0)))
+        .children(readers.map(|readers| {
+            small(readers)
+                .text_right()
+                .number_of_lines(2)
+                .flex_shrink(1.0)
+                .min_w(Points::ZERO)
+        }))
 }
 
 fn file_row(
