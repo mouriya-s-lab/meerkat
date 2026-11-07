@@ -32,6 +32,8 @@ pub enum Msg {
     Resets(String),
     Updated(Ago),
     Refresh,
+    /// Back from an inspector shown full width to its list.
+    Back,
     LastHours(u32),
     ConfigError,
     ConfigHint,
@@ -340,6 +342,7 @@ impl fmt::Display for Msg {
                 f.write_str("更新")
             }
             Msg::Refresh => f.write_str("刷新"),
+            Msg::Back => f.write_str("返回"),
             Msg::LastHours(h) => write!(f, "最近 {h} 小时"),
             Msg::ConfigError => f.write_str("配置有误"),
             Msg::ConfigHint => f.write_str(

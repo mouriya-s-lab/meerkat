@@ -21,7 +21,7 @@ use super::{
         search_field, segmented, small, source_bar, th, token,
     },
     runtime::short_model,
-    shell::{Context, Nav},
+    shell::{Context, Nav, Split, split},
     status::{self, Role},
     text::Msg,
     tokens::{Type, Typeset, color, len},
@@ -243,40 +243,52 @@ pub fn page(sources: Sources, context: Rc<Context>, nav: Nav) -> impl IntoElemen
     };
     on_key("j", move |_| step(1));
     on_key("k", move |_| step(-1));
-    h_resizable()
-        .flex_1()
-        .handle_class("w-px bg-border")
-        .child(
-            resizable_panel().child(
-                view()
-                    .flex_1()
-                    .min_h(Points::ZERO)
-                    .child(filter_bar(recent, state))
-                    .child(
-                        view()
-                            .px(len(Space6))
-                            .pt(len(Space3))
-                            .pb(len(Space2))
-                            .border_b_1()
-                            .border_b_color(color(Border))
-                            .child(dynamic(move || {
-                                let shown = shown.get();
-                                untracked(move || {
-                                    histogram(&shown, hours as usize, len(Space8) + len(Space3)).into_element()
-                                })
-                            })),
-                    )
-                    .child(source_bar(sources.council.sessions, 0))
-                    .child(source_bar(sources.guardians.sessions, 0))
-                    .child(table(shown, context.clone(), nav)),
-            ),
-        )
-        .child(
-            resizable_panel()
-                .size(len(InspectorWidth) + len(Space8))
-                .size_range(len(InspectorWidth)..len(InspectorWidth) * 3.0)
-                .child(inspector(sources, context, nav)),
-        )
+    let list = {
+        let context = context.clone();
+        move || {
+            view()
+                .flex_1()
+                .min_h(Points::ZERO)
+                .child(filter_bar(recent, state))
+                .child(
+                    view()
+                        .px(len(Space6))
+                        .pt(len(Space3))
+                        .pb(len(Space2))
+                        .border_b_1()
+                        .border_b_color(color(Border))
+                        .child(dynamic(move || {
+                            let shown = shown.get();
+                            untracked(move || {
+                                histogram(&shown, hours as usize, len(Space8) + len(Space3)).into_element()
+                            })
+                        })),
+                )
+                .child(source_bar(sources.council.sessions, 0))
+                .child(source_bar(sources.guardians.sessions, 0))
+                .child(table(shown, context.clone(), nav))
+                .into_element()
+        }
+    };
+    let parts = Split {
+        list: Rc::new(list),
+        inspector: Rc::new(move || inspector(sources, context.clone(), nav).into_element()),
+        open: Rc::new(move || nav.session.get().is_some()),
+        back: Rc::new(move || nav.session.set(None)),
+    };
+    split(parts, |parts| {
+        h_resizable()
+            .flex_1()
+            .handle_class("w-px bg-border")
+            .child(resizable_panel().child((parts.list)()))
+            .child(
+                resizable_panel()
+                    .size(len(InspectorWidth) + len(Space8))
+                    .size_range(len(InspectorWidth)..len(InspectorWidth) * 3.0)
+                    .child((parts.inspector)()),
+            )
+            .into_element()
+    })
 }
 
 /// The state segments with their counts, the program and kind tokens, and

@@ -260,12 +260,17 @@ fn need_row(need: Need, sources: Sources, context: Rc<Context>, nav: Nav) -> Any
                         .children(line.count.map(|n| badge(n, Role::Fail))),
                 )
                 .child(
+                    // Details wrap to further lines rather than being cut;
+                    // one longer than the row ends in an ellipsis.
                     view()
                         .flex_row()
+                        .flex_wrap()
                         .items_center()
                         .gap(len(Space2))
                         .min_w(Points::ZERO)
-                        .children(line.meta),
+                        .children(line.meta.into_iter().map(|item| {
+                            view().flex_shrink(1.0).min_w(Points::ZERO).overflow_hidden().child(item)
+                        })),
                 ),
         )
         .children(spark)
@@ -351,7 +356,7 @@ fn line_of(need: &Need, context: &Context) -> Line {
                 status: status::queue(entry.state),
                 title: Msg::AgendaFailed(agenda(context, &entry.reference)).to_string(),
                 count: None,
-                meta: [title.map(|t| small(t).into_element()), note.map(|n| mono(n).number_of_lines(1).into_element())]
+                meta: [title.map(|t| small(t).number_of_lines(1).into_element()), note.map(|n| mono(n).number_of_lines(1).into_element())]
                     .into_iter()
                     .flatten()
                     .collect(),
@@ -399,7 +404,7 @@ fn line_of(need: &Need, context: &Context) -> Line {
                         .number_of_lines(1)
                         .into_element(),
                     sep(),
-                    mono(session.model.clone()).into_element(),
+                    mono(session.model.clone()).number_of_lines(1).into_element(),
                 ],
                 at,
             }

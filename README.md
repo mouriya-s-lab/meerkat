@@ -14,7 +14,9 @@ that opens the command bar, the pages with a count each (概览: what needs
 you; 议题: open agenda issues; 会话: running sessions; 运行状况: failed and
 stale bases), and at its foot the two programs with their versions and
 what is left of the GitHub API allowance. Narrower windows show the pages
-as tabs in a top bar. Each page opens under a toolbar with its title, how
+as tabs in a top bar; there 议题, 会话 and 运行状况 show their list alone,
+and what is selected opens full width under a 返回 bar instead of in an
+inspector beside the list. Each page opens under a toolbar with its title, how
 long ago its data loaded and a refresh button. ⌘K opens the command bar
 (agenda issues, sessions and commands, picked with ↑↓ and ↵), ⌘1–⌘4 open
 the pages and ⌘R refreshes every source.
@@ -112,7 +114,7 @@ repositories.
 | `digest.maxBytes` | A session record longer than this many bytes is parsed from its tail only, and the decision log says it is cut |
 | `filters.hideDecided` | The 「已定案」 filter when the app starts: `true` folds the decided and superseded issues (the list shows the latest three, the graph one line), `false` shows them all |
 | `filters.humanOnly` | The 「仅人类议题」 filter when the app starts: human issues and the issues they block, transitively |
-| `appearance` | `system` follows the system's light or dark appearance (the browser's on the web), `light` or `dark` keeps that one whatever the system's |
+| `appearance` | `system` follows the system's light or dark appearance (the browser's on the web), `light` or `dark` keeps that one whatever the system's; the macOS window, title bar included, opens in it |
 
 `dashboard/theme.json` holds the design tokens: `cssVars.theme` (fonts
 and lengths), `cssVars.light` and `cssVars.dark` (colors), each with

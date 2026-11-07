@@ -15,7 +15,7 @@ use super::{
         Choice, Look, action, empty, head_row, icon_button, kv, mono, nothing, press,
         row, search_field, segmented, small, source_bar, tag, th, token, votes_bar, meter,
     },
-    shell::{Context, Nav, graph_of},
+    shell::{Context, Nav, Split, graph_of, side, split},
     status::{self, Glyph, Role},
     text::Msg,
     tokens::{DIM, Type, Typeset, color, len, mark},
@@ -268,28 +268,40 @@ pub fn page(sources: Sources, context: Rc<Context>, _nav: Nav) -> impl IntoEleme
     on_key("j", move |_| step(1));
     on_key("k", move |_| step(-1));
     let settings = context.issues_settings.clone();
+    let list = {
+        let settings = settings.clone();
+        move || {
+            let settings = settings.clone();
+            dynamic(move || match state.shown.get() {
+                Shown::List => scroll()
+                    .flex_1()
+                    .child(list_view(graph, settings.clone(), state))
+                    .into_element(),
+                Shown::Graph => canvas_panel(graph, settings.clone(), state).into_element(),
+            })
+            .into_element()
+        }
+    };
+    let split_parts = Split {
+        list: Rc::new(list),
+        inspector: Rc::new(move || inspector(graph, settings.clone(), state).into_element()),
+        open: Rc::new(move || state.selected.get().is_some()),
+        back: Rc::new(move || state.selected.set(None)),
+    };
     view()
         .flex_1()
         .min_h(Points::ZERO)
         .child(filter_bar(graph, state))
         .child(source_bar(sources.project, 0))
-        .child(
+        .child(split(split_parts, |parts| {
             view()
                 .flex_1()
                 .min_h(Points::ZERO)
                 .flex_row()
-                .child(dynamic({
-                    let settings = settings.clone();
-                    move || match state.shown.get() {
-                        Shown::List => scroll()
-                            .flex_1()
-                            .child(list_view(graph, settings.clone(), state))
-                            .into_element(),
-                        Shown::Graph => canvas_panel(graph, settings.clone(), state).into_element(),
-                    }
-                }))
-                .child(inspector(graph, settings, state)),
-        )
+                .child(view().flex_1().min_w(Points::ZERO).child((parts.list)()))
+                .child(side((parts.inspector)()))
+                .into_element()
+        }))
 }
 
 fn filter_bar(graph: Memo<Option<Rc<Graph>>>, state: IssuesState) -> View {
@@ -298,10 +310,12 @@ fn filter_bar(graph: Memo<Option<Rc<Graph>>>, state: IssuesState) -> View {
     };
     view()
         .flex_row()
+        .flex_wrap()
         .flex_shrink_0()
         .items_center()
         .gap(len(Space2))
-        .h(len(Toolbar))
+        .min_h(len(Toolbar))
+        .py(len(Space2))
         .px(len(Space6))
         .border_b_1()
         .border_b_color(color(Border))
@@ -862,10 +876,8 @@ fn fold_chip(graph: &Graph, layout: &Layout, state: IssuesState) -> AnyElement {
 
 fn inspector(graph: Memo<Option<Rc<Graph>>>, settings: Rc<Settings>, state: IssuesState) -> View {
     view()
-        .w(len(InspectorWidth) + len(Space8))
-        .flex_shrink_0()
-        .border_l_1()
-        .border_l_color(color(Border))
+        .flex_1()
+        .min_h(Points::ZERO)
         .child(scroll().flex_1().child(dynamic(move || {
             let Some(graph) = graph.get() else {
                 return nothing();

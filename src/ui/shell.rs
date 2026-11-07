@@ -16,7 +16,7 @@ use super::{
     icons::{Icon, icon},
     issues::{self, IssuesState, Settings},
     overview,
-    parts::{icon_button, kbd, meter, nothing, small},
+    parts::{Look, action, icon_button, kbd, meter, nothing, small},
     runtime::{self, Rewarms},
     sessions::{self, OpenSession, SessionsState},
     status::{self, Role},
@@ -38,6 +38,59 @@ const WIDE: f32 = 900.0;
 
 fn wide() -> bool {
     window().width >= px(WIDE)
+}
+
+/// A page's list and its inspector (#9 「骨架与导航」).
+#[derive(Clone)]
+pub(super) struct Split {
+    pub list: Rc<dyn Fn() -> AnyElement>,
+    pub inspector: Rc<dyn Fn() -> AnyElement>,
+    /// Whether the person has opened something to inspect.
+    pub open: Rc<dyn Fn() -> bool>,
+    /// Closes what is open.
+    pub back: Rc<dyn Fn()>,
+}
+
+/// Where the sidebar shows, `beside` lays out the list with its inspector;
+/// narrower windows show the list alone until something is open, then the
+/// inspector full width under a 返回 bar.
+pub(super) fn split(parts: Split, beside: impl Fn(&Split) -> AnyElement + 'static) -> View {
+    let narrow = parts.clone();
+    view().flex_1().min_h(Points::ZERO).child(when(wide, move || beside(&parts)).otherwise(move || {
+        let open = narrow.open.clone();
+        let shown = narrow.clone();
+        let list = narrow.list.clone();
+        when(move || open(), move || detail(&shown)).otherwise(move || list())
+    }))
+}
+
+/// What is open, full width, under a bar that goes back to the list.
+fn detail(parts: &Split) -> View {
+    let back = parts.back.clone();
+    view()
+        .flex_1()
+        .min_h(Points::ZERO)
+        .child(
+            view()
+                .flex_row()
+                .items_center()
+                .h(len(Toolbar))
+                .px(len(Space4))
+                .border_b_1()
+                .border_b_color(color(Border))
+                .child(action(Msg::Back, Some(Icon::ArrowLeft), Look::Link, || false, move || back())),
+        )
+        .child(view().flex_1().min_h(Points::ZERO).child((parts.inspector)()))
+}
+
+/// The inspector beside a list: its width, and a rule on its left.
+pub(super) fn side(inspector: AnyElement) -> View {
+    view()
+        .w(len(InspectorWidth) + len(Space8))
+        .flex_shrink_0()
+        .border_l_1()
+        .border_l_color(color(Border))
+        .child(inspector)
 }
 
 /// A page of the app, in the sidebar's order.

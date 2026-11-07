@@ -17,7 +17,7 @@ use super::{
         small, source_bar, th,
     },
     sessions::{self, OpenSession, duration},
-    shell::{Context, Nav},
+    shell::{Context, Nav, Split, side, split},
     status::{self, Role},
     text::Msg,
     tokens::{Type, Typeset, color, len},
@@ -181,21 +181,37 @@ pub fn page(sources: Sources, context: Rc<Context>, nav: Nav) -> impl IntoElemen
                 .with(|b| b.and_then(|b| b.data.first().map(|b| b.id.clone())))
         })
     };
-    view()
-        .flex_1()
-        .min_h(Points::ZERO)
-        .flex_row()
-        .child(
-            scroll().flex_1().child(
-                view()
-                    .pb(len(Space6))
-                    .child(summary(sources, context.clone()))
-                    .child(bases_table(sources, context.clone(), state, selected))
-                    .child(programs(sources, context.clone()))
-                    .child(limits(sources, context.clone())),
-            ),
-        )
-        .child(inspector(sources, context, nav, selected))
+    let list = {
+        let context = context.clone();
+        move || {
+            scroll()
+                .flex_1()
+                .child(
+                    view()
+                        .pb(len(Space6))
+                        .child(summary(sources, context.clone()))
+                        .child(bases_table(sources, context.clone(), state, selected))
+                        .child(programs(sources, context.clone()))
+                        .child(limits(sources, context.clone())),
+                )
+                .into_element()
+        }
+    };
+    let parts = Split {
+        list: Rc::new(list),
+        inspector: Rc::new(move || inspector(sources, context.clone(), nav, selected).into_element()),
+        open: Rc::new(move || state.selected.get().is_some()),
+        back: Rc::new(move || state.selected.set(None)),
+    };
+    split(parts, |parts| {
+        view()
+            .flex_1()
+            .min_h(Points::ZERO)
+            .flex_row()
+            .child(view().flex_1().min_w(Points::ZERO).child((parts.list)()))
+            .child(side((parts.inspector)()))
+            .into_element()
+    })
 }
 
 /// 就绪 a/n · 过期 k · 最旧预热 · 分叉会话 in the window.
@@ -259,9 +275,9 @@ fn bases_table(
         .child(source_bar(sources.bases, 4))
         .child(head_row(vec![
             view().w(len(Space4)).into_element(),
-            th(Msg::Model).flex_1().into_element(),
-            th(Msg::State).w(len(Space8) * 3.0).into_element(),
-            th(Msg::WarmedAt).w(len(Space8) * 3.0).into_element(),
+            th(Msg::Model).flex_1().min_w(Points::ZERO).into_element(),
+            th(Msg::State).w(len(Space8) * 2.5).into_element(),
+            th(Msg::WarmedAt).w(len(Space8) * 2.5).into_element(),
             th(Msg::ForksShort(hours)).w(len(Space8) * 2.0).into_element(),
             view().w(len(Space8) * 3.5).into_element(),
         ]))
@@ -343,8 +359,8 @@ fn base_row(
         })
     };
     let under = match (&base.error, base.stale) {
-        (Some(error), _) => Some(error_text(first_line(error).to_owned()).number_of_lines(1)),
-        (None, true) => Some(mono(base.stale_reason.clone()).text_color(Role::Warn.text()).number_of_lines(1)),
+        (Some(error), _) => Some(error_text(first_line(error).to_owned()).number_of_lines(2)),
+        (None, true) => Some(mono(base.stale_reason.clone()).text_color(Role::Warn.text()).number_of_lines(2)),
         (None, false) => None,
     };
     let (enter, leave) = (id.clone(), id.clone());
@@ -365,9 +381,9 @@ fn base_row(
             .children(under)
             .child(answer),
     )
-    .child(text(words).ty(Type::Body).w(len(Space8) * 3.0))
+    .child(text(words).ty(Type::Body).w(len(Space8) * 2.5))
     .child(
-        view().w(len(Space8) * 3.0).child(
+        view().w(len(Space8) * 2.5).child(
             small(move || {
                 warmed
                     .as_deref()
@@ -423,10 +439,8 @@ fn inspector(
 ) -> View {
     let hours = context.hours();
     view()
-        .w(len(InspectorWidth) + len(Space8))
-        .flex_shrink_0()
-        .border_l_1()
-        .border_l_color(color(Border))
+        .flex_1()
+        .min_h(Points::ZERO)
         .child(scroll().flex_1().child(dynamic(move || {
             let base = selected().and_then(|id| {
                 sources.bases.with(|b| b.and_then(|b| b.data.iter().find(|x| x.id == id).cloned()))
