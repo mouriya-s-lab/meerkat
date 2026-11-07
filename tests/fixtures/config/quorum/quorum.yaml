@@ -1,0 +1,48 @@
+config:
+  repo: oh-my-omp/pm-e2e-agenda
+  branch: main
+  readers:
+    council/: [council]
+    guardians/: [guardians]
+    quorum/: [quorum]
+    dispatch/: [dispatch]
+    shared/: [council, guardians, quorum, dispatch]
+targets:
+  macos:
+    githubApi: http://github.test
+    council: http://council.test
+    guardians: http://guardians.test
+    dispatch: http://dispatch.test
+  web:
+    githubApi: http://github.test
+    council: http://council.test
+    guardians: http://guardians.test
+    dispatch: http://dispatch.test
+refreshSeconds: 1
+attention:
+  sessionFailureHours: 24
+  rateLimitPercent: 10
+digest:
+  keepTools:
+    - pm_draft
+    - pm_block
+    - pm_vote
+    - pm_ruling
+    - pm_read_issue
+    - pm_proxy_read
+    - pm_base_ready
+    - pm_return_facts
+    - pm_reply
+    - pm_replace
+    - pm_escalate
+  foldTools:
+    - read
+    - grep
+    - glob
+    - find
+  showAssistantText: true
+  maxBytes: 8000000
+filters:
+  hideDecided: false
+  humanOnly: false
+appearance: system

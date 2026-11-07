@@ -1,0 +1,8 @@
+pm:
+  repo: oh-my-omp/pm-e2e-agenda
+  project: { owner: oh-my-omp, number: 1 }
+code:
+  - repo: oh-my-omp/pm-e2e-code
+    cwd: /tmp/q23/pm-e2e-code
+design: [oh-my-omp/pm-e2e-design]
+omp: []
