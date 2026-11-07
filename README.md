@@ -12,8 +12,9 @@ confirms.
 Windows at least 900 pt wide show a sidebar: Quorum's name, a search field
 that opens the command bar, the pages with a count each (概览: what needs
 you; 议题: open agenda issues; 会话: running sessions; 运行状况: failed and
-stale bases), and at its foot the two programs with their versions and
-what is left of the GitHub API allowance. Narrower windows show the pages
+stale bases), and at its foot the two programs with their versions (a Go
+pseudo-version as its 12-digit commit, the full version in its tooltip)
+and what is left of the GitHub API allowance. Narrower windows show the pages
 as tabs in a top bar; there 议题, 会话 and 运行状况 show their list alone,
 and what is selected opens full width under a 返回 bar instead of in an
 inspector beside the list. Each page opens under a toolbar with its title, how
@@ -63,7 +64,7 @@ The pages:
   frame that says so.
 - **运行状况** (runtime): the guardian bases grouped by repository
   (model, state, why a base is stale, when it was warmed, its forks in the
-  last day), the programs (state, version, uptime, work, last check) and
+  last day), the programs (state, full version, uptime, work, last check) and
   the limits (GitHub REST and GraphQL allowance, sessions that hit an LLM
   rate limit). A hovered or selected base shows 重新预热, disabled while
   the base warms. The button asks for confirmation naming the guardian,

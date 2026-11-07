@@ -16,7 +16,7 @@ use super::{
     icons::{Icon, icon},
     issues::{self, IssuesState, Settings},
     overview,
-    parts::{Look, action, icon_button, kbd, meter, nothing, small},
+    parts::{Look, action, hint, icon_button, kbd, meter, nothing, small},
     runtime::{self, Rewarms},
     sessions::{self, OpenSession, SessionsState},
     status::{self, Role},
@@ -574,6 +574,9 @@ fn footer(sources: Sources, context: Rc<Context>) -> View {
         .child(rate_block(sources, context))
 }
 
+/// A program in the sidebar's foot: its state and name, always shown, and
+/// its short version on one line, cut when it does not fit; the full
+/// version is its tooltip.
 fn program_line(program: ProgramSources) -> View {
     let health = program.health;
     let name = program.program;
@@ -592,12 +595,13 @@ fn program_line(program: ProgramSources) -> View {
                 }
             }
         }))
-        .child(text(SharedString::from(Msg::Program(name))).ty(Type::Small).flex_1())
-        .child(small(move || {
-            health
-                .with(|l| l.map(|l| SharedString::from(l.data.version.clone())))
-                .unwrap_or_default()
-        }))
+        .child(text(SharedString::from(Msg::Program(name))).ty(Type::Small).flex_shrink_0())
+        .child(view().flex_1().min_w(Points::ZERO).items_end().child(dynamic(move || {
+            match health.with(|l| l.map(|l| (l.data.short_version().to_owned(), l.data.version.clone()))) {
+                Some((short, full)) => small(short).truncate().tooltip(hint(full)).into_element(),
+                None => nothing(),
+            }
+        })))
 }
 
 fn rate_block(sources: Sources, context: Rc<Context>) -> View {

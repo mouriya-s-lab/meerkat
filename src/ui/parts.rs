@@ -89,6 +89,18 @@ pub fn error_text(content: impl IntoReactive<SharedString>) -> Text {
     text(content).ty(Type::Mono).text_color(Role::Fail.text())
 }
 
+/// A tooltip's body: `content` in mono on the foreground ink (an
+/// absolute time, a full version).
+pub fn hint(content: impl Into<SharedString>) -> AnyElement {
+    view()
+        .px(len(Space2))
+        .py(len(Space1))
+        .rounded(len(RadiusControl))
+        .bg(color(Foreground))
+        .child(text(content.into()).ty(Type::Mono).text_color(color(Background)))
+        .into_element()
+}
+
 /// How a button looks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Look {

@@ -13,8 +13,8 @@ use super::{
     icons::Icon,
     overview::running_asks,
     parts::{
-        Look, action, empty, error_text, group_header, head_row, kv, meter, mono, nothing,
-        small, source_bar, th,
+        Look, action, empty, error_text, group_header, head_row, hint, kv, meter, mono,
+        nothing, small, source_bar, th,
     },
     sessions::{self, OpenSession, duration},
     shell::{Context, Nav, Split, side, split},
@@ -392,15 +392,7 @@ fn base_row(
                     .unwrap_or_default()
             })
             .text_color(color(Foreground))
-            .tooltip(
-                view()
-                    .px(len(Space2))
-                    .py(len(Space1))
-                    .rounded(len(RadiusControl))
-                    .bg(color(Foreground))
-                    .child(text(absolute).ty(Type::Mono).text_color(color(Background)))
-                    .into_element(),
-            ),
+            .tooltip(hint(absolute)),
         ),
     )
     .child(text(forks.to_string()).ty(Type::Body).w(len(Space8) * 2.0))
@@ -571,16 +563,21 @@ fn section(title: Msg) -> View {
         .child(text(SharedString::from(title)).ty(Type::Heading))
 }
 
-/// Each program: state, version, how long it runs, its work, when it was
-/// last checked.
+/// Each program: state, its full version and how long it runs, then its
+/// work and when it was last checked under them.
 fn programs(sources: Sources, context: Rc<Context>) -> View {
     let line = move |program: ProgramSources| {
         let now = context.now;
+        let version = dynamic(move || {
+            let full = program.health.with(|l| l.map(|l| l.data.version.clone())).unwrap_or_default();
+            mono(full.clone()).truncate().tooltip(hint(full)).into_element()
+        });
         view()
             .flex_row()
             .items_center()
             .gap(len(Space3))
-            .h(len(Row) + len(Space1))
+            .min_h(len(Row) + len(Space1))
+            .py(len(Space2))
             .border_b_1()
             .border_b_color(color(Border))
             .child(dynamic(move || {
@@ -588,32 +585,42 @@ fn programs(sources: Sources, context: Rc<Context>) -> View {
                 status::label(&state, Type::Body).w(len(Space8) * 2.5).into_element()
             }))
             .child(text(SharedString::from(Msg::Program(program.program))).ty(Type::BodyStrong).w(len(Space8) * 2.0))
-            .child(mono(move || {
-                program.health.with(|l| l.map(|l| SharedString::from(l.data.version.clone()))).unwrap_or_default()
-            }).w(len(Space8) * 2.5))
-            .child(small(move || {
-                program
-                    .health
-                    .with(|l| l.and_then(|l| time::parse_ms(&l.data.started_at)))
-                    .map(|at| SharedString::from(Msg::Running(time::ago(at, now.get()))))
-                    .unwrap_or_default()
-            }).text_color(color(Foreground)).w(len(Space8) * 3.0))
-            .child(small(move || {
-                let checked = program.health.with(|l| l.map(|l| l.at));
-                let work = match program.program {
-                    Program::Council => sources.queue.with(|q| {
-                        q.map(|q| Msg::QueueWork {
-                            open: q.data.iter().filter(|e| !matches!(e.state, QueueState::Decided | QueueState::Superseded)).count(),
-                            deliberating: q.data.iter().filter(|e| e.state == QueueState::Deliberating).count(),
-                        })
-                    }),
-                    Program::Guardians => Some(Msg::AsksRunning(running_asks(program))),
-                };
-                SharedString::from(Msg::WorkAndChecked(
-                    work.map(Box::new),
-                    checked.map(|at| time::ago(at, now.get())),
-                ))
-            }).flex_1())
+            .child(
+                view()
+                    .flex_1()
+                    .min_w(Points::ZERO)
+                    .gap(len(Space1))
+                    .child(
+                        view()
+                            .flex_row()
+                            .items_center()
+                            .gap(len(Space3))
+                            .child(view().flex_1().min_w(Points::ZERO).child(version))
+                            .child(small(move || {
+                                program
+                                    .health
+                                    .with(|l| l.and_then(|l| time::parse_ms(&l.data.started_at)))
+                                    .map(|at| SharedString::from(Msg::Running(time::ago(at, now.get()))))
+                                    .unwrap_or_default()
+                            }).text_color(color(Foreground)).flex_shrink_0()),
+                    )
+                    .child(small(move || {
+                        let checked = program.health.with(|l| l.map(|l| l.at));
+                        let work = match program.program {
+                            Program::Council => sources.queue.with(|q| {
+                                q.map(|q| Msg::QueueWork {
+                                    open: q.data.iter().filter(|e| !matches!(e.state, QueueState::Decided | QueueState::Superseded)).count(),
+                                    deliberating: q.data.iter().filter(|e| e.state == QueueState::Deliberating).count(),
+                                })
+                            }),
+                            Program::Guardians => Some(Msg::AsksRunning(running_asks(program))),
+                        };
+                        SharedString::from(Msg::WorkAndChecked(
+                            work.map(Box::new),
+                            checked.map(|at| time::ago(at, now.get())),
+                        ))
+                    }).truncate()),
+            )
     };
     view()
         .child(section(Msg::Programs))

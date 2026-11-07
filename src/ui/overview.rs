@@ -14,7 +14,7 @@ use super::{
     icons::{Icon, icon},
     issues::{self, deps, progress},
     parts::{
-        Look, Span, action, badge, error_text, meter, mono, nothing, panel, panel_head,
+        Look, Span, action, badge, error_text, hint, meter, mono, nothing, panel, panel_head,
         press, row, section_head, sentence, small, source_bar,
     },
     runtime::{base_name, rewarm_button},
@@ -634,7 +634,8 @@ fn programs_panel(sources: Sources, context: Rc<Context>) -> View {
         .child(program_row(sources, sources.guardians, context))
 }
 
-/// A program: its state, how long it runs, its work, its version.
+/// A program: its state, how long it runs, its work, its short version
+/// (the full one is its tooltip).
 fn program_row(sources: Sources, program: ProgramSources, context: Rc<Context>) -> View {
     let now = context.now;
     view()
@@ -648,7 +649,7 @@ fn program_row(sources: Sources, program: ProgramSources, context: Rc<Context>) 
             let state = status::program(!failed);
             status::glyph(state.glyph, state.role).into_element()
         }))
-        .child(text(SharedString::from(Msg::Program(program.program))).ty(Type::BodyStrong))
+        .child(text(SharedString::from(Msg::Program(program.program))).ty(Type::BodyStrong).flex_shrink_0())
         .child(small(move || {
             let failed = program.health.with_error(|e| e.is_some());
             let up = program
@@ -666,12 +667,12 @@ fn program_row(sources: Sources, program: ProgramSources, context: Rc<Context>) 
                 up,
                 work: Box::new(work),
             })
-        }).flex_1().number_of_lines(1))
-        .child(small(move || {
-            program
-                .health
-                .with(|l| l.map(|l| SharedString::from(l.data.version.clone())))
-                .unwrap_or_default()
+        }).flex_1().min_w(Points::ZERO).number_of_lines(1))
+        .child(dynamic(move || {
+            match program.health.with(|l| l.map(|l| (l.data.short_version().to_owned(), l.data.version.clone()))) {
+                Some((short, full)) => small(short).truncate().tooltip(hint(full)).into_element(),
+                None => nothing(),
+            }
         }))
 }
 

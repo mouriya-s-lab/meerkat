@@ -375,7 +375,7 @@ fn hit_row(
         .hover(|s| s.bg(color(Accent)))
         .cursor_pointer()
         .child(lead)
-        .child(text(main).ty(Type::BodyStrong).flex_shrink_0().number_of_lines(1))
+        .child(text(main).ty(Type::BodyStrong).max_w(len(InspectorWidth)).truncate())
         .child(
             text(detail)
                 .ty(Type::Body)
@@ -384,5 +384,5 @@ fn hit_row(
                 .min_w(Points::ZERO)
                 .number_of_lines(1),
         )
-        .children(right.map(small))
+        .children(right.map(|right| small(right).flex_shrink_0()))
 }

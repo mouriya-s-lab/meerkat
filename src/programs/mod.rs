@@ -33,6 +33,23 @@ pub struct Health {
     pub started_at: String,
 }
 
+impl Health {
+    /// The version where room is short: a Go pseudo-version
+    /// (`v0.0.0-20261107094158-26d918bf99ed`, also `v1.2.4-0.<time>-<sha>`
+    /// and `v1.2.3-pre.0.<time>-<sha>`) as its 12-digit commit, any other
+    /// version as it is.
+    pub fn short_version(&self) -> &str {
+        let mut parts = self.version.rsplitn(3, '-');
+        let (Some(sha), Some(time), Some(_)) = (parts.next(), parts.next(), parts.next()) else {
+            return &self.version;
+        };
+        let time = time.rsplit('.').next().unwrap_or(time);
+        let is_sha = sha.len() == 12 && sha.bytes().all(|b| b.is_ascii_hexdigit());
+        let is_time = time.len() == 14 && time.bytes().all(|b| b.is_ascii_digit());
+        if is_sha && is_time { sha } else { &self.version }
+    }
+}
+
 /// A row of `GET /v1/bases`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -243,5 +260,23 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(error.contains("missing field `parent`"), "{error}");
+    }
+
+    fn health(version: &str) -> Health {
+        Health { component: "c".to_owned(), version: version.to_owned(), started_at: String::new() }
+    }
+
+    #[test]
+    fn a_pseudo_version_is_shown_as_its_commit() {
+        assert_eq!(health("v0.0.0-20261107094158-26d918bf99ed").short_version(), "26d918bf99ed");
+        assert_eq!(health("v1.2.4-0.20261107094158-26d918bf99ed").short_version(), "26d918bf99ed");
+        assert_eq!(health("v1.2.3-pre.0.20261107094158-26d918bf99ed").short_version(), "26d918bf99ed");
+    }
+
+    #[test]
+    fn other_versions_are_shown_as_they_are() {
+        for version in ["v0.3.1", "v1.0.0-rc.1", "v0.0.0-2026-26d918bf99ed", "dev"] {
+            assert_eq!(health(version).short_version(), version);
+        }
     }
 }
