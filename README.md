@@ -3,24 +3,29 @@
 Quorum: one [NSH](https://nsh.dev) Rust app that runs as a
 native macOS window and as a static web site. It owns no PM state; it reads
 GitHub (the PM repository's Project, implementation issues and their marker
-comments, the API rate limit) and the council and guardians programs
-(`/v1/health`, `/v1/sessions`, `/v1/sessions/{id}/log`, `/v1/bases`,
-`/v1/queue`), shows what it read, and forwards one request: a base's
-rewarm (`POST /v1/bases/{id}/rewarm`), which a person asks for and
-confirms.
+comments, the API rate limit, and the files of the PM config repository's
+branch) and the council and guardians programs (`/v1/health`,
+`/v1/sessions`, `/v1/sessions/{id}/log`, `/v1/bases`, `/v1/queue`,
+`/v1/config`), and shows what it read. It sends three kinds of request a
+person asks for: a base's rewarm (`POST /v1/bases/{id}/rewarm`, after a
+confirmation), the check of an edited config file by every program that
+reads it (`POST /v1/config/check` to the council and the guardians,
+`POST /pm-config/check` to the omp-dispatch launcher), and the commit of
+that file to the config repository's branch once all of them pass.
 
 Windows at least 900 pt wide show a sidebar: Quorum's name, a search field
 that opens the command bar, the pages with a count each (概览: what needs
 you; 议题: open agenda issues; 会话: running sessions; 运行状况: failed and
-stale bases), and at its foot the two programs with their versions (a Go
+stale bases; 配置: files a program runs an older version of than the
+branch has), and at its foot the two programs with their versions (a Go
 pseudo-version as its 12-digit commit, the full version in its tooltip)
 and what is left of the GitHub API allowance. Narrower windows show the pages
-as tabs in a top bar; there 议题, 会话 and 运行状况 show their list alone,
-and what is selected opens full width under a 返回 bar instead of in an
-inspector beside the list. Each page opens under a toolbar with its title, how
-long ago its data loaded and a refresh button. ⌘K opens the command bar
-(agenda issues, sessions and commands, picked with ↑↓ and ↵), ⌘1–⌘4 open
-the pages and ⌘R refreshes every source.
+as tabs in a top bar; there 议题, 会话, 运行状况 and 配置 show their list
+alone, and what is selected opens full width under a 返回 bar instead of in
+an inspector beside the list. Each page opens under a toolbar with its
+title, how long ago its data loaded and a refresh button. ⌘K opens the
+command bar (agenda issues, sessions and commands, picked with ↑↓ and ↵),
+⌘1–⌘5 open the pages and ⌘R refreshes every source.
 
 The pages:
 
@@ -79,6 +84,32 @@ The pages:
   404 no such base, or the error) shows on the row and the bases load
   again. The inspector lists the sessions forked from the selected base
   (`/v1/sessions` rows whose `parent` is the base's session).
+- **配置** (config): the files of the config repository's branch
+  (`config.repo`, `config.branch`), grouped by top-level directory, each
+  directory (or file, where they differ) with the programs that read it
+  (`config.readers`), a file whose reader runs an older version marked ≠
+  and a file with unsaved text marked ●. The selected file opens from the
+  branch every time: 预览 cuts it by its top-level keys, each folding away;
+  YAML is its whole text to edit; 改动 is its lines against the branch's,
+  with each reader's errors under the line their key path points at. Once
+  typing pauses, every reader of the file judges the edited file in the
+  files it loads: the council and the guardians get the branch's files
+  their `GET /v1/config` lists with the edited one in its place; the
+  dispatch launcher gets `shared/repos.yaml`, `shared/project.yaml` and
+  `dispatch/delivery.yaml`; Quorum parses its own four files with the same
+  parsers it starts with. The rail shows each reader's conclusion (通过,
+  the errors with their file, key path and reason, or 不可达 with why);
+  「保存到 <branch>」 is enabled only when every reader passed this very
+  text. A save commits the one file through the contents API
+  (`quorum: edit <path>`, with the sha it was opened at) and links the
+  commit; when the branch's file changed since it was opened, GitHub
+  refuses (409), nothing is overwritten, and the page says so and opens the
+  branch's file again. Under 正在用的版本 the council and the guardians
+  (their `GET /v1/config` shas), and this Quorum (the shas it loaded), each
+  read 「与 <branch> 一致」 or 「运行旧版」 with the files that differ; on
+  macOS the local checkout `PM_CONFIG_DIR` shows how many commits it is
+  behind `origin/<branch>` (after a `git fetch`) and 拉取 runs
+  `git pull --ff-only` there. Unsaved text lives only in the window.
 
 Every source loads, fails and refreshes on its own: a panel whose source
 fails shows the error with a retry button and keeps the data it had.
@@ -107,12 +138,17 @@ repositories.
 
 | Key | Meaning |
 |---|---|
+| `config.repo` | The PM config repository (`owner/name`) the 配置 page shows and commits to, e.g. `oh-my-omp/pm-config` |
+| `config.branch` | The branch the 配置 page lists, compares what runs with and commits to (the deployed instance: `main`) |
+| `config.readers` | Directory prefix (`council/`, ending in `/`) → the programs that read and check the files under it, each of `council`, `guardians`, `quorum`, `dispatch`, at least one, none twice; a file's readers are those of every prefix it starts with |
 | `targets.macos.githubApi` | GitHub API root for the macOS app (`https://api.github.com`) |
 | `targets.macos.council` | Council daemon address for the macOS app |
 | `targets.macos.guardians` | Guardians program address for the macOS app |
+| `targets.macos.dispatch` | The omp-dispatch launcher's PM config check listener (`configCheckHost:configCheckPort`, default `http://127.0.0.1:47593`) for the macOS app |
 | `targets.web.githubApi` | GitHub API root for the web build: the proxy's `/gh` path, absolute |
 | `targets.web.council` | The proxy's `/council` path, absolute |
 | `targets.web.guardians` | The proxy's `/guardians` path, absolute |
+| `targets.web.dispatch` | The proxy's `/dispatch` path, absolute; where the site cannot reach a launcher, dispatch's verdict is 不可达 and the files it reads (`dispatch/`, `shared/`) cannot be saved from the web |
 | `refreshSeconds` | Seconds between two refreshes of every source (at least 1) |
 | `attention.sessionFailureHours` | A failed session needs a person for this many hours after it ended |
 | `attention.rateLimitPercent` | Less than this share (0–100) of a GitHub API limit left needs a person |
@@ -160,8 +196,7 @@ loads on one loads on the other.
 
 Each end records the git blob sha (`sha1("blob <len>\0" + bytes)`, what
 `git hash-object` gives the same file) of every file it loaded, in
-`AppConfig.loaded`, so the config page can compare what runs with pm-config's
-`main`.
+`AppConfig.loaded`, which the 配置 page compares with the branch's files.
 
 ## macOS
 
@@ -189,17 +224,20 @@ CLI is missing).
 PATH=/opt/homebrew/opt/llvm/bin:$PATH nsh package --target web -o /tmp/quorum-web
 ```
 
-The site holds no credential. It reaches GitHub and the two programs through
-a same-origin reverse proxy, `deploy/Caddyfile`, which adds the GitHub token
-from its own environment. The token may be able to write; the proxy passes
-reads to GitHub, and one kind of write: a `PUT` of a single file under the
-config repo `CONFIG_REPO` (the contents API, with `sha` to update). To run it
-locally (with the example config's web addresses):
+The site holds no credential. It reaches GitHub, the two programs and the
+dispatch launcher's check through a same-origin reverse proxy,
+`deploy/Caddyfile`, which adds the GitHub token from its own environment.
+The token may be able to write; the proxy passes reads to GitHub, and one
+kind of write: a `PUT` of a single file under the config repo `CONFIG_REPO`
+(the contents API, with `sha` to update), which is how the 配置 page commits
+from the web with no login of its own. To run it locally (with the example
+config's web addresses):
 
 ```sh
 LISTEN=:8088 SITE_DIR=/tmp/quorum-web CONFIG_DIR=$PWD/config.example \
   GH_TOKEN=<token> CONFIG_REPO=oh-my-omp/pm-config \
   COUNCIL_URL=http://127.0.0.1:7421 GUARDIANS_URL=http://127.0.0.1:7410 \
+  DISPATCH_URL=http://127.0.0.1:47593 \
   caddy run --config deploy/Caddyfile --adapter caddyfile
 ```
 
@@ -214,9 +252,9 @@ neither `mutation` (any case) nor a `\u` escape. The one write is
 `//` and backslashes; with `CONFIG_REPO` unset no write is passed. Every
 other `/gh/*` request gets `403` with an empty body and never reaches GitHub.
 `/council/*` goes to
-`COUNCIL_URL` and `/guardians/*` to `GUARDIANS_URL` (every method, so a
-rewarm's `POST` goes through too), and `SITE_DIR` is served for everything
-else.
+`COUNCIL_URL`, `/guardians/*` to `GUARDIANS_URL` and `/dispatch/*` to
+`DISPATCH_URL` (every method, so a rewarm's or a config check's `POST` goes
+through too), and `SITE_DIR` is served for everything else.
 
 ## Layout
 
@@ -225,8 +263,9 @@ else.
 | `src/lib.rs` | The root component `App` (config, appearance, tokens) and the NSH module |
 | `src/main.rs` | `cargo run`: the macOS window, opened in the config's appearance |
 | `src/config/` | The config files as types (`schema.rs`, `theme.rs`, the design tokens), how each end loads them from bytes, and the git blob sha of each loaded file |
-| `src/gh/` | The GitHub reader: Project items (GraphQL), comments, PM markers, open escalations, rate limit |
+| `src/gh/` | The GitHub reader: Project items (GraphQL), comments, PM markers, open escalations, rate limit, and the one write (`PUT`) |
 | `src/programs/` | The program reader: health, sessions, session records, bases, rewarm, queue |
+| `src/pmconfig/` | The config repository's branch: its files, opening one, every reader's check of an edited file, the commit, what each program runs against the branch (`mod.rs`); line diffs, top-level sections and key paths to lines (`lines.rs`); the macOS checkout's fetch, distance and pull (`checkout.rs`) |
 | `src/digest.rs` | The decision log: a session record reduced by the `digest` rules (tests over real session files in `tests/fixtures/`) |
 | `src/sources.rs` | One `resource` per source, refreshed together |
 | `src/attention.rs` | What needs a person, in order of consequence, failed sessions grouped by program and kind |
@@ -234,8 +273,8 @@ else.
 | `src/time.rs` | Timestamps, "how long ago" and hourly counts |
 | `src/ui/shell.rs` | The sidebar or top bar, the toolbar, the shortcuts, a list beside its inspector or (narrow) the inspector full width under 返回, and the configuration error |
 | `src/ui/command.rs` | The command bar (⌘K) |
-| `src/ui/overview.rs`, `issues.rs`, `sessions.rs`, `runtime.rs` | The four pages |
+| `src/ui/overview.rs`, `issues.rs`, `sessions.rs`, `runtime.rs`, `config.rs` | The five pages |
 | `src/ui/parts.rs`, `status.rs`, `icons.rs`, `tokens.rs` | The app's own controls, its state words and glyphs, icons, and the theme's tokens as NSH tokens and type roles |
 | `src/ui/text.rs` | Every word the UI shows |
-| `deploy/Caddyfile` | The web build's same-origin proxy: the site, its `/config`, GitHub and the two programs |
+| `deploy/Caddyfile` | The web build's same-origin proxy: the site, its `/config`, GitHub, the two programs and the dispatch launcher's check |
 | `config.example/` | A PM config directory for local runs |

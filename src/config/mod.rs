@@ -12,8 +12,8 @@ pub mod theme;
 use std::time::Duration;
 
 pub use schema::{
-    Appearance, Attention, BaseUrl, Config, ConfigError, ConfigText, Digest, Endpoints, Fields,
-    Filters, HexColor, ProjectRef, RepoName, Repos,
+    Appearance, Attention, BaseUrl, Config, ConfigError, ConfigRepo, ConfigText, Digest,
+    Endpoints, Fields, Filters, HexColor, ProjectRef, Reader, Readers, RepoName, Repos,
 };
 pub use theme::{ColorToken, FontToken, LengthToken, Theme, ThemeColor};
 
@@ -21,6 +21,8 @@ pub use theme::{ColorToken, FontToken, LengthToken, Theme, ThemeColor};
 #[derive(Debug, Clone, PartialEq)]
 pub struct AppConfig {
     pub endpoints: Endpoints,
+    /// The PM config repository the config page shows and saves to.
+    pub config_repo: ConfigRepo,
     pub refresh: Duration,
     pub attention: Attention,
     pub digest: Digest,
@@ -54,7 +56,7 @@ impl LoadedFile {
 
 /// The git blob sha of `bytes` (`sha1("blob <len>\0" + bytes)`, lowercase
 /// hex): the value `git hash-object` gives the same file.
-fn blob_sha(bytes: &[u8]) -> String {
+pub fn blob_sha(bytes: &[u8]) -> String {
     use sha1::{Digest, Sha1};
 
     let mut hasher = Sha1::new();
@@ -76,6 +78,7 @@ impl AppConfig {
         let endpoints = quorum.targets.macos;
         Self {
             endpoints,
+            config_repo: quorum.config,
             refresh: Duration::from_secs(u64::from(quorum.refresh_seconds.get())),
             attention: quorum.attention,
             digest: quorum.digest,
@@ -126,6 +129,21 @@ fn assemble(
     ))
 }
 
+/// The four files Quorum loads, by their path in the PM config directory.
+pub const FILES: [&str; 4] = [
+    schema::QUORUM_FILE,
+    theme::THEME_FILE,
+    schema::REPOS_FILE,
+    schema::PROJECT_FILE,
+];
+
+/// Whether the four files (in [`FILES`]' order) load: the same parsers
+/// both ends start with, run on candidate bytes; the first error.
+pub fn check(files: [&[u8]; 4]) -> Result<(), ConfigError> {
+    let [quorum, theme, repos, project] = files;
+    assemble(quorum, theme, repos, project).map(drop)
+}
+
 /// The environment variable naming the PM config directory.
 pub const CONFIG_DIR_VAR: &str = "PM_CONFIG_DIR";
 
@@ -165,19 +183,24 @@ fn origin() -> String {
         .unwrap_or_default()
 }
 
-/// The config in the directory `PM_CONFIG_DIR` names.
+/// The directory `PM_CONFIG_DIR` names: the local PM config checkout the
+/// macOS build reads, and pulls on the config page.
 #[cfg(not(target_arch = "wasm32"))]
-pub fn load() -> Result<AppConfig, ConfigError> {
-    use std::path::PathBuf;
-
-    let dir = std::env::var_os(CONFIG_DIR_VAR)
+pub fn dir() -> Result<std::path::PathBuf, ConfigError> {
+    std::env::var_os(CONFIG_DIR_VAR)
         .filter(|dir| !dir.is_empty())
-        .map(PathBuf::from)
+        .map(std::path::PathBuf::from)
         .ok_or_else(|| ConfigError {
             file: CONFIG_DIR_VAR.to_owned(),
             path: String::new(),
             message: "未设置：应指向 PM 配置目录".to_owned(),
-        })?;
+        })
+}
+
+/// The config in the directory `PM_CONFIG_DIR` names.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn load() -> Result<AppConfig, ConfigError> {
+    let dir = dir()?;
     let read = |file: &'static str| {
         let path = dir.join(file);
         std::fs::read(&path).map_err(|error| ConfigError {

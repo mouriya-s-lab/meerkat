@@ -1,6 +1,7 @@
 # Serves Quorum's web build and, on the same origin, the PM config it
-# loads, the GitHub API and the two programs it reads. The browser holds no
-# credential: the GitHub token comes from this process's environment. That
+# loads, the GitHub API, the two programs it reads and dispatch's PM config
+# check. The browser holds no credential: the GitHub token comes from this
+# process's environment. That
 # token may be able to write, so /gh/* passes reads, passes one kind of
 # write (a PUT of a single file in the config repo), and answers every other
 # write with 403.
@@ -15,6 +16,8 @@
 #                  oh-my-omp/pm-config; unset: no write is passed
 #   COUNCIL_URL    the council daemon, e.g. http://127.0.0.1:7421
 #   GUARDIANS_URL  the guardians program, e.g. http://127.0.0.1:7410
+#   DISPATCH_URL   the omp-dispatch launcher's PM config check listener,
+#                  e.g. http://127.0.0.1:47593
 {
 	admin off
 	auto_https off
@@ -82,6 +85,10 @@ http://{$LISTEN} {
 
 	handle_path /guardians/* {
 		reverse_proxy {$GUARDIANS_URL}
+	}
+
+	handle_path /dispatch/* {
+		reverse_proxy {$DISPATCH_URL}
 	}
 
 	handle {

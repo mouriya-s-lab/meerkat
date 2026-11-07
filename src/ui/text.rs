@@ -7,6 +7,7 @@ use std::fmt;
 use nsh_core::prelude::SharedString;
 
 use crate::{
+    config::Reader,
     dag::{Closed, Fallback, Group},
     programs::{BaseState, Program, QueueState, SessionState},
     time::Ago,
@@ -29,6 +30,7 @@ pub enum Msg {
     PageIssues,
     PageSessions,
     PageRuntime,
+    PageConfig,
     GroupCouncil,
     GroupRun,
     SearchHint,
@@ -274,6 +276,56 @@ pub enum Msg {
     OpenOnGitHub,
     IssueMeta { human: bool, proposer: Option<String>, updated: Option<Ago> },
     OpenDetail,
+
+    // -- config -----------------------------------------------------------
+    FilterFiles,
+    /// The files at the repository's top.
+    TopFiles,
+    Reader(Reader),
+    Readers(Vec<Reader>),
+    NoReaders,
+    ReadersLabel,
+    OlderMark,
+    EditedMark,
+    ModePreview,
+    ModeYaml,
+    ModeChanges,
+    /// The branch and the short blob sha of the file as opened.
+    OpenedFrom { branch: String, sha: String },
+    SectionLines(usize),
+    SameAsBranch,
+    /// The new text's added lines, and how many were removed.
+    ChangedLines { added: Vec<usize>, removed: usize },
+    GateChecking,
+    GatePass,
+    GateBlocked,
+    Discard,
+    Saving,
+    SaveTo(String),
+    SaveFailed(String),
+    /// The commit's short sha.
+    Committed(String),
+    OpenCommit,
+    /// The branch that moved on.
+    Conflict(String),
+    ChecksTitle,
+    ReaderCount(usize),
+    Unchanged,
+    CheckRunning,
+    Passed,
+    Errors(usize),
+    NoInput,
+    VersionsTitle,
+    BranchAt { branch: String, head: Option<String> },
+    /// This build of Quorum: web or macOS.
+    QuorumHere,
+    SameAs(String),
+    RunningOld(Vec<String>),
+    Checkout,
+    UpToDate(String),
+    Behind { branch: String, commits: u32 },
+    Pull,
+    Pulling,
 }
 
 /// `n` with a comma every three digits.
@@ -318,6 +370,15 @@ fn program(p: Program) -> &'static str {
     }
 }
 
+fn reader(r: Reader) -> &'static str {
+    match r {
+        Reader::Council => "议会",
+        Reader::Guardians => "守护",
+        Reader::Quorum => "Quorum",
+        Reader::Dispatch => "dispatch",
+    }
+}
+
 fn kind(kind: &str) -> &str {
     match kind {
         "vote" => "投票",
@@ -337,6 +398,7 @@ impl fmt::Display for Msg {
             Msg::PageIssues => f.write_str("议题"),
             Msg::PageSessions => f.write_str("会话"),
             Msg::PageRuntime => f.write_str("运行状况"),
+            Msg::PageConfig => f.write_str("配置"),
             Msg::GroupCouncil => f.write_str("议会"),
             Msg::GroupRun => f.write_str("运行"),
             Msg::SearchHint => f.write_str("搜索议题、会话、命令"),
@@ -737,6 +799,73 @@ impl fmt::Display for Msg {
                 Ok(())
             }
             Msg::OpenDetail => f.write_str("打开详情"),
+
+            // -- config
+            Msg::FilterFiles => f.write_str("筛选文件"),
+            Msg::TopFiles => f.write_str("（仓库根）"),
+            Msg::Reader(r) => f.write_str(reader(*r)),
+            Msg::Readers(rs) => {
+                let names: Vec<&str> = rs.iter().map(|r| reader(*r)).collect();
+                f.write_str(&names.join("、"))
+            }
+            Msg::NoReaders => f.write_str("没有程序读取"),
+            Msg::ReadersLabel => f.write_str("读取方"),
+            Msg::OlderMark => f.write_str("有读取方在运行旧版"),
+            Msg::EditedMark => f.write_str("有未保存的改动"),
+            Msg::ModePreview => f.write_str("预览"),
+            Msg::ModeYaml => f.write_str("YAML"),
+            Msg::ModeChanges => f.write_str("改动"),
+            Msg::OpenedFrom { branch, sha } => write!(f, "打开时读取 {branch} · blob {sha}"),
+            Msg::SectionLines(n) => write!(f, "{n} 行"),
+            Msg::SameAsBranch => f.write_str("与分支上的文件相同"),
+            Msg::ChangedLines { added, removed } => {
+                if added.is_empty() {
+                    return write!(f, "删除 {removed} 行");
+                }
+                let shown: Vec<String> = added.iter().take(6).map(|n| n.to_string()).collect();
+                let more = if added.len() > shown.len() { " 等" } else { "" };
+                write!(f, "改动第 {}{more} 行", shown.join("、"))?;
+                match removed.saturating_sub(added.len()) {
+                    0 => Ok(()),
+                    extra => write!(f, "，另删除 {extra} 行"),
+                }
+            }
+            Msg::GateChecking => f.write_str("读取方校验中…"),
+            Msg::GatePass => f.write_str("全部读取方通过"),
+            Msg::GateBlocked => f.write_str("全部读取方通过后才能保存"),
+            Msg::Discard => f.write_str("放弃改动"),
+            Msg::Saving => f.write_str("正在提交…"),
+            Msg::SaveTo(branch) => write!(f, "保存到 {branch}"),
+            Msg::SaveFailed(error) => write!(f, "提交失败：{error}"),
+            Msg::Committed(sha) => write!(f, "已提交 {sha}"),
+            Msg::OpenCommit => f.write_str("查看提交"),
+            Msg::Conflict(branch) => write!(
+                f,
+                "{branch} 上的这个文件已被别处改动：没有覆盖，已重新载入分支上的内容"
+            ),
+            Msg::ChecksTitle => f.write_str("保存前校验"),
+            Msg::ReaderCount(n) => write!(f, "{n} 个读取方"),
+            Msg::Unchanged => f.write_str("未改动"),
+            Msg::CheckRunning => f.write_str("校验中…"),
+            Msg::Passed => f.write_str("通过"),
+            Msg::Errors(n) => write!(f, "{n} 个错误"),
+            Msg::NoInput => f.write_str("取不到分支上的文件"),
+            Msg::VersionsTitle => f.write_str("正在用的版本"),
+            Msg::BranchAt { branch, head } => match head {
+                Some(head) => write!(f, "{branch} @ {head}"),
+                None => f.write_str(branch),
+            },
+            #[cfg(target_arch = "wasm32")]
+            Msg::QuorumHere => f.write_str("Quorum web"),
+            #[cfg(not(target_arch = "wasm32"))]
+            Msg::QuorumHere => f.write_str("Quorum macOS"),
+            Msg::SameAs(branch) => write!(f, "与 {branch} 一致"),
+            Msg::RunningOld(files) => write!(f, "运行旧版（{}），待重新部署", files.join("、")),
+            Msg::Checkout => f.write_str("本机检出"),
+            Msg::UpToDate(branch) => write!(f, "与 origin/{branch} 一致"),
+            Msg::Behind { branch, commits } => write!(f, "落后 origin/{branch} {commits} 个提交"),
+            Msg::Pull => f.write_str("拉取"),
+            Msg::Pulling => f.write_str("拉取中…"),
         }
     }
 }

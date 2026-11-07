@@ -1,12 +1,23 @@
+config:
+  repo: oh-my-omp/pm-config
+  branch: main
+  readers:
+    council/: [council]
+    guardians/: [guardians]
+    quorum/: [quorum]
+    dispatch/: [dispatch]
+    shared/: [council, guardians, quorum, dispatch]
 targets:
   macos:
     githubApi: https://api.github.com
     council: http://127.0.0.1:7421
     guardians: http://127.0.0.1:7410
+    dispatch: http://127.0.0.1:47593
   web:
     githubApi: http://127.0.0.1:8088/gh
     council: http://127.0.0.1:8088/council
     guardians: http://127.0.0.1:8088/guardians
+    dispatch: http://127.0.0.1:8088/dispatch
 refreshSeconds: 30
 attention:
   sessionFailureHours: 24

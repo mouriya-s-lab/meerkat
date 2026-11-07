@@ -114,7 +114,7 @@ pub struct Status {
 }
 
 impl Status {
-    fn of(role: Role, glyph: Glyph, word: Msg) -> Self {
+    pub(super) fn of(role: Role, glyph: Glyph, word: Msg) -> Self {
         Self {
             role,
             glyph,

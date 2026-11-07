@@ -13,6 +13,7 @@ use nsh_core::{element::Tokens, keymap::When, prelude::*};
 
 use super::{
     command::{self, Palette},
+    config::{self, ConfigState},
     icons::{Icon, icon},
     issues::{self, IssuesState, Settings},
     overview,
@@ -25,9 +26,12 @@ use super::{
 };
 use crate::{
     attention::{self, Concern, Inputs, Need, ProgramView},
-    config::{AppConfig, Attention, ColorToken::*, ConfigError, Digest, FontToken, LengthToken::*},
+    config::{
+        AppConfig, Attention, ColorToken::*, ConfigError, Digest, FontToken, LengthToken::*, LoadedFile,
+    },
     dag::{self, Council, Graph},
-    gh::{Credential, IssueRef},
+    gh::{Credential, GitHub, IssueRef},
+    pmconfig::ConfigRepoClient,
     programs::{BaseState, Program, ProgramClient, QueueState, SessionState},
     sources::{ProgramSources, Sources},
     time,
@@ -100,6 +104,7 @@ pub enum Page {
     Issues,
     Sessions,
     Runtime,
+    Config,
 }
 
 /// The sidebar's groups under 「概览」.
@@ -110,7 +115,7 @@ enum Group {
 }
 
 impl Page {
-    pub const ALL: [Page; 4] = [Page::Overview, Page::Issues, Page::Sessions, Page::Runtime];
+    pub const ALL: [Page; 5] = [Page::Overview, Page::Issues, Page::Sessions, Page::Runtime, Page::Config];
 
     pub fn title(self) -> Msg {
         match self {
@@ -118,6 +123,7 @@ impl Page {
             Page::Issues => Msg::PageIssues,
             Page::Sessions => Msg::PageSessions,
             Page::Runtime => Msg::PageRuntime,
+            Page::Config => Msg::PageConfig,
         }
     }
 
@@ -127,6 +133,7 @@ impl Page {
             Page::Issues => Icon::Graph,
             Page::Sessions => Icon::Sessions,
             Page::Runtime => Icon::Runtime,
+            Page::Config => Icon::Config,
         }
     }
 
@@ -134,7 +141,7 @@ impl Page {
         match self {
             Page::Overview => None,
             Page::Issues | Page::Sessions => Some(Group::Council),
-            Page::Runtime => Some(Group::Run),
+            Page::Runtime | Page::Config => Some(Group::Run),
         }
     }
 }
@@ -174,6 +181,12 @@ pub struct Context {
     pub issues_settings: Rc<Settings>,
     pub issues: IssuesState,
     pub sessions: SessionsState,
+    /// The 「配置」 page's selection and unsaved text.
+    pub config: ConfigState,
+    /// The config repository's branch, its readers and saves.
+    pub config_repo: Rc<ConfigRepoClient>,
+    /// The config files this build loaded, with their blob shas.
+    pub loaded: Rc<Vec<LoadedFile>>,
     /// Now, to the second, for the "… ago" texts.
     pub now: Signal<f64>,
 }
@@ -213,7 +226,13 @@ pub fn app(config: AppConfig, tokens: Tokens) -> AnyElement {
 
 /// The app's sources start now and refresh every `config.refresh`.
 fn shell(config: &AppConfig) -> View {
-    let sources = Sources::new(config, Credential::for_this_build());
+    let credential = Credential::for_this_build();
+    let config_repo = Rc::new(ConfigRepoClient::new(
+        GitHub::new(config.endpoints.github_api.clone(), credential.clone()),
+        config.config_repo.clone(),
+        config.endpoints.clone(),
+    ));
+    let sources = Sources::new(config, credential, config_repo.clone());
     set_interval(config.refresh, move || sources.refresh());
     let now = signal(time::now_ms());
     set_interval(std::time::Duration::from_secs(1), move || {
@@ -240,6 +259,9 @@ fn shell(config: &AppConfig) -> View {
         issues: IssuesState::new(config.filters),
         issues_settings: settings,
         sessions: SessionsState::new(),
+        config: ConfigState::new(),
+        config_repo,
+        loaded: Rc::new(config.loaded.clone()),
         now,
     });
     let nav = Nav {
@@ -365,6 +387,7 @@ fn main(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
                 Page::Issues => issues::page(sources, context, nav).into_element(),
                 Page::Sessions => sessions::page(sources, context, nav).into_element(),
                 Page::Runtime => runtime::page(sources, context, nav).into_element(),
+                Page::Config => config::page(sources, context, nav).into_element(),
             }
         }))
 }
@@ -397,22 +420,24 @@ fn toolbar(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
         .child(icon_button(Icon::Refresh, Msg::Refresh, move || sources.refresh()))
 }
 
-/// A page's count in the sidebar, and whether it is a failure's: only what
+/// A page's count in the sidebar, and the role of its color: only what
 /// needs you there (#9 「计数的含义」).
-fn count(sources: Sources, context: &Context, page: Page) -> Option<(usize, bool)> {
+fn count(sources: Sources, context: &Context, page: Page) -> Option<(usize, Role)> {
+    let plain = |n: usize| (n, Role::Neutral);
     match page {
         Page::Overview => {
             let needs = context.needs.get();
-            (!needs.is_empty()).then(|| (needs.len(), needs.iter().any(Need::failure)))
+            let role = if needs.iter().any(Need::failure) { Role::Fail } else { Role::Neutral };
+            (!needs.is_empty()).then(|| (needs.len(), role))
         }
         Page::Issues => sources.queue.with(|q| {
             q.map(|q| {
-                let open = q
-                    .data
-                    .iter()
-                    .filter(|e| !matches!(e.state, QueueState::Decided | QueueState::Superseded))
-                    .count();
-                (open, false)
+                plain(
+                    q.data
+                        .iter()
+                        .filter(|e| !matches!(e.state, QueueState::Decided | QueueState::Superseded))
+                        .count(),
+                )
             })
         }),
         Page::Sessions => {
@@ -429,7 +454,7 @@ fn count(sources: Sources, context: &Context, page: Page) -> Option<(usize, bool
                     })
                 })
                 .sum();
-            Some((running, false))
+            Some(plain(running))
         }
         Page::Runtime => sources.bases.with(|b| {
             let b = b?;
@@ -439,8 +464,21 @@ fn count(sources: Sources, context: &Context, page: Page) -> Option<(usize, bool
                 .iter()
                 .filter(|b| b.state == BaseState::Failed || b.stale)
                 .count();
-            (n > 0).then_some((n, failed))
+            (n > 0).then_some((n, if failed { Role::Fail } else { Role::Neutral }))
         }),
+        // Files a program runs an older version of than the branch has.
+        Page::Config => {
+            let n = config::older_files(sources, &context.loaded).len();
+            (n > 0).then_some((n, Role::Warn))
+        }
+    }
+}
+
+/// A sidebar count's color: its role's words, grey when it has none.
+fn count_color(role: Role) -> AdaptiveColor {
+    match role {
+        Role::Neutral => color(Ink3),
+        role => role.text(),
     }
 }
 
@@ -552,9 +590,9 @@ fn nav_item(sources: Sources, context: Rc<Context>, nav: Nav, page: Page) -> imp
                 .text_color(move || if current() { color(Foreground) } else { color(Ink2) }),
         )
         .child(dynamic(move || match count(sources, &context, page) {
-            Some((n, failed)) => text(n.to_string())
+            Some((n, role)) => text(n.to_string())
                 .ty(Type::Label)
-                .text_color(if failed { Role::Fail.text() } else { color(Ink3) })
+                .text_color(count_color(role))
                 .into_element(),
             None => nothing(),
         }))
@@ -688,9 +726,9 @@ fn top_bar(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
                                 .text_color(move || if current() { color(Foreground) } else { color(Ink2) }),
                         )
                         .child(dynamic(move || match count(sources, &context, page) {
-                            Some((n, failed)) => text(n.to_string())
+                            Some((n, role)) => text(n.to_string())
                                 .ty(Type::Small)
-                                .text_color(if failed { Role::Fail.text() } else { color(Ink3) })
+                                .text_color(count_color(role))
                                 .into_element(),
                             None => nothing(),
                         }))
