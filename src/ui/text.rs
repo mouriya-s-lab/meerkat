@@ -870,7 +870,7 @@ impl Msg {
             ),
             Msg::LoadingConfig => say(f, "正在读取配置…", "Loading the configuration…"),
             Msg::AppName => f.write_str("Meerkat"),
-            Msg::AppMark => f.write_str("Q"),
+            Msg::AppMark => f.write_str("M"),
             Msg::GitHubApi => f.write_str("GitHub API"),
             Msg::GitHubBucket(api) => write!(f, "GitHub {}", api_name(*api)),
             Msg::Llm429 => f.write_str("LLM 429"),
