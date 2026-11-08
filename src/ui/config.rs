@@ -1,4 +1,4 @@
-//! 「配置」(meerkat#15, decision §H, #9 4.9): the PM config repository's
+//! 「配置」(meerkat#15, #9 4.9): the Meerkat config repository's
 //! branch file by file, grouped by directory with each file's readers; a
 //! file's preview cut by its top-level keys, its whole text to edit, and its
 //! lines against the branch with the readers' errors on them; every reader's
@@ -30,7 +30,7 @@ use super::{
 use crate::{
     config::{ColorToken::*, FontToken, LengthToken::*, LoadedFile, Reader},
     failure::Failure,
-    pmconfig::{
+    configrepo::{
         ConfigRepoClient, Opened, Saved, Verdict, Version, Violation, compare,
         lines::{self, Change},
     },
@@ -288,7 +288,7 @@ pub fn page(sources: Sources, context: Rc<Context>, _nav: Nav) -> impl IntoEleme
                 let branch = branch.clone();
                 async move {
                     let dir = crate::config::dir().map_err(Failure::Config)?;
-                    crate::pmconfig::checkout::behind(dir, branch).await
+                    crate::configrepo::checkout::behind(dir, branch).await
                 }
             },
         )
@@ -1203,7 +1203,7 @@ fn checkout_row(doc: Doc) -> Option<AnyElement> {
                                             spawn(async move {
                                                 let result = async {
                                                     let dir = crate::config::dir().map_err(Failure::Config)?;
-                                                    crate::pmconfig::checkout::pull(dir).await
+                                                    crate::configrepo::checkout::pull(dir).await
                                                 }
                                                 .await;
                                                 pull.set(match result {

@@ -9,7 +9,7 @@ use serde_json::{Map, Value};
 
 use super::schema::{ConfigError, HexColor, Problem};
 
-/// `meerkat/theme.json`, relative to the PM config directory.
+/// `meerkat/theme.json`, relative to the Meerkat config directory.
 pub const THEME_FILE: &str = "meerkat/theme.json";
 
 /// A font family token (`cssVars.theme`).

@@ -1,6 +1,6 @@
 //! 「运行状况」(C4 `baseView`, #9 「运行状况页」): the guardian bases
-//! summed up and grouped by repository, a base's rewarm (REQ-26: never
-//! automatic, behind a confirmation) on the hovered or selected row and in
+//! summed up and grouped by repository, a base's rewarm (never automatic,
+//! behind a confirmation) on the hovered or selected row and in
 //! the inspector with the sessions forked from it; the programs; the
 //! GitHub API's limits and the sessions an LLM limited.
 

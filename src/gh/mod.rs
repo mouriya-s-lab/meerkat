@@ -1,5 +1,5 @@
 //! The GitHub reader (C4 `ghReader`): the Project's items, issue comments
-//! and their PM markers, the implementation issues under way, and the
+//! and their Meerkat markers, the implementation issues under way, and the
 //! API's rate limit. Every request goes through [`GitHub`], over NSH's
 //! `fetch`.
 

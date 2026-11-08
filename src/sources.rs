@@ -18,7 +18,7 @@ use crate::{
         project::{self, ProjectItem},
         rate::{self, RateLimit},
     },
-    pmconfig::{self, ConfigRepoClient, Listing, Running},
+    configrepo::{self, ConfigRepoClient, Listing, Running},
     programs::{Base, Health, Program, ProgramClient, QueueEntry, Session},
     time,
 };
@@ -106,7 +106,7 @@ impl Sources {
                     .map(|credential| Rc::new(GitHub::new(api.clone(), credential)))
             })
         });
-        let project_ref = Rc::new(config.repos.pm.project.clone());
+        let project_ref = Rc::new(config.repos.agenda.project.clone());
         let fields = Rc::new(config.fields.clone());
         let council = Rc::new(ProgramClient::new(
             Program::Council,
@@ -157,7 +157,7 @@ impl Sources {
                 let client = client.clone();
                 move || {
                     let client = client.clone();
-                    async move { pmconfig::running(&client.base).await }
+                    async move { configrepo::running(&client.base).await }
                 }
             }),
         };

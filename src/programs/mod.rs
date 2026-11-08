@@ -1,6 +1,6 @@
 //! The program reader (C4 `programReader`): the council's and the
-//! guardians' public endpoints (decision 6695362696 §3, §4; 6696709150 §C),
-//! fetched directly at the configured addresses.
+//! guardians' public endpoints, fetched directly at the configured
+//! addresses.
 
 use nsh_core::prelude::HttpRequest;
 use serde::Deserialize;
@@ -80,13 +80,13 @@ pub struct Session {
     pub error: Option<String>,
     #[serde(rename = "ref")]
     pub reference: Option<IssueRef>,
-    /// The session this one was forked from (decision 6697558783 §E); the
-    /// key is required, its value `null` for a session that is no fork.
+    /// The session this one was forked from; the key is required, its
+    /// value `null` for a session that is no fork.
     #[serde(deserialize_with = "Option::deserialize")]
     pub parent: Option<String>,
 }
 
-/// What the guardians answered a rewarm request (decision 6695362696 §3).
+/// What the guardians answered a rewarm request.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RewarmOutcome {
     /// `202`: warming began.
@@ -134,7 +134,7 @@ pub enum AgendaKind {
 pub enum QueueState {
     Decided,
     Superseded,
-    /// Closed in the PM repository, neither decided nor superseded.
+    /// Closed in the agenda repository, neither decided nor superseded.
     Closed,
     Blocked,
     Held,

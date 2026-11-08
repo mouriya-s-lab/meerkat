@@ -3,14 +3,14 @@
 //! later prompts, the kept tools' calls with their arguments and results,
 //! a count for each run of a folded tool, the assistant's text when the
 //! rules show it, LLM errors, automatic retries, the plugin's continuation
-//! prompts and the `pm-meta` entries stay; thinking and every other tool
+//! prompts and the `meerkat-meta` entries stay; thinking and every other tool
 //! go.
 //!
 //! omp writes a retry into the file as `retryRecovery` on the assistant
 //! message that failed (`auto_retry_start` / `auto_retry_end` are events of
 //! the running session, not entries of its file). A fork's file begins
 //! with the history it copied from its base, timestamped before its own
-//! header: that part counts only for `pm-meta`, as in the programs' own
+//! header: that part counts only for `meerkat-meta`, as in the programs' own
 //! reading of their files.
 
 use std::collections::HashMap;
@@ -75,8 +75,8 @@ pub enum DigestItem {
     },
     /// The plugin's prompt to go on (`session-stop-continuation`).
     Continuation(Body),
-    /// The PM programs' `pm-meta` entry.
-    Meta(PmMeta),
+    /// The Meerkat programs' `meerkat-meta` entry.
+    Meta(MeerkatMeta),
 }
 
 /// A kept tool's result and when it came (the entry's RFC 3339
@@ -118,11 +118,11 @@ pub enum RetryStatus {
     Superseded,
 }
 
-/// `pm-meta`: what the council and guardians plugins write at a session's
+/// `meerkat-meta`: what the council and guardians plugins write at a session's
 /// start (the council's `seat`, `ref`, `round`, `version`; the guardians'
 /// `base`, `ref`, `seat`).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-pub struct PmMeta {
+pub struct MeerkatMeta {
     pub kind: String,
     #[serde(rename = "ref")]
     pub reference: Option<String>,
@@ -210,7 +210,7 @@ impl Reducer<'_> {
                 custom_type,
                 data,
             } => {
-                if custom_type == "pm-meta"
+                if custom_type == "meerkat-meta"
                     && let Some(meta) = data.and_then(|d| serde_json::from_value(d).ok())
                 {
                     self.push(timestamp, DigestItem::Meta(meta));
@@ -453,7 +453,7 @@ mod tests {
                 .collect()
         };
         Rules {
-            keep_tools: names(&["pm_return_facts", "pm_base_ready", "pm_vote"]),
+            keep_tools: names(&["meerkat_return_facts", "meerkat_base_ready", "meerkat_vote"]),
             fold_tools: names(&["read", "grep", "glob"]),
             show_assistant_text: true,
             max_bytes: NonZeroU32::new(max_bytes).unwrap(),
@@ -478,7 +478,7 @@ mod tests {
         assert_eq!(log.unreadable, 0);
         let items = items(&log);
         assert_eq!(items.len(), 4, "{items:#?}");
-        // The base's pm-meta, copied before the fork's header, still counts.
+        // The base's meerkat-meta, copied before the fork's header, still counts.
         assert!(matches!(items[0], DigestItem::Meta(m) if m.kind == "base" && m.reference.is_none()));
         let DigestItem::Meta(meta) = items[1] else {
             panic!("{:?}", items[1])
@@ -491,7 +491,7 @@ mod tests {
         let DigestItem::ToolCall { name, args, result } = items[3] else {
             panic!("{:?}", items[3])
         };
-        assert_eq!(name, "pm_return_facts");
+        assert_eq!(name, "meerkat_return_facts");
         assert!(args.to_string().contains("main.go:15-29"), "{args}");
         let result = result.as_ref().unwrap();
         assert_eq!(result.body, Body::Text("recorded".to_owned()));
@@ -522,7 +522,7 @@ mod tests {
             ["meta", "meta", "opening", "text", "continuation", "call"]
         );
         assert!(matches!(items[3], DigestItem::AssistantText(t) if t == "入口文件是 `main.go`。"));
-        assert!(matches!(items[4], DigestItem::Continuation(Body::Text(t)) if t.starts_with("你还没有调用 pm_return_facts")));
+        assert!(matches!(items[4], DigestItem::Continuation(Body::Text(t)) if t.starts_with("你还没有调用 meerkat_return_facts")));
         // The aborted turn after the session ended is no LLM error.
         assert!(!items.iter().any(|i| matches!(i, DigestItem::LlmError(_))));
     }
@@ -555,7 +555,7 @@ mod tests {
         let DigestItem::ToolCall { name, result, .. } = items.last().unwrap() else {
             panic!("{items:?}")
         };
-        assert_eq!(name, "pm_base_ready");
+        assert_eq!(name, "meerkat_base_ready");
         assert!(result.as_ref().is_some_and(|r| !r.is_error));
         // No thinking text anywhere (the file's thinking is in every turn).
         let thinking = "We need inspect repo thoroughly";
@@ -635,7 +635,7 @@ mod tests {
 
     #[test]
     fn a_result_whose_call_was_cut_off_is_dropped() {
-        // Cut between the pm_return_facts call and its result.
+        // Cut between the meerkat_return_facts call and its result.
         let at = PROXY_FORK
             .windows(b"\"role\":\"toolResult\",\"toolCallId\":\"call-d1d2".len())
             .position(|w| w == b"\"role\":\"toolResult\",\"toolCallId\":\"call-d1d2")

@@ -1145,7 +1145,7 @@ fn log_line(line: Line<'_>) -> AnyElement {
         DigestItem::Meta(meta) => log_row(
             at,
             Icon::Sessions,
-            "pm-meta".to_owned(),
+            "meerkat-meta".to_owned(),
             [
                 Some(meta.kind.clone()),
                 meta.seat.clone(),

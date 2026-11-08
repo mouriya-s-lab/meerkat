@@ -1,8 +1,8 @@
 // 补写（mouriya-s-lab/meerkat#4 验收第 2 行）：议会 GET /v1/queue 对 pm.repo 为 mouriya-s-lab/meerkat-e2e-agenda 的应答，只含人类议题变更旧议题的两条。
 // 本机议会 http://127.0.0.1:7741 的 pm.repo 是 mouriya-s-lab/meerkat-e2e-design，没有 agenda 仓库的队列录制。
 // 形状取自 tests/fixtures/responses/council-queue.json 的行；内容取自真实记录：
-// agenda#40（D38，Kind=Human，Status=Done）的 pm:decision 定案、四席投 v1（tests/fixtures/agenda-40-comments.json），state decided；
-// agenda#39（D37，Kind=Agenda，Status=Superseded）带 pm:superseded by #40（tests/fixtures/agenda-39-comments.json），state superseded。
+// agenda#40（D38，Kind=Human，Status=Done）的 meerkat:decision 定案、四席投 v1（tests/fixtures/agenda-40-comments.json），state decided；
+// agenda#39（D37，Kind=Agenda，Status=Superseded）带 meerkat:superseded by #40（tests/fixtures/agenda-39-comments.json），state superseded。
 // 读取时去掉以 // 开头的行。
 [
   {"ref":"mouriya-s-lab/meerkat-e2e-agenda#40","agenda":"D38","kind":"Human","status":"Done","blockedBy":[],"state":"decided","notes":[],"panel":{"round":1,"version":1,"votes":["Coordination","ClaudeHigh","Argon","LeadMentor"],"pending":[]}},

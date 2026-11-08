@@ -6,7 +6,7 @@
 //!
 //! The config it loads is `tests/fixtures/config/` (the example config, its
 //! `targets` pointing at the stub network's hosts), handed to the app through
-//! `PM_CONFIG_DIR`. A test that answers some requests itself passes its own
+//! `MEERKAT_CONFIG_DIR`. A test that answers some requests itself passes its own
 //! routes to [`Fixture::start_with`]; they come before the recorded ones.
 //! The detail pages' recordings, and what was written by hand where the
 //! records lack a case, are under `tests/fixtures/detail/`; each hand-written
@@ -39,8 +39,8 @@ pub const GITHUB: &str = "http://github.test";
 pub const COUNCIL: &str = "http://council.test";
 /// The stub network's guardians host.
 const GUARDIANS: &str = "http://guardians.test";
-/// The agenda repository the fixture config names (`repos.pm.repo`).
-const PM: &str = "mouriya-s-lab/meerkat-e2e-agenda";
+/// The agenda repository the fixture config names (`repos.agenda.repo`).
+const AGENDA: &str = "mouriya-s-lab/meerkat-e2e-agenda";
 
 // What `tests/fixtures/responses/` recorded: the local council
 // (`127.0.0.1:7741`), the local guardians (`127.0.0.1:7740`) and GitHub's
@@ -92,9 +92,9 @@ fn recorded() -> Vec<(String, StubRoute)> {
         (format!("GET {GUARDIANS}/v1/config"), GUARDIANS_CONFIG),
         (format!("POST {GITHUB}/graphql"), PROJECT),
         (format!("GET {GITHUB}/rate_limit"), RATE_LIMIT),
-        (format!("GET {GITHUB}/repos/{PM}/branches/main"), CONFIG_BRANCH),
-        (format!("GET {GITHUB}/repos/{PM}/git/trees/*"), CONFIG_TREE),
-        (format!("GET {GITHUB}/repos/{PM}/contents/README.md?ref=main"), CONFIG_README),
+        (format!("GET {GITHUB}/repos/{AGENDA}/branches/main"), CONFIG_BRANCH),
+        (format!("GET {GITHUB}/repos/{AGENDA}/git/trees/*"), CONFIG_TREE),
+        (format!("GET {GITHUB}/repos/{AGENDA}/contents/README.md?ref=main"), CONFIG_README),
     ];
     answers
         .into_iter()
@@ -343,7 +343,7 @@ pub fn base_repos() -> Vec<String> {
         .collect()
 }
 
-/// The titles of the Project's items in the PM repository, as the recorded
+/// The titles of the Project's items in the agenda repository, as the recorded
 /// answer has them and the 「议题」 page lists them: human and agenda issues.
 pub fn project_titles() -> Vec<String> {
     let project: serde_json::Value =
@@ -354,7 +354,7 @@ pub fn project_titles() -> Vec<String> {
         .iter()
         .filter_map(|node| {
             let content = &node["content"];
-            if content["__typename"] != "Issue" || content["repository"]["nameWithOwner"] != PM {
+            if content["__typename"] != "Issue" || content["repository"]["nameWithOwner"] != AGENDA {
                 return None;
             }
             let kind = node["fieldValues"]["nodes"]
@@ -402,7 +402,7 @@ pub fn clear_github_token() {
     unsafe { std::env::remove_var("GH_TOKEN") };
 }
 
-/// The PM config directory the app loads: the fixture's copy of
+/// The Meerkat config directory the app loads: the fixture's copy of
 /// `config.example/`, its endpoints pointing at the stub network's hosts.
 pub fn config_dir() -> PathBuf {
     fixtures_dir().join("config")
@@ -514,16 +514,16 @@ pub fn detail_routes() -> Vec<(String, StubRoute)> {
         .collect()
 }
 
-/// A copy of the fixture config in `sandbox` whose PM repository is
+/// A copy of the fixture config in `sandbox` whose agenda repository is
 /// `repo`.
-pub fn config_with_pm(sandbox: &Sandbox, repo: &str) -> PathBuf {
+pub fn config_with_agenda(sandbox: &Sandbox, repo: &str) -> PathBuf {
     let dir = sandbox.dir().join("config");
     copy_dir(&config_dir(), &dir);
     let repos = dir.join("shared/repos.yaml");
     let text = std::fs::read_to_string(&repos).expect("repos.yaml");
-    let pm = format!("pm:\n  repo: {PM}\n");
-    assert!(text.contains(&pm), "the fixture's repos.yaml names another PM repository");
-    std::fs::write(&repos, text.replace(&pm, &format!("pm:\n  repo: {repo}\n"))).expect("repos.yaml written");
+    let block = format!("agenda:\n  repo: {AGENDA}\n");
+    assert!(text.contains(&block), "the fixture's repos.yaml names another agenda repository");
+    std::fs::write(&repos, text.replace(&block, &format!("agenda:\n  repo: {repo}\n"))).expect("repos.yaml written");
     dir
 }
 
@@ -540,11 +540,11 @@ fn copy_dir(from: &Path, to: &Path) {
     }
 }
 
-/// Meerkat in `lang` on a copy of the fixture config whose PM repository is
+/// Meerkat in `lang` on a copy of the fixture config whose agenda repository is
 /// `repo`, answered from the detail recordings, `routes` ahead of them.
 pub fn start_detail(sandbox: &Sandbox, repo: &str, lang: Lang, routes: Vec<(String, StubRoute)>) -> Fixture {
     set_github_token("gho_q4_detail_token");
-    let dir = config_with_pm(sandbox, repo);
+    let dir = config_with_agenda(sandbox, repo);
     let mut routes = routes;
     routes.extend(detail_routes());
     Fixture::start_in(lang, &dir, routes)

@@ -33,7 +33,7 @@ use crate::{
 
 /// What the page reads from the config.
 pub struct Settings {
-    pub pm: RepoName,
+    pub agenda: RepoName,
     pub fields: Fields,
 }
 
@@ -282,8 +282,8 @@ fn node_detail(graph: &Graph, at: usize, fields: &Fields) -> String {
 /// the agenda issue opened from them (#4).
 pub fn page(sources: Sources, context: Rc<Context>, nav: Nav) -> impl IntoElement {
     let state = context.issues;
-    let pm = context.issues_settings.pm.clone();
-    let graph = computed(move || graph_of(sources, &pm, state.human_only.get()));
+    let agenda = context.issues_settings.agenda.clone();
+    let graph = computed(move || graph_of(sources, &agenda, state.human_only.get()));
     // The selected issue's comments: the inspector's matrix and the
     // detail opened on it (opening a detail selects its issue).
     let comments = agenda::comments_of(sources, context.github, move || {

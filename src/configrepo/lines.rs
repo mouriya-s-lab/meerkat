@@ -347,11 +347,11 @@ seats:
 
     #[test]
     fn sections_start_at_each_top_level_key() {
-        let text = "# head\npm:\n  repo: a/b\ncode: []\ndesign:\n  - a/c\n";
+        let text = "# head\nagenda:\n  repo: a/b\ncode: []\ndesign:\n  - a/c\n";
         let parts = sections(text);
         let keys: Vec<_> = parts.iter().map(|s| (s.key, s.first)).collect();
-        assert_eq!(keys, vec![(None, 1), (Some("pm"), 2), (Some("code"), 4), (Some("design"), 5)]);
-        assert_eq!(parts[1].text, "pm:\n  repo: a/b");
+        assert_eq!(keys, vec![(None, 1), (Some("agenda"), 2), (Some("code"), 4), (Some("design"), 5)]);
+        assert_eq!(parts[1].text, "agenda:\n  repo: a/b");
         assert_eq!(parts[3].text, "design:\n  - a/c");
         assert_eq!(sections("# just text\n").len(), 1);
         assert_eq!(sections("{\n  \"a\": 1\n}\n").len(), 1);
@@ -372,8 +372,8 @@ seats:
 
     #[test]
     fn nested_mappings_and_json_locate_too() {
-        let repos = "pm:\n  repo: a/b\n  project: { owner: o, number: 1 }\ncode: []\nbogus: 1\n";
-        assert_eq!(locate(repos, "pm.project"), Some(3));
+        let repos = "agenda:\n  repo: a/b\n  project: { owner: o, number: 1 }\ncode: []\nbogus: 1\n";
+        assert_eq!(locate(repos, "agenda.project"), Some(3));
         assert_eq!(locate(repos, "bogus"), Some(5));
         let json = "{\n  \"cssVars\": {\n    \"light\": {\n      \"ok\": \"#000000\",\n      \"ok-text\": \"#111111\"\n    }\n  }\n}\n";
         assert_eq!(locate(json, "cssVars.light.ok-text"), Some(5));

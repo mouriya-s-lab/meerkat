@@ -1,5 +1,5 @@
 //! Runs Meerkat in a native macOS window (`cargo run`), reading the
-//! PM config directory `PM_CONFIG_DIR` names.
+//! Meerkat config directory `MEERKAT_CONFIG_DIR` names.
 
 #[cfg(target_os = "macos")]
 fn main() -> impl std::process::Termination {

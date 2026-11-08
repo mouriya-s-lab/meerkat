@@ -1,4 +1,4 @@
-//! The 「议题」 page's model (C4 `dagView`): the agenda issues of the PM
+//! The 「议题」 page's model (C4 `dagView`): the agenda issues of the Meerkat
 //! repository with their GitHub "Blocked by" relations, the list's groups
 //! and the DAG's columns. Pure: it reads the Project's items and the
 //! council's queue as the sources last loaded them.
@@ -202,12 +202,12 @@ impl Graph {
     }
 }
 
-/// The agenda issues of `pm` among `items`, kept by the 「仅人类议题及其后继」
+/// The agenda issues of `agenda` among `items`, kept by the 「仅人类议题及其后继」
 /// filter when `human_only`.
 pub fn build(
     items: &[ProjectItem],
     council: Council<'_>,
-    pm: &RepoName,
+    agenda: &RepoName,
     human_only: bool,
 ) -> Graph {
     let queue: HashMap<&IssueRef, &QueueEntry> = match council {
@@ -216,7 +216,7 @@ pub fn build(
     };
     let mut all: Vec<Node> = items
         .iter()
-        .filter(|item| item.issue.repo == *pm)
+        .filter(|item| item.issue.repo == *agenda)
         .filter_map(|item| {
             let kind = match item.kind {
                 Some(Kind::Human) => NodeKind::Human,
@@ -647,7 +647,7 @@ mod tests {
 
     fn issue(n: u64) -> IssueRef {
         IssueRef {
-            repo: repo("o/pm"),
+            repo: repo("o/agenda"),
             number: n,
         }
     }
@@ -656,7 +656,7 @@ mod tests {
         ProjectItem {
             issue: issue(n),
             title: format!("issue {n}"),
-            url: format!("https://github.com/o/pm/issues/{n}"),
+            url: format!("https://github.com/o/agenda/issues/{n}"),
             body: String::new(),
             created_at: "2026-11-07T00:00:00Z".to_owned(),
             updated_at: format!("2026-11-07T0{}:00:00Z", n % 10),
@@ -732,7 +732,7 @@ mod tests {
             item(2, Kind::Human, "D30", &[]),
             item(1, Kind::Agenda, "", &[]),
         ];
-        let graph = build(&items, Council::Unreachable, &repo("o/pm"), false);
+        let graph = build(&items, Council::Unreachable, &repo("o/agenda"), false);
         let order: Vec<u64> = graph.nodes.iter().map(|n| n.issue.number).collect();
         // Human issues first, then by agenda number; those without one by
         // issue.
@@ -741,7 +741,7 @@ mod tests {
 
     #[test]
     fn columns_follow_the_counted_chain_of_open_issues() {
-        let graph = build(&fixture(), Council::Unreachable, &repo("o/pm"), false);
+        let graph = build(&fixture(), Council::Unreachable, &repo("o/agenda"), false);
         let layout = layout(&graph, Closed::Fold, &all);
         // H1 and A2 can move (A2's "Blocked by" A1 is not counted); H2 and
         // A1 follow H1 in columns 1 and 2. D6 is decided: folded.
@@ -755,7 +755,7 @@ mod tests {
     fn closed_issues_fold_show_or_hide() {
         let mut items = fixture();
         items[3].status = Some(Status::Done); // H1 decided
-        let graph = build(&items, Council::Unreachable, &repo("o/pm"), false);
+        let graph = build(&items, Council::Unreachable, &repo("o/agenda"), false);
         // H1 closed: H2 has no open prerequisite and moves to column 0.
         let folded = layout(&graph, Closed::Fold, &all);
         assert_eq!(columns(&graph, &folded), vec![vec![2, 4], vec![3]]);
@@ -783,7 +783,7 @@ mod tests {
         for item in &mut items {
             item.status = Some(Status::Done);
         }
-        let graph = build(&items, Council::Unreachable, &repo("o/pm"), false);
+        let graph = build(&items, Council::Unreachable, &repo("o/agenda"), false);
         let layout = layout(&graph, Closed::Fold, &all);
         assert!(layout.columns.is_empty());
         let chains: Vec<Vec<u64>> = layout.chains.iter().map(|c| numbers(&graph, c)).collect();
@@ -797,7 +797,7 @@ mod tests {
             item(2, Kind::Human, "D2", &[1]),
             item(3, Kind::Agenda, "D3", &[1, 2]),
         ];
-        let graph = build(&items, Council::Unreachable, &repo("o/pm"), false);
+        let graph = build(&items, Council::Unreachable, &repo("o/agenda"), false);
         let layout = layout(&graph, Closed::Fold, &all);
         assert_eq!(columns(&graph, &layout), vec![vec![1], vec![2], vec![3]]);
     }
@@ -811,7 +811,7 @@ mod tests {
             item(4, Kind::Human, "D4", &[3]),
             item(5, Kind::Agenda, "D5", &[3]),
         ];
-        let graph = build(&items, Council::Unreachable, &repo("o/pm"), false);
+        let graph = build(&items, Council::Unreachable, &repo("o/agenda"), false);
         let layout = layout(&graph, Closed::Fold, &all);
         assert_eq!(
             columns(&graph, &layout),
@@ -822,7 +822,7 @@ mod tests {
 
     #[test]
     fn edges_on_agenda_issues_are_ignored_with_the_notes_naming_them() {
-        let note = "Blocked by o/pm#3 ignored: not a human issue in the Project";
+        let note = "Blocked by o/agenda#3 ignored: not a human issue in the Project";
         let queue = vec![
             entry(1, QueueState::Ready, &[]),
             entry(2, QueueState::Blocked, &[]),
@@ -830,10 +830,10 @@ mod tests {
             entry(
                 4,
                 QueueState::Held,
-                &[note, "Blocked by o/pm#31 ignored: x"],
+                &[note, "Blocked by o/agenda#31 ignored: x"],
             ),
         ];
-        let graph = build(&fixture(), Council::Queue(&queue), &repo("o/pm"), false);
+        let graph = build(&fixture(), Council::Queue(&queue), &repo("o/agenda"), false);
         let at = |n: u64| {
             graph
                 .nodes
@@ -862,7 +862,7 @@ mod tests {
     #[test]
     fn states_fall_back_to_the_project_status() {
         let queue = vec![entry(1, QueueState::Ready, &[])];
-        let graph = build(&fixture(), Council::Queue(&queue), &repo("o/pm"), false);
+        let graph = build(&fixture(), Council::Queue(&queue), &repo("o/agenda"), false);
         let state = |n: u64| {
             &graph
                 .nodes
@@ -879,7 +879,7 @@ mod tests {
                 why: Fallback::Unlisted
             }
         );
-        let graph = build(&fixture(), Council::Unreachable, &repo("o/pm"), false);
+        let graph = build(&fixture(), Council::Unreachable, &repo("o/agenda"), false);
         let decided = graph.nodes.iter().find(|x| x.issue.number == 6).unwrap();
         assert_eq!(
             decided.state,
@@ -896,7 +896,7 @@ mod tests {
     fn human_only_keeps_human_issues_and_what_they_block() {
         let mut items = fixture();
         items.push(item(10, Kind::Agenda, "D10", &[1]));
-        let graph = build(&items, Council::Unreachable, &repo("o/pm"), true);
+        let graph = build(&items, Council::Unreachable, &repo("o/agenda"), true);
         let mut kept: Vec<u64> = graph.nodes.iter().map(|n| n.issue.number).collect();
         kept.sort();
         // A2 (4) follows only through an ignored edge; 6 blocks nothing.
@@ -920,7 +920,7 @@ mod tests {
             entry(7, QueueState::Decided, &[]),
             entry(8, QueueState::Interrupted, &[]),
         ];
-        let graph = build(&items, Council::Queue(&queue), &repo("o/pm"), false);
+        let graph = build(&items, Council::Queue(&queue), &repo("o/agenda"), false);
         let group = |g| numbers(&graph, &rows(&graph, g, &all));
         assert_eq!(group(Group::Attention), vec![5, 8]);
         assert_eq!(group(Group::Deliberating), vec![4]);
@@ -943,7 +943,7 @@ mod tests {
         items[6].status = Some(Status::Superseded);
         // Only 1 and 8 are in the queue; the others fall back as unlisted.
         let queue = vec![entry(1, QueueState::Ready, &[]), entry(8, QueueState::Decided, &[])];
-        let graph = build(&items, Council::Queue(&queue), &repo("o/pm"), false);
+        let graph = build(&items, Council::Queue(&queue), &repo("o/agenda"), false);
         let group = |g| numbers(&graph, &rows(&graph, g, &all));
         assert_eq!(group(Group::Ready), vec![1]);
         assert_eq!(group(Group::Closed), vec![8]);
@@ -963,7 +963,7 @@ mod tests {
             ]
         );
         // Unreachable, every node falls back and no verdict group is left.
-        let graph = build(&items, Council::Unreachable, &repo("o/pm"), false);
+        let graph = build(&items, Council::Unreachable, &repo("o/agenda"), false);
         assert!(Group::ALL.iter().all(|&g| rows(&graph, g, &all).is_empty()));
         let todo = status_groups(&graph, &all)
             .into_iter()
@@ -982,9 +982,9 @@ mod tests {
 
     #[test]
     fn notes_name_an_issue_only_in_full() {
-        assert!(names("Blocked by o/pm#3 ignored", &issue(3)));
-        assert!(!names("Blocked by o/pm#31 ignored", &issue(3)));
-        assert!(names("o/pm#31 and o/pm#3", &issue(3)));
+        assert!(names("Blocked by o/agenda#3 ignored", &issue(3)));
+        assert!(!names("Blocked by o/agenda#31 ignored", &issue(3)));
+        assert!(names("o/agenda#31 and o/agenda#3", &issue(3)));
     }
 
     const SIZES: Sizes = Sizes {
@@ -997,7 +997,7 @@ mod tests {
 
     #[test]
     fn geometry_runs_columns_left_to_right_from_the_top() {
-        let graph = build(&fixture(), Council::Unreachable, &repo("o/pm"), false);
+        let graph = build(&fixture(), Council::Unreachable, &repo("o/agenda"), false);
         let layout = layout(&graph, Closed::Fold, &all);
         let g = geometry(&graph, &layout, SIZES);
         // Three columns: 3 × 100 + 2 × 50, plus 10 each side.

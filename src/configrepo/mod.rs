@@ -1,8 +1,8 @@
-//! The PM config repository as the config page uses it (decision §H):
+//! The Meerkat config repository as the config page uses it:
 //! the configured branch is the one authority. Its files are listed and
 //! opened from GitHub every time; a candidate file is judged by every
 //! program that reads it (council and guardians `POST /v1/config/check`,
-//! the dispatch launcher's `POST /pm-config/check`, Meerkat's own parsers);
+//! the dispatch launcher's `POST /meerkat-config/check`, Meerkat's own parsers);
 //! a save is one contents-API commit that GitHub refuses when the branch
 //! moved on; what each program runs is compared with the branch by git
 //! blob sha. Nothing here keeps a copy of a file or a verdict.
@@ -293,7 +293,7 @@ impl ConfigRepoClient {
                     Ok(mut files) => {
                         // The launcher takes exactly its three files.
                         files.retain(|file, _| DISPATCH_FILES.contains(&file.as_str()));
-                        ask(self.endpoints.dispatch.join("/pm-config/check"), &files).await
+                        ask(self.endpoints.dispatch.join("/meerkat-config/check"), &files).await
                     }
                     Err(error) => Verdict::NoInput(error),
                 }
@@ -372,7 +372,7 @@ impl ConfigRepoClient {
     }
 }
 
-/// The three PM files the dispatch launcher judges, all together.
+/// The three Meerkat files the dispatch launcher judges, all together.
 const DISPATCH_FILES: [&str; 3] = ["shared/repos.yaml", "shared/project.yaml", "dispatch/delivery.yaml"];
 
 /// What the program at `base` loaded at startup (`GET /v1/config`).

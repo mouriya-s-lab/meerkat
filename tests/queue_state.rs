@@ -6,11 +6,11 @@
 //!
 //! The recorded queue lists the issues of `mouriya-s-lab/meerkat-e2e-design`, which
 //! the recorded Project holds too; the tests load a copy of the fixture
-//! config whose PM repository is that one, so each issue on the 「议题」
+//! config whose agenda repository is that one, so each issue on the 「议题」
 //! page shows the queue's verdict.
 //!
 //! The tests rewrite this process's `OMOMP_LANG`, `GH_TOKEN` and
-//! `PM_CONFIG_DIR`: they take [`serial`]'s lock, so they run one at a time
+//! `MEERKAT_CONFIG_DIR`: they take [`serial`]'s lock, so they run one at a time
 //! (the issue's commands add `--test-threads=1`).
 
 mod support;
@@ -261,11 +261,11 @@ fn project_issues() -> Vec<serde_json::Value> {
 
 // -- the app -----------------------------------------------------------------
 
-/// Meerkat in Chinese on a copy of the fixture config whose PM repository is
+/// Meerkat in Chinese on a copy of the fixture config whose agenda repository is
 /// the one the queue lists, its queue answered with `queue`.
 fn start(sandbox: &Sandbox, queue: &str) -> Fixture {
     support::set_github_token("gho_q26_queue_state_token");
-    let dir = support::config_with_pm(sandbox, DESIGN);
+    let dir = support::config_with_agenda(sandbox, DESIGN);
     let answer = StubRoute::Response(support::answer(200, queue));
     Fixture::start_in(Lang::Zh, &dir, vec![(QUEUE.to_owned(), answer)])
 }

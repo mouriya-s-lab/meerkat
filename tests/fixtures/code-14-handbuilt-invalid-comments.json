@@ -28,7 +28,7 @@
     },
     "created_at": "2026-11-06T23:34:36Z",
     "updated_at": "2026-11-06T23:34:36Z",
-    "body": "notes 的数据文件存放在哪个路径？请依据仓库内容答复。\n\n<!-- pm:ask {\"v\":1,\"tier\":\"simple\",\"session\":\"manual\"} -->\n",
+    "body": "notes 的数据文件存放在哪个路径？请依据仓库内容答复。\n\n<!-- meerkat:ask {\"v\":1,\"tier\":\"simple\",\"session\":\"manual\"} -->\n",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -75,7 +75,7 @@
     },
     "created_at": "2026-11-06T23:35:23Z",
     "updated_at": "2026-11-06T23:35:23Z",
-    "body": "notes 的数据文件默认存放在**当前工作目录下的 `notes.json`**，也可以通过环境变量 `NOTES_FILE` 指定其他路径。\n\n依据仓库内容：\n- `main.go:17-20`：`main()` 先读取 `os.Getenv(\"NOTES_FILE\")`；若该值为空，则把路径设为 `\"notes.json\"`。\n- `main.go:21`：`store, err := Open(path)` 使用上述路径打开存储。\n- `store.go:26-29`：`Store` 结构保存 `path` 与内存中的 `data`。\n- `store.go:34-39`：`Open(path)` 通过 `os.ReadFile(path)` 读取该路径；文件不存在时按空存储处理。\n- `store.go:100-105`：`save()` 使用 `os.WriteFile(s.path, ...)` 将数据写回同一路径（权限 `0644`）。\n- `README.md:4-11` 的 Usage 段落与 `main.go:1-7` 的包注释列出了 `add`、`list`、`done`、`rm` 四个子命令。\n\n因此，答复 issue 中的询问：默认路径是当前工作目录下的 `notes.json`（例如从仓库根目录运行 `go run .` 时即 `<repo>/notes.json`）；设置 `NOTES_FILE=/some/path.json` 后则改用该指定路径。\n\n<!-- pm:reply {\"v\":1,\"ask\":6698636994,\"decision\":null} -->",
+    "body": "notes 的数据文件默认存放在**当前工作目录下的 `notes.json`**，也可以通过环境变量 `NOTES_FILE` 指定其他路径。\n\n依据仓库内容：\n- `main.go:17-20`：`main()` 先读取 `os.Getenv(\"NOTES_FILE\")`；若该值为空，则把路径设为 `\"notes.json\"`。\n- `main.go:21`：`store, err := Open(path)` 使用上述路径打开存储。\n- `store.go:26-29`：`Store` 结构保存 `path` 与内存中的 `data`。\n- `store.go:34-39`：`Open(path)` 通过 `os.ReadFile(path)` 读取该路径；文件不存在时按空存储处理。\n- `store.go:100-105`：`save()` 使用 `os.WriteFile(s.path, ...)` 将数据写回同一路径（权限 `0644`）。\n- `README.md:4-11` 的 Usage 段落与 `main.go:1-7` 的包注释列出了 `add`、`list`、`done`、`rm` 四个子命令。\n\n因此，答复 issue 中的询问：默认路径是当前工作目录下的 `notes.json`（例如从仓库根目录运行 `go run .` 时即 `<repo>/notes.json`）；设置 `NOTES_FILE=/some/path.json` 后则改用该指定路径。\n\n<!-- meerkat:reply {\"v\":1,\"ask\":6698636994,\"decision\":null} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -122,7 +122,7 @@
     },
     "created_at": "2026-11-06T23:35:30Z",
     "updated_at": "2026-11-06T23:35:30Z",
-    "body": "再答一次。\n\n<!-- pm:reply {\"v\":1,\"ask\":6698636994,\"decision\":null} -->",
+    "body": "再答一次。\n\n<!-- meerkat:reply {\"v\":1,\"ask\":6698636994,\"decision\":null} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -169,7 +169,7 @@
     },
     "created_at": "2026-11-06T23:35:40Z",
     "updated_at": "2026-11-06T23:35:40Z",
-    "body": "答复之后又提为议题。\n\n<!-- pm:escalated {\"v\":1,\"ask\":6698636994,\"agenda\":\"mouriya-s-lab/meerkat-e2e-agenda#13\"} -->",
+    "body": "答复之后又提为议题。\n\n<!-- meerkat:escalated {\"v\":1,\"ask\":6698636994,\"agenda\":\"mouriya-s-lab/meerkat-e2e-agenda#13\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -216,7 +216,7 @@
     },
     "created_at": "2026-11-06T23:35:50Z",
     "updated_at": "2026-11-06T23:35:50Z",
-    "body": "答复一条不存在的询问。\n\n<!-- pm:reply {\"v\":1,\"ask\":1234,\"decision\":null} -->",
+    "body": "答复一条不存在的询问。\n\n<!-- meerkat:reply {\"v\":1,\"ask\":1234,\"decision\":null} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -263,7 +263,7 @@
     },
     "created_at": "2026-11-06T23:36:00Z",
     "updated_at": "2026-11-06T23:36:00Z",
-    "body": "ask 写成字符串。\n\n<!-- pm:reply {\"v\":1,\"ask\":\"6698636994\",\"decision\":null} -->",
+    "body": "ask 写成字符串。\n\n<!-- meerkat:reply {\"v\":1,\"ask\":\"6698636994\",\"decision\":null} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -310,7 +310,7 @@
     },
     "created_at": "2026-11-06T23:36:10Z",
     "updated_at": "2026-11-06T23:36:10Z",
-    "body": "未知标记。\n\n<!-- pm:nudge {\"v\":1,\"ask\":6698636994} -->",
+    "body": "未知标记。\n\n<!-- meerkat:nudge {\"v\":1,\"ask\":6698636994} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -357,7 +357,7 @@
     },
     "created_at": "2026-11-06T23:36:20Z",
     "updated_at": "2026-11-06T23:36:20Z",
-    "body": "标记行不是 JSON。\n\n<!-- pm:ask tier=simple -->",
+    "body": "标记行不是 JSON。\n\n<!-- meerkat:ask tier=simple -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {

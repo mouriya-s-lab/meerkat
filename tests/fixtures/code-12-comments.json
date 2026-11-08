@@ -28,7 +28,7 @@
     },
     "created_at": "2026-11-06T23:21:29Z",
     "updated_at": "2026-11-06T23:21:29Z",
-    "body": "设计书 §2 只规定 `notes list --open` 只列出未完成的便签，没有“按最后修改时间倒序”，存储里也没有修改时间。本 issue 的排序要求是否应改为按添加顺序？\n\n<!-- pm:ask {\"v\":1,\"tier\":\"simple\",\"session\":\"manual-replace\"} -->",
+    "body": "设计书 §2 只规定 `notes list --open` 只列出未完成的便签，没有“按最后修改时间倒序”，存储里也没有修改时间。本 issue 的排序要求是否应改为按添加顺序？\n\n<!-- meerkat:ask {\"v\":1,\"tier\":\"simple\",\"session\":\"manual-replace\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -75,7 +75,7 @@
     },
     "created_at": "2026-11-06T23:23:10Z",
     "updated_at": "2026-11-06T23:23:10Z",
-    "body": "原 issue mouriya-s-lab/meerkat-e2e-code#12 要求依据 mouriya-s-lab/meerkat-e2e-agenda#1 让 `notes list --open` 按“最后修改时间倒序”输出未完成便签，但该排序要求与仓库现状及设计范围不符，因此本 issue 被取代。当前数据模型中单条便签只有 `id`、`text`、`done` 三个字段（`store.go:12-16`），磁盘文件布局只有 `last_id` 与 `notes`（`store.go:20-23`），仓库内不存在任何记录最后修改时间的字段；现有 `list` 分支也不解析任何参数，只按 `store.List()` 返回的插入顺序逐条打印（`main.go:43-50`、`store.go:68-69`）。要实现按最后修改时间排序，必须额外引入时间字段、定义修改时点的更新规则以及旧数据文件的兼容策略，这些都超出设计书 §2 对 `notes list --open` 的规定。若该排序能力仍需要，应先在设计文档中补充时间字段与迁移规范，再单独开出实现 issue，而不是在本冒烟 issue 中夹带。\n\n<!-- pm:replaced {\"v\":1,\"ask\":6698338624,\"by\":\"mouriya-s-lab/meerkat-e2e-code#13\"} -->",
+    "body": "原 issue mouriya-s-lab/meerkat-e2e-code#12 要求依据 mouriya-s-lab/meerkat-e2e-agenda#1 让 `notes list --open` 按“最后修改时间倒序”输出未完成便签，但该排序要求与仓库现状及设计范围不符，因此本 issue 被取代。当前数据模型中单条便签只有 `id`、`text`、`done` 三个字段（`store.go:12-16`），磁盘文件布局只有 `last_id` 与 `notes`（`store.go:20-23`），仓库内不存在任何记录最后修改时间的字段；现有 `list` 分支也不解析任何参数，只按 `store.List()` 返回的插入顺序逐条打印（`main.go:43-50`、`store.go:68-69`）。要实现按最后修改时间排序，必须额外引入时间字段、定义修改时点的更新规则以及旧数据文件的兼容策略，这些都超出设计书 §2 对 `notes list --open` 的规定。若该排序能力仍需要，应先在设计文档中补充时间字段与迁移规范，再单独开出实现 issue，而不是在本冒烟 issue 中夹带。\n\n<!-- meerkat:replaced {\"v\":1,\"ask\":6698338624,\"by\":\"mouriya-s-lab/meerkat-e2e-code#13\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {

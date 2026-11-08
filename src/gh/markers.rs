@@ -1,6 +1,5 @@
-//! PM's machine markers (`Pepgent/pm-new#1` decision 6695362696 §2, and
-//! 6696709150 §A, §B): the last line of a comment or issue body,
-//! `<!-- pm:<kind> <JSON> -->`, the JSON on one line with `"v":1`. A marker
+//! Meerkat's machine markers: the last line of a comment or issue body,
+//! `<!-- meerkat:<kind> <JSON> -->`, the JSON on one line with `"v":1`. A marker
 //! whose JSON lacks a field or has one of the wrong type is no marker, and
 //! is logged as an error.
 
@@ -27,7 +26,7 @@ pub enum Marker {
     Superseded(Superseded),
 }
 
-/// §2 `impl`: a worker session started implementing.
+/// `impl`: a worker session started implementing.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Impl {
     pub host: String,
@@ -37,7 +36,7 @@ pub struct Impl {
     pub file: String,
 }
 
-/// §2 `ask`: a worker's question.
+/// `ask`: a worker's question.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Ask {
     pub tier: Tier,
@@ -52,7 +51,7 @@ pub enum Tier {
     Complex,
 }
 
-/// §2 `reply`: an answer to the `ask` comment `ask`.
+/// `reply`: an answer to the `ask` comment `ask`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Reply {
     pub ask: u64,
@@ -60,7 +59,7 @@ pub struct Reply {
     pub decision: Option<IssueRef>,
 }
 
-/// §2 `replaced`: this implementation issue is replaced by `by`.
+/// `replaced`: this implementation issue is replaced by `by`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Replaced {
     #[serde(deserialize_with = "nullable")]
@@ -68,7 +67,7 @@ pub struct Replaced {
     pub by: IssueRef,
 }
 
-/// §2 `replaces` (an issue body): this issue replaces `old`.
+/// `replaces` (an issue body): this issue replaces `old`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Replaces {
     pub old: IssueRef,
@@ -76,14 +75,14 @@ pub struct Replaces {
     pub ask: Option<u64>,
 }
 
-/// §2 `escalated`: the `ask` became the agenda issue `agenda`.
+/// `escalated`: the `ask` became the agenda issue `agenda`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Escalated {
     pub ask: u64,
     pub agenda: IssueRef,
 }
 
-/// §B `escalation` (an agenda issue body): the `ask` on `issue` this issue
+/// `escalation` (an agenda issue body): the `ask` on `issue` this issue
 /// settles.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Escalation {
@@ -91,7 +90,7 @@ pub struct Escalation {
     pub ask: u64,
 }
 
-/// §A `panel`: a panel's state changed.
+/// `panel`: a panel's state changed.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Panel {
     pub event: PanelEvent,
@@ -123,7 +122,7 @@ pub struct PanelSession {
     pub file: String,
 }
 
-/// §A `draft`: a version of the decision table.
+/// `draft`: a version of the decision table.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Draft {
     pub version: u32,
@@ -174,7 +173,7 @@ pub enum SettleKind {
     Replace,
 }
 
-/// §A `vote`: a seat's votes on a draft version.
+/// `vote`: a seat's votes on a draft version.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Vote {
     pub seat: String,
@@ -204,7 +203,7 @@ pub enum Choice {
     Veto,
 }
 
-/// §A `ruling`: an arbitrating seat's categories.
+/// `ruling`: an arbitrating seat's categories.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Ruling {
     pub seat: String,
@@ -219,7 +218,7 @@ pub struct RulingRow {
     pub category: String,
 }
 
-/// §A `decision`: each row's outcome.
+/// `decision`: each row's outcome.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Decision {
     pub version: u32,
@@ -248,7 +247,7 @@ pub enum Outcome {
     Withdrawn,
 }
 
-/// §A `superseded`: a human issue (`by`) changed this agenda issue.
+/// `superseded`: a human issue (`by`) changed this agenda issue.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Superseded {
     pub by: IssueRef,
@@ -274,18 +273,18 @@ pub fn parse(body: &str) -> Option<Marker> {
 }
 
 /// What the last line of `body` holds: `None` without a marker line, the
-/// marker, or why a line that starts as a marker (`<!-- pm:`) is not one.
+/// marker, or why a line that starts as a marker (`<!-- meerkat:`) is not one.
 pub fn read(body: &str) -> Option<Result<Marker, String>> {
     let line = body.lines().map(str::trim).rfind(|line| !line.is_empty())?;
-    let rest = line.strip_prefix("<!-- pm:")?;
-    let malformed = || Err("marker line is not <!-- pm:<kind> <JSON> -->".to_owned());
+    let rest = line.strip_prefix("<!-- meerkat:")?;
+    let malformed = || Err("marker line is not <!-- meerkat:<kind> <JSON> -->".to_owned());
     let Some(inner) = rest.strip_suffix("-->") else {
         return Some(malformed());
     };
     let Some((kind, json)) = inner.trim().split_once(char::is_whitespace) else {
         return Some(malformed());
     };
-    Some(decode(kind, json.trim()).map_err(|error| format!("pm:{kind}: {error}")))
+    Some(decode(kind, json.trim()).map_err(|error| format!("meerkat:{kind}: {error}")))
 }
 
 fn decode(kind: &str, json: &str) -> Result<Marker, String> {
@@ -324,12 +323,12 @@ mod tests {
 
     #[test]
     fn reads_the_last_line() {
-        let body = "Why it needs the council.\n\n<!-- pm:escalated {\"v\":1,\"ask\":42,\"agenda\":\"o/pm#7\"} -->\n";
+        let body = "Why it needs the council.\n\n<!-- meerkat:escalated {\"v\":1,\"ask\":42,\"agenda\":\"o/agenda#7\"} -->\n";
         assert_eq!(
             parse(body),
             Some(Marker::Escalated(Escalated {
                 ask: 42,
-                agenda: IssueRef::try_from("o/pm#7".to_owned()).unwrap(),
+                agenda: IssueRef::try_from("o/agenda#7".to_owned()).unwrap(),
             }))
         );
     }
@@ -337,25 +336,25 @@ mod tests {
     #[test]
     fn a_marker_not_last_is_none() {
         assert_eq!(
-            parse("<!-- pm:reply {\"v\":1,\"ask\":1,\"decision\":null} -->\nmore"),
+            parse("<!-- meerkat:reply {\"v\":1,\"ask\":1,\"decision\":null} -->\nmore"),
             None
         );
     }
 
     #[test]
     fn missing_nullable_field_is_none() {
-        assert_eq!(parse("<!-- pm:reply {\"v\":1,\"ask\":1} -->"), None);
-        assert!(parse("<!-- pm:reply {\"v\":1,\"ask\":1,\"decision\":null} -->").is_some());
+        assert_eq!(parse("<!-- meerkat:reply {\"v\":1,\"ask\":1} -->"), None);
+        assert!(parse("<!-- meerkat:reply {\"v\":1,\"ask\":1,\"decision\":null} -->").is_some());
     }
 
     #[test]
     fn wrong_version_or_type_is_none() {
         assert_eq!(
-            parse("<!-- pm:reply {\"v\":2,\"ask\":1,\"decision\":null} -->"),
+            parse("<!-- meerkat:reply {\"v\":2,\"ask\":1,\"decision\":null} -->"),
             None
         );
         assert_eq!(
-            parse("<!-- pm:reply {\"v\":1,\"ask\":\"1\",\"decision\":null} -->"),
+            parse("<!-- meerkat:reply {\"v\":1,\"ask\":\"1\",\"decision\":null} -->"),
             None
         );
     }
@@ -365,13 +364,13 @@ mod tests {
         assert_eq!(read("plain text\n<!-- a plain html comment -->"), None);
         let reason = |body: &str| read(body).unwrap().unwrap_err();
         assert_eq!(
-            reason("<!-- pm:ask tier=simple"),
-            "marker line is not <!-- pm:<kind> <JSON> -->"
+            reason("<!-- meerkat:ask tier=simple"),
+            "marker line is not <!-- meerkat:<kind> <JSON> -->"
         );
-        assert!(reason("<!-- pm:nudge {\"v\":1} -->").starts_with("pm:nudge: unknown kind"));
+        assert!(reason("<!-- meerkat:nudge {\"v\":1} -->").starts_with("meerkat:nudge: unknown kind"));
         assert!(
-            reason("<!-- pm:reply {\"v\":1,\"ask\":\"1\",\"decision\":null} -->")
-                .starts_with("pm:reply: ")
+            reason("<!-- meerkat:reply {\"v\":1,\"ask\":\"1\",\"decision\":null} -->")
+                .starts_with("meerkat:reply: ")
         );
     }
 }

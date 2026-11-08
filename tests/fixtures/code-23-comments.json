@@ -28,7 +28,7 @@
     },
     "created_at": "2026-11-07T03:58:55Z",
     "updated_at": "2026-11-07T03:58:55Z",
-    "body": "逐行抄出仓库每个文件并核对行号，全部核完前不要交回\n\n<!-- pm:ask {\"v\":1,\"tier\":\"simple\",\"session\":\"g4-probe\"} -->\n",
+    "body": "逐行抄出仓库每个文件并核对行号，全部核完前不要交回\n\n<!-- meerkat:ask {\"v\":1,\"tier\":\"simple\",\"session\":\"g4-probe\"} -->\n",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {

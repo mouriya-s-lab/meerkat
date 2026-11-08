@@ -107,7 +107,7 @@ flowchart LR
 需安装 Rust 工具链与 Xcode Command Line Tools。GitHub 凭据取自环境变量 `GH_TOKEN`，未设置时自动调用 `gh auth token` 获取：
 
 ```sh
-PM_CONFIG_DIR=$PWD/config.example cargo run
+MEERKAT_CONFIG_DIR=$PWD/config.example cargo run
 ```
 
 打包独立 `Meerkat.app`（需安装 [`nsh`](https://nsh.dev/docs/installation.md)、Homebrew `llvm` 与对应版本的 `wasm-bindgen`）：

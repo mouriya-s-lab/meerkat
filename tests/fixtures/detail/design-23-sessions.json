@@ -2,9 +2,9 @@
 // （议程 G25）的会话，新的在前。G25 的评论是手写的 Q4 夹具，本机议会 http://127.0.0.1:7741 没有它的会话，整份为补写。
 // 形状取自 tests/fixtures/responses/council-sessions.json 中 design#19 的真实会话（种类 draft、vote、revise、arbitrate，
 // label 为「<kind> <seat> <ref>」，model 同 design#19），时刻对齐 tests/fixtures/detail/design-23-comments.json：
-// 第 1 轮（pm:panel started 13:22:10Z）：draft Coordination 起草 v1（pm:draft 13:22:14Z），四席投 v1（pm:vote 13:22:18–29Z）；
-// 第 2 轮（pm:panel started 13:22:33Z）：revise Coordination 起草 v2（pm:draft 13:22:37Z），四席投 v2（pm:vote 13:22:41–52Z），
-// arbitrate LeadMentor 裁决 G25-01（pm:ruling 13:22:55Z）。每个会话在它的评论之前结束。
+// 第 1 轮（meerkat:panel started 13:22:10Z）：draft Coordination 起草 v1（meerkat:draft 13:22:14Z），四席投 v1（meerkat:vote 13:22:18–29Z）；
+// 第 2 轮（meerkat:panel started 13:22:33Z）：revise Coordination 起草 v2（meerkat:draft 13:22:37Z），四席投 v2（meerkat:vote 13:22:41–52Z），
+// arbitrate LeadMentor 裁决 G25-01（meerkat:ruling 13:22:55Z）。每个会话在它的评论之前结束。
 // 第 1 轮 Coordination 投票会话 01a1b625-d001-7000-8000-000000000002 的日志见 design-23-vote-log.jsonl。
 // 读取时去掉以 // 开头的行。
 [

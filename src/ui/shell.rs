@@ -34,7 +34,7 @@ use crate::{
     },
     dag::{self, Council, Graph},
     gh::{Credential, GitHub, IssueRef},
-    pmconfig::ConfigRepoClient,
+    configrepo::ConfigRepoClient,
     programs::{BaseState, Program, ProgramClient, SessionState},
     sources::{ProgramSources, Sources},
     time,
@@ -305,11 +305,11 @@ fn shell(config: &AppConfig) -> View {
     let needs =
         computed(move || Rc::new(attention::needs(concerns_of(sources, &attention_settings))));
     let settings = Rc::new(Settings {
-        pm: config.repos.pm.repo.clone(),
+        agenda: config.repos.agenda.repo.clone(),
         fields: config.fields.clone(),
     });
-    let pm = settings.pm.clone();
-    let all_issues = computed(move || graph_of(sources, &pm, false));
+    let agenda = settings.agenda.clone();
+    let all_issues = computed(move || graph_of(sources, &agenda, false));
     let context = Rc::new(Context {
         github,
         council: ProgramClient::new(Program::Council, config.endpoints.council.clone()),
@@ -387,7 +387,7 @@ fn shell(config: &AppConfig) -> View {
 /// in; only human issues and their successors when `human_only`.
 pub fn graph_of(
     sources: Sources,
-    pm: &crate::config::RepoName,
+    agenda: &crate::config::RepoName,
     human_only: bool,
 ) -> Option<Rc<Graph>> {
     let unreachable = sources.queue.with_error(|e| e.is_some());
@@ -400,7 +400,7 @@ pub fn graph_of(
                 // The queue's first answer is still on its way.
                 (false, None) => return None,
             };
-            Some(Rc::new(dag::build(items, council, pm, human_only)))
+            Some(Rc::new(dag::build(items, council, agenda, human_only)))
         })
     })
 }

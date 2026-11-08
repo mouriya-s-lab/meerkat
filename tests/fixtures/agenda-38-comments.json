@@ -28,7 +28,7 @@
     },
     "created_at": "2026-11-07T06:39:32Z",
     "updated_at": "2026-11-07T06:39:32Z",
-    "body": "小组开始审议（第 1 轮）。（手写计票输入）\n<!-- pm:panel {\"v\":1,\"event\":\"started\",\"round\":1,\"sessions\":[],\"prereq\":null,\"error\":null} -->\n",
+    "body": "小组开始审议（第 1 轮）。（手写计票输入）\n<!-- meerkat:panel {\"v\":1,\"event\":\"started\",\"round\":1,\"sessions\":[],\"prereq\":null,\"error\":null} -->\n",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -75,7 +75,7 @@
     },
     "created_at": "2026-11-07T06:39:33Z",
     "updated_at": "2026-11-07T06:39:33Z",
-    "body": "草案 v1（C3 smoke 手写计票输入）。\n<!-- pm:draft {\"v\":1,\"version\":1,\"rows\":[{\"id\":\"r1\",\"what\":\"notes list 支持 --limit 限制输出条数\",\"where\":\"cmd/notes list\",\"how\":\"list 增加 --limit N 参数，只输出前 N 条\",\"tradeoff\":\"新增一个参数\",\"category\":\"技术\",\"missingDesign\":false,\"deliver\":null}],\"supersedes\":[],\"settle\":null,\"withdrawn\":null} -->\n",
+    "body": "草案 v1（C3 smoke 手写计票输入）。\n<!-- meerkat:draft {\"v\":1,\"version\":1,\"rows\":[{\"id\":\"r1\",\"what\":\"notes list 支持 --limit 限制输出条数\",\"where\":\"cmd/notes list\",\"how\":\"list 增加 --limit N 参数，只输出前 N 条\",\"tradeoff\":\"新增一个参数\",\"category\":\"技术\",\"missingDesign\":false,\"deliver\":null}],\"supersedes\":[],\"settle\":null,\"withdrawn\":null} -->\n",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -122,7 +122,7 @@
     },
     "created_at": "2026-11-07T06:39:34Z",
     "updated_at": "2026-11-07T06:39:34Z",
-    "body": "Coordination 对 v1 的投票（C3 smoke 手写）。\n<!-- pm:vote {\"v\":1,\"seat\":\"Coordination\",\"version\":1,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":null}]} -->\n",
+    "body": "Coordination 对 v1 的投票（C3 smoke 手写）。\n<!-- meerkat:vote {\"v\":1,\"seat\":\"Coordination\",\"version\":1,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":null}]} -->\n",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -169,7 +169,7 @@
     },
     "created_at": "2026-11-07T06:39:35Z",
     "updated_at": "2026-11-07T06:39:35Z",
-    "body": "ClaudeHigh 对 v1 的投票（C3 smoke 手写）。\n<!-- pm:vote {\"v\":1,\"seat\":\"ClaudeHigh\",\"version\":1,\"rows\":[{\"row\":\"r1\",\"choice\":\"oppose\",\"counterexample\":\"notes list --limit 0 的行为未定义：按草案会输出空列表还是全部？草案未说明 N<=0 时的处理。\",\"citation\":null,\"classification\":null}]} -->\n",
+    "body": "ClaudeHigh 对 v1 的投票（C3 smoke 手写）。\n<!-- meerkat:vote {\"v\":1,\"seat\":\"ClaudeHigh\",\"version\":1,\"rows\":[{\"row\":\"r1\",\"choice\":\"oppose\",\"counterexample\":\"notes list --limit 0 的行为未定义：按草案会输出空列表还是全部？草案未说明 N<=0 时的处理。\",\"citation\":null,\"classification\":null}]} -->\n",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -216,7 +216,7 @@
     },
     "created_at": "2026-11-07T06:39:36Z",
     "updated_at": "2026-11-07T06:39:36Z",
-    "body": "Argon 对 v1 的投票（C3 smoke 手写）。\n<!-- pm:vote {\"v\":1,\"seat\":\"Argon\",\"version\":1,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":null}]} -->\n",
+    "body": "Argon 对 v1 的投票（C3 smoke 手写）。\n<!-- meerkat:vote {\"v\":1,\"seat\":\"Argon\",\"version\":1,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":null}]} -->\n",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -263,7 +263,7 @@
     },
     "created_at": "2026-11-07T06:39:37Z",
     "updated_at": "2026-11-07T06:39:37Z",
-    "body": "LeadMentor 对 v1 的投票（C3 smoke 手写）。\n<!-- pm:vote {\"v\":1,\"seat\":\"LeadMentor\",\"version\":1,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":null}]} -->\n",
+    "body": "LeadMentor 对 v1 的投票（C3 smoke 手写）。\n<!-- meerkat:vote {\"v\":1,\"seat\":\"LeadMentor\",\"version\":1,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":null}]} -->\n",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -310,7 +310,7 @@
     },
     "created_at": "2026-11-07T06:44:38Z",
     "updated_at": "2026-11-07T06:44:38Z",
-    "body": "小组开始第 2 轮审议：修订决策表第 1 版的反例（r1）。\n\n<!-- pm:panel {\"v\":1,\"event\":\"started\",\"round\":2,\"sessions\":[],\"prereq\":null,\"error\":null} -->",
+    "body": "小组开始第 2 轮审议：修订决策表第 1 版的反例（r1）。\n\n<!-- meerkat:panel {\"v\":1,\"event\":\"started\",\"round\":2,\"sessions\":[],\"prereq\":null,\"error\":null} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -357,7 +357,7 @@
     },
     "created_at": "2026-11-07T06:47:27Z",
     "updated_at": "2026-11-07T06:47:27Z",
-    "body": "决策表第 2 版。\n\n| id | what | where | how | 取舍 | 分类 | 缺失设计 | 落到 |\n|---|---|---|---|---|---|---|---|\n| r1 | notes list 支持 --limit 限制输出条数，并明确 N<=0 的边界语义 | main.go:43（notes list 命令入口）；store.go:69（notes 存储与列举）；store_test.go（--limit 边界测试） | 在 list 命令入口增加 `--limit N` 参数；参数缺失时保持现有全量输出。明确规定 `N == 0` 成功退出并输出空列表，`N < 0` 为参数错误：向 stderr 报错并以退出码 2 退出；`N > 0` 按存储顺序仅输出前 N 条。实现中将参数解析与合法性校验放在命令层，并在存储层增加受限列举方法或等价切片逻辑，避免把无效值当作“全部”。 | 放弃让 `--limit 0` 表示“无限”或“全部”的便利语义，也放弃接受负数并按绝对值截断的宽容处理；换取参数含义无歧义、调用方可以稳定地用 0 请求空结果。 | 技术 | false | mouriya-s-lab/meerkat-e2e-code: 为 notes list 增加 --limit 并定义 N<=0 边界语义 |\n\n询问的了结方式：reply\n\nClaudeHigh 的反例成立：现有代码 main.go:43 与 store.go:69 只支持全量列出，设计 notes.md:2-5 未规定 --limit 的零值或负值语义。第 2 版沿用 r1，并明确 --limit 0 输出空列表且成功退出；--limit 负数或非整数作为参数错误写入 stderr 并以退出码 2 退出；参数缺失保持全量输出。\n\n<!-- pm:draft {\"v\":1,\"version\":2,\"rows\":[{\"id\":\"r1\",\"what\":\"notes list 支持 --limit 限制输出条数，并明确 N\\u003c=0 的边界语义\",\"where\":\"main.go:43（notes list 命令入口）；store.go:69（notes 存储与列举）；store_test.go（--limit 边界测试）\",\"how\":\"在 list 命令入口增加 `--limit N` 参数；参数缺失时保持现有全量输出。明确规定 `N == 0` 成功退出并输出空列表，`N \\u003c 0` 为参数错误：向 stderr 报错并以退出码 2 退出；`N \\u003e 0` 按存储顺序仅输出前 N 条。实现中将参数解析与合法性校验放在命令层，并在存储层增加受限列举方法或等价切片逻辑，避免把无效值当作“全部”。\",\"tradeoff\":\"放弃让 `--limit 0` 表示“无限”或“全部”的便利语义，也放弃接受负数并按绝对值截断的宽容处理；换取参数含义无歧义、调用方可以稳定地用 0 请求空结果。\",\"category\":\"技术\",\"missingDesign\":false,\"deliver\":{\"repo\":\"mouriya-s-lab/meerkat-e2e-code\",\"title\":\"为 notes list 增加 --limit 并定义 N\\u003c=0 边界语义\",\"body\":\"实现 `notes list --limit N`，并明确边界语义：\\n\\n1. `--limit` 只接受非负十进制整数；参数缺失时保持现有行为，列出全部 notes。\\n2. `N == 0` 时正常返回成功并输出空列表，不回退为“输出全部”。\\n3. `N \\u003c 0`、非整数或无法解析为整数时，向 stderr 输出明确错误，并以参数错误退出码 2 退出；不得静默按 0 或全部处理。\\n4. `N \\u003e 0` 时只输出存储顺序中的前 N 条。\\n\\n实现建议：在 `main.go` 的 `list` 分支解析并校验参数，在 `store.go` 提供受上限约束的列举方法或等价切片逻辑；新增测试覆盖缺省、1、0、负数、非整数及条目数少于 N 的情形。\\n\\n反例回应：ClaudeHigh 指出 `--limit 0` 语义未定义。核实结果显示，当前实现 main.go:43 与 store.go:69 只支持全量列出，设计 notes.md:2-5 也未规定该边界；本版通过上述规则消除了歧义。\"}}],\"supersedes\":[],\"settle\":{\"kind\":\"reply\",\"text\":\"ClaudeHigh 的反例成立：现有代码 main.go:43 与 store.go:69 只支持全量列出，设计 notes.md:2-5 未规定 --limit 的零值或负值语义。第 2 版沿用 r1，并明确 --limit 0 输出空列表且成功退出；--limit 负数或非整数作为参数错误写入 stderr 并以退出码 2 退出；参数缺失保持全量输出。\"},\"withdrawn\":null} -->",
+    "body": "决策表第 2 版。\n\n| id | what | where | how | 取舍 | 分类 | 缺失设计 | 落到 |\n|---|---|---|---|---|---|---|---|\n| r1 | notes list 支持 --limit 限制输出条数，并明确 N<=0 的边界语义 | main.go:43（notes list 命令入口）；store.go:69（notes 存储与列举）；store_test.go（--limit 边界测试） | 在 list 命令入口增加 `--limit N` 参数；参数缺失时保持现有全量输出。明确规定 `N == 0` 成功退出并输出空列表，`N < 0` 为参数错误：向 stderr 报错并以退出码 2 退出；`N > 0` 按存储顺序仅输出前 N 条。实现中将参数解析与合法性校验放在命令层，并在存储层增加受限列举方法或等价切片逻辑，避免把无效值当作“全部”。 | 放弃让 `--limit 0` 表示“无限”或“全部”的便利语义，也放弃接受负数并按绝对值截断的宽容处理；换取参数含义无歧义、调用方可以稳定地用 0 请求空结果。 | 技术 | false | mouriya-s-lab/meerkat-e2e-code: 为 notes list 增加 --limit 并定义 N<=0 边界语义 |\n\n询问的了结方式：reply\n\nClaudeHigh 的反例成立：现有代码 main.go:43 与 store.go:69 只支持全量列出，设计 notes.md:2-5 未规定 --limit 的零值或负值语义。第 2 版沿用 r1，并明确 --limit 0 输出空列表且成功退出；--limit 负数或非整数作为参数错误写入 stderr 并以退出码 2 退出；参数缺失保持全量输出。\n\n<!-- meerkat:draft {\"v\":1,\"version\":2,\"rows\":[{\"id\":\"r1\",\"what\":\"notes list 支持 --limit 限制输出条数，并明确 N\\u003c=0 的边界语义\",\"where\":\"main.go:43（notes list 命令入口）；store.go:69（notes 存储与列举）；store_test.go（--limit 边界测试）\",\"how\":\"在 list 命令入口增加 `--limit N` 参数；参数缺失时保持现有全量输出。明确规定 `N == 0` 成功退出并输出空列表，`N \\u003c 0` 为参数错误：向 stderr 报错并以退出码 2 退出；`N \\u003e 0` 按存储顺序仅输出前 N 条。实现中将参数解析与合法性校验放在命令层，并在存储层增加受限列举方法或等价切片逻辑，避免把无效值当作“全部”。\",\"tradeoff\":\"放弃让 `--limit 0` 表示“无限”或“全部”的便利语义，也放弃接受负数并按绝对值截断的宽容处理；换取参数含义无歧义、调用方可以稳定地用 0 请求空结果。\",\"category\":\"技术\",\"missingDesign\":false,\"deliver\":{\"repo\":\"mouriya-s-lab/meerkat-e2e-code\",\"title\":\"为 notes list 增加 --limit 并定义 N\\u003c=0 边界语义\",\"body\":\"实现 `notes list --limit N`，并明确边界语义：\\n\\n1. `--limit` 只接受非负十进制整数；参数缺失时保持现有行为，列出全部 notes。\\n2. `N == 0` 时正常返回成功并输出空列表，不回退为“输出全部”。\\n3. `N \\u003c 0`、非整数或无法解析为整数时，向 stderr 输出明确错误，并以参数错误退出码 2 退出；不得静默按 0 或全部处理。\\n4. `N \\u003e 0` 时只输出存储顺序中的前 N 条。\\n\\n实现建议：在 `main.go` 的 `list` 分支解析并校验参数，在 `store.go` 提供受上限约束的列举方法或等价切片逻辑；新增测试覆盖缺省、1、0、负数、非整数及条目数少于 N 的情形。\\n\\n反例回应：ClaudeHigh 指出 `--limit 0` 语义未定义。核实结果显示，当前实现 main.go:43 与 store.go:69 只支持全量列出，设计 notes.md:2-5 也未规定该边界；本版通过上述规则消除了歧义。\"}}],\"supersedes\":[],\"settle\":{\"kind\":\"reply\",\"text\":\"ClaudeHigh 的反例成立：现有代码 main.go:43 与 store.go:69 只支持全量列出，设计 notes.md:2-5 未规定 --limit 的零值或负值语义。第 2 版沿用 r1，并明确 --limit 0 输出空列表且成功退出；--limit 负数或非整数作为参数错误写入 stderr 并以退出码 2 退出；参数缺失保持全量输出。\"},\"withdrawn\":null} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -404,7 +404,7 @@
     },
     "created_at": "2026-11-07T06:48:54Z",
     "updated_at": "2026-11-07T06:48:54Z",
-    "body": "席位 Argon 对决策表第 2 版的投票。\n\n| 行 | 票 | 反例 | 引用 | 分类意见 |\n|---|---|---|---|---|\n| r1 | approve |  |  | 技术 |\n\n<!-- pm:vote {\"v\":1,\"seat\":\"Argon\",\"version\":2,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":\"技术\"}]} -->",
+    "body": "席位 Argon 对决策表第 2 版的投票。\n\n| 行 | 票 | 反例 | 引用 | 分类意见 |\n|---|---|---|---|---|\n| r1 | approve |  |  | 技术 |\n\n<!-- meerkat:vote {\"v\":1,\"seat\":\"Argon\",\"version\":2,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":\"技术\"}]} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -451,7 +451,7 @@
     },
     "created_at": "2026-11-07T06:51:49Z",
     "updated_at": "2026-11-07T06:51:49Z",
-    "body": "席位 ClaudeHigh 对决策表第 2 版的投票。\n\n| 行 | 票 | 反例 | 引用 | 分类意见 |\n|---|---|---|---|---|\n| r1 | approve |  |  | 技术 |\n\n<!-- pm:vote {\"v\":1,\"seat\":\"ClaudeHigh\",\"version\":2,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":\"技术\"}]} -->",
+    "body": "席位 ClaudeHigh 对决策表第 2 版的投票。\n\n| 行 | 票 | 反例 | 引用 | 分类意见 |\n|---|---|---|---|---|\n| r1 | approve |  |  | 技术 |\n\n<!-- meerkat:vote {\"v\":1,\"seat\":\"ClaudeHigh\",\"version\":2,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":\"技术\"}]} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -498,7 +498,7 @@
     },
     "created_at": "2026-11-07T06:56:33Z",
     "updated_at": "2026-11-07T06:56:33Z",
-    "body": "席位 Coordination 对决策表第 2 版的投票。\n\n| 行 | 票 | 反例 | 引用 | 分类意见 |\n|---|---|---|---|---|\n| r1 | approve |  |  | 技术：该行明确界定了命令行参数语义、非法值处理、退出码、存储层行为及测试边界，属于可实现且可验证的技术决策。 |\n\n<!-- pm:vote {\"v\":1,\"seat\":\"Coordination\",\"version\":2,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":\"技术：该行明确界定了命令行参数语义、非法值处理、退出码、存储层行为及测试边界，属于可实现且可验证的技术决策。\"}]} -->",
+    "body": "席位 Coordination 对决策表第 2 版的投票。\n\n| 行 | 票 | 反例 | 引用 | 分类意见 |\n|---|---|---|---|---|\n| r1 | approve |  |  | 技术：该行明确界定了命令行参数语义、非法值处理、退出码、存储层行为及测试边界，属于可实现且可验证的技术决策。 |\n\n<!-- meerkat:vote {\"v\":1,\"seat\":\"Coordination\",\"version\":2,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":\"技术：该行明确界定了命令行参数语义、非法值处理、退出码、存储层行为及测试边界，属于可实现且可验证的技术决策。\"}]} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -545,7 +545,7 @@
     },
     "created_at": "2026-11-07T06:58:12Z",
     "updated_at": "2026-11-07T06:58:12Z",
-    "body": "席位 LeadMentor 对决策表第 2 版的投票。\n\n| 行 | 票 | 反例 | 引用 | 分类意见 |\n|---|---|---|---|---|\n| r1 | approve |  |  | 技术 |\n\n<!-- pm:vote {\"v\":1,\"seat\":\"LeadMentor\",\"version\":2,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":\"技术\"}]} -->",
+    "body": "席位 LeadMentor 对决策表第 2 版的投票。\n\n| 行 | 票 | 反例 | 引用 | 分类意见 |\n|---|---|---|---|---|\n| r1 | approve |  |  | 技术 |\n\n<!-- meerkat:vote {\"v\":1,\"seat\":\"LeadMentor\",\"version\":2,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":\"技术\"}]} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -592,7 +592,7 @@
     },
     "created_at": "2026-11-07T06:58:19Z",
     "updated_at": "2026-11-07T06:58:19Z",
-    "body": "决策表第 2 版定案。\n\n| 行 | 结果 | 赞成 | 门槛 | 理由 |\n|---|---|---|---|---|\n| r1 | passed | 4 | 3 | approve 4 meets threshold 3 |\n\n实现 issue：mouriya-s-lab/meerkat-e2e-code#35\n\n<!-- pm:decision {\"v\":1,\"version\":2,\"rows\":[{\"row\":\"r1\",\"outcome\":\"passed\",\"approve\":4,\"threshold\":3,\"reason\":\"approve 4 meets threshold 3\"}],\"impl\":[\"mouriya-s-lab/meerkat-e2e-code#35\"],\"superseded\":[]} -->",
+    "body": "决策表第 2 版定案。\n\n| 行 | 结果 | 赞成 | 门槛 | 理由 |\n|---|---|---|---|---|\n| r1 | passed | 4 | 3 | approve 4 meets threshold 3 |\n\n实现 issue：mouriya-s-lab/meerkat-e2e-code#35\n\n<!-- meerkat:decision {\"v\":1,\"version\":2,\"rows\":[{\"row\":\"r1\",\"outcome\":\"passed\",\"approve\":4,\"threshold\":3,\"reason\":\"approve 4 meets threshold 3\"}],\"impl\":[\"mouriya-s-lab/meerkat-e2e-code#35\"],\"superseded\":[]} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {

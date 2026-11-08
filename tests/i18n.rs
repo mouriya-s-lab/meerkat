@@ -17,7 +17,7 @@
 //! runs without letters.
 //!
 //! The tests rewrite this process's `OMOMP_LANG`, `GH_TOKEN` and
-//! `PM_CONFIG_DIR`: they take [`serial`]'s lock, so they run one at a time
+//! `MEERKAT_CONFIG_DIR`: they take [`serial`]'s lock, so they run one at a time
 //! (the issue's commands add `--test-threads=1`).
 
 mod support;
@@ -196,7 +196,7 @@ fn markers_in(json: &str) -> Vec<(String, serde_json::Value)> {
         .iter()
         .filter_map(|comment| {
             let last = comment["body"].as_str()?.trim_end().lines().last()?.trim();
-            let inner = last.strip_prefix("<!-- pm:")?.strip_suffix("-->")?.trim();
+            let inner = last.strip_prefix("<!-- meerkat:")?.strip_suffix("-->")?.trim();
             let (kind, json) = inner.split_once(' ')?;
             Some((kind.to_owned(), serde_json::from_str(json).ok()?))
         })
@@ -458,7 +458,7 @@ fn json_strings(value: &serde_json::Value, out: &mut Vec<String>) {
             // A comment's last line may be a marker: its fields are data
             // the pages show (a vote's counterexample, a ruling's category).
             for line in text.lines() {
-                let marker = line.trim().strip_prefix("<!-- pm:").and_then(|rest| rest.strip_suffix("-->"));
+                let marker = line.trim().strip_prefix("<!-- meerkat:").and_then(|rest| rest.strip_suffix("-->"));
                 if let Some((_, json)) = marker.and_then(|inner| inner.trim().split_once(' '))
                     && let Ok(value) = serde_json::from_str::<serde_json::Value>(json)
                 {

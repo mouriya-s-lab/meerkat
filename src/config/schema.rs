@@ -1,4 +1,4 @@
-//! The three PM config files Meerkat reads, as types: what they may
+//! The three Meerkat config files the app reads, as types: what they may
 //! hold is what parses.
 //!
 //! Every error names the file and the key path (`targets.web.council`).
@@ -10,11 +10,11 @@ use std::{
 
 use serde::{Deserialize, de::DeserializeOwned};
 
-/// `meerkat/meerkat.yaml`, relative to the PM config directory.
+/// `meerkat/meerkat.yaml`, relative to the Meerkat config directory.
 pub const MEERKAT_FILE: &str = "meerkat/meerkat.yaml";
-/// `shared/repos.yaml`, relative to the PM config directory.
+/// `shared/repos.yaml`, relative to the Meerkat config directory.
 pub const REPOS_FILE: &str = "shared/repos.yaml";
-/// `shared/project.yaml`, relative to the PM config directory.
+/// `shared/project.yaml`, relative to the Meerkat config directory.
 pub const PROJECT_FILE: &str = "shared/project.yaml";
 
 /// Why a config cannot be used: the file, the key path in it (empty for
@@ -35,7 +35,7 @@ pub enum Problem {
     Said(String),
     /// Not UTF-8: the decoder's error.
     NotUtf8(String),
-    /// The variable naming the PM config directory is not set.
+    /// The variable naming the Meerkat config directory is not set.
     DirUnset,
     /// Not JSON: the parser's error.
     NotJson(String),
@@ -117,7 +117,7 @@ fn parse_file<T: DeserializeOwned>(file: &str, text: &str) -> Result<T, ConfigEr
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Meerkat {
-    /// The PM config repository the config page shows and saves to.
+    /// The Meerkat config repository the config page shows and saves to.
     pub config: ConfigRepo,
     pub targets: Targets,
     /// Seconds between two refreshes of every source.
@@ -153,7 +153,7 @@ pub struct Endpoints {
     pub github_api: BaseUrl,
     pub council: BaseUrl,
     pub guardians: BaseUrl,
-    /// The omp-dispatch launcher's PM config check listener.
+    /// The omp-dispatch launcher's Meerkat config check listener.
     pub dispatch: BaseUrl,
 }
 
@@ -277,7 +277,7 @@ pub struct Filters {
     pub human_only: bool,
 }
 
-/// `config`: the PM config repository, the branch the page reads, compares
+/// `config`: the Meerkat config repository, the branch the page reads, compares
 /// with and commits to, and which programs read the files under each
 /// directory.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -288,7 +288,7 @@ pub struct ConfigRepo {
     pub readers: Readers,
 }
 
-/// A program that reads PM config files and checks candidates of them.
+/// A program that reads Meerkat config files and checks candidates of them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Reader {
@@ -362,7 +362,7 @@ impl TryFrom<serde_yaml_ng::Mapping> for Readers {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Repos {
-    pub pm: PmRepo,
+    pub agenda: AgendaRepo,
     pub code: Vec<CodeRepo>,
     pub design: Vec<RepoName>,
     pub omp: Vec<RepoName>,
@@ -371,7 +371,7 @@ pub struct Repos {
 /// The repository of the agenda issues and their Project.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct PmRepo {
+pub struct AgendaRepo {
     pub repo: RepoName,
     pub project: ProjectRef,
 }
@@ -436,7 +436,7 @@ pub struct Project {
     pub fields: Fields,
 }
 
-/// The Project fields PM uses.
+/// The Project fields Meerkat uses.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Fields {

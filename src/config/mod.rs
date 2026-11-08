@@ -1,5 +1,5 @@
-//! The PM config as each end loads it. macOS reads the directory named by
-//! `PM_CONFIG_DIR` at startup; the web build fetches the same four files
+//! The Meerkat config as each end loads it. macOS reads the directory named by
+//! `MEERKAT_CONFIG_DIR` at startup; the web build fetches the same four files
 //! from the site's `/config/` when it starts, so a config change takes
 //! effect on the next deploy and refresh, with no rebuild. Both parse the
 //! YAML files with [`schema`] and `meerkat/theme.json` with [`theme`], use
@@ -21,7 +21,7 @@ pub use theme::{ColorToken, FontToken, LengthToken, Theme, ThemeColor};
 #[derive(Debug, Clone, PartialEq)]
 pub struct AppConfig {
     pub endpoints: Endpoints,
-    /// The PM config repository the config page shows and saves to.
+    /// The Meerkat config repository the config page shows and saves to.
     pub config_repo: ConfigRepo,
     pub refresh: Duration,
     pub attention: Attention,
@@ -36,7 +36,7 @@ pub struct AppConfig {
     pub loaded: Vec<LoadedFile>,
 }
 
-/// One file the config was loaded from: its path relative to the PM
+/// One file the config was loaded from: its path relative to the Meerkat
 /// config directory (the name every end knows it by) and the git blob
 /// sha of its bytes.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -129,7 +129,7 @@ fn assemble(
     ))
 }
 
-/// The four files Meerkat loads, by their path in the PM config directory.
+/// The four files Meerkat loads, by their path in the Meerkat config directory.
 pub const FILES: [&str; 4] = [
     schema::MEERKAT_FILE,
     theme::THEME_FILE,
@@ -144,8 +144,8 @@ pub fn check(files: [&[u8]; 4]) -> Result<(), ConfigError> {
     assemble(meerkat, theme, repos, project).map(drop)
 }
 
-/// The environment variable naming the PM config directory.
-pub const CONFIG_DIR_VAR: &str = "PM_CONFIG_DIR";
+/// The environment variable naming the Meerkat config directory.
+pub const CONFIG_DIR_VAR: &str = "MEERKAT_CONFIG_DIR";
 
 /// The config the site serves under `/config/`: the four files, fetched
 /// when the app starts. A request or status that fails names the file it
@@ -183,7 +183,7 @@ fn origin() -> String {
         .unwrap_or_default()
 }
 
-/// The directory `PM_CONFIG_DIR` names: the local PM config checkout the
+/// The directory `MEERKAT_CONFIG_DIR` names: the local Meerkat config checkout the
 /// macOS build reads, and pulls on the config page.
 #[cfg(not(target_arch = "wasm32"))]
 pub fn dir() -> Result<std::path::PathBuf, ConfigError> {
@@ -197,7 +197,7 @@ pub fn dir() -> Result<std::path::PathBuf, ConfigError> {
         })
 }
 
-/// The config in the directory `PM_CONFIG_DIR` names.
+/// The config in the directory `MEERKAT_CONFIG_DIR` names.
 #[cfg(not(target_arch = "wasm32"))]
 pub fn load() -> Result<AppConfig, ConfigError> {
     let dir = dir()?;
@@ -250,7 +250,7 @@ mod tests {
     }
 
     /// Loading the example configuration remembers each of the four files
-    /// by the name the PM config directory gives it and the sha of its
+    /// by the name the Meerkat config directory gives it and the sha of its
     /// bytes.
     #[test]
     fn loading_records_each_files_blob_sha() {

@@ -28,7 +28,7 @@
     },
     "created_at": "2026-11-06T23:47:25Z",
     "updated_at": "2026-11-06T23:47:25Z",
-    "body": "是否应引入新的产品决策？请依据仓库内容答复。\n\n<!-- pm:ask {\"v\":1,\"tier\":\"simple\",\"session\":\"manual\"} -->\n",
+    "body": "是否应引入新的产品决策？请依据仓库内容答复。\n\n<!-- meerkat:ask {\"v\":1,\"tier\":\"simple\",\"session\":\"manual\"} -->\n",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -75,7 +75,7 @@
     },
     "created_at": "2026-11-06T23:48:15Z",
     "updated_at": "2026-11-06T23:48:15Z",
-    "body": "该询问需要议会决策，已提为议题 mouriya-s-lab/meerkat-e2e-agenda#13；议会定案后以答复或取代了结。\n\n<!-- pm:escalated {\"v\":1,\"ask\":6698892101,\"agenda\":\"mouriya-s-lab/meerkat-e2e-agenda#13\"} -->",
+    "body": "该询问需要议会决策，已提为议题 mouriya-s-lab/meerkat-e2e-agenda#13；议会定案后以答复或取代了结。\n\n<!-- meerkat:escalated {\"v\":1,\"ask\":6698892101,\"agenda\":\"mouriya-s-lab/meerkat-e2e-agenda#13\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {

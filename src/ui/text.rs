@@ -719,8 +719,8 @@ fn problem(f: &mut fmt::Formatter<'_>, why: &Problem, lang: Lang) -> fmt::Result
         },
         Problem::DirUnset => f.write_str(pick(
             lang,
-            "未设置：应指向 PM 配置目录",
-            "not set: it should name the PM config directory",
+            "未设置：应指向 Meerkat 配置目录",
+            "not set: it should name the Meerkat config directory",
         )),
         Problem::NotJson(error) => match lang {
             Zh => write!(f, "不是 JSON：{error}"),

@@ -1,4 +1,4 @@
-//! The local PM config checkout the macOS build reads (`PM_CONFIG_DIR`):
+//! The local Meerkat config checkout the macOS build reads (`MEERKAT_CONFIG_DIR`):
 //! how far it is behind the branch on GitHub, and a fast-forward pull.
 //! git runs on the runtime's blocking threads.
 

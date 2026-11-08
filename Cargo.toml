@@ -3,7 +3,7 @@ name = "meerkat"
 version = "0.1.0"
 edition = "2024"
 publish = false
-description = "Meerkat: a PM console for the council, guardians and workers; an NSH app for macOS and the web."
+description = "Meerkat: a console for the council, guardians and workers; an NSH app for macOS and the web."
 
 [workspace]
 

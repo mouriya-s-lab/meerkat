@@ -1414,7 +1414,7 @@ fn decision_panel(
 
 /// A stopped panel in the decision card: the round, the council's verdict
 /// word and when, the error it posted, the prerequisite it waits for, and
-/// its `pm:panel` comment.
+/// its `meerkat:panel` comment.
 fn stop_line(
     sources: Sources,
     context: &Rc<Context>,

@@ -1,7 +1,6 @@
 //! Issue detail (C4 「议题详情」, 「实现进度」): pure derivations over one
 //! issue's comments, oldest first. An agenda issue gives its panel history
-//! and its decision (`Pepgent/pm-new#1` decision 6696709150 §A, §B); an
-//! implementation issue gives its ask timeline (decision 6695362696 §2).
+//! and its decision; an implementation issue gives its ask timeline.
 //! A comment whose last line starts as a marker but does not read as one,
 //! or a marker that breaks the contract's pairing, is an [`Invalid`] item:
 //! shown, not dropped.
@@ -69,7 +68,7 @@ pub fn prose(body: &str) -> &str {
         Some(end) => (&body[..end], &body[end + 1..]),
         None => ("", body),
     };
-    if last.trim_start().starts_with("<!-- pm:") {
+    if last.trim_start().starts_with("<!-- meerkat:") {
         rest.trim()
     } else {
         body.trim()
@@ -84,9 +83,9 @@ fn read_all(comments: &[Comment]) -> impl Iterator<Item = (&Comment, Result<Mark
 }
 
 // ---------------------------------------------------------------------------
-// Panel history (§A)
+// Panel history
 
-/// A panel round: the comments from its `pm:panel` (round 1 before any)
+/// A panel round: the comments from its `meerkat:panel` (round 1 before any)
 /// up to the next round's.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Round<'a> {
@@ -178,7 +177,7 @@ pub fn panel_history(comments: &[Comment]) -> Vec<Round<'_>> {
                 let version = draft.version;
                 if let Some(&first) = owner.get(&version) {
                     let reason = format!(
-                        "second pm:draft of version {version} (first: {})",
+                        "second meerkat:draft of version {version} (first: {})",
                         rounds[first].versions[&version].draft.comment.html_url
                     );
                     rounds[here].invalid.push(Invalid::new(comment, reason));
@@ -200,7 +199,7 @@ pub fn panel_history(comments: &[Comment]) -> Vec<Round<'_>> {
             Marker::Vote(vote) => {
                 let Some(&at) = owner.get(&vote.version) else {
                     let reason = format!(
-                        "pm:vote of seat {} on version {}, which has no draft",
+                        "meerkat:vote of seat {} on version {}, which has no draft",
                         vote.seat, vote.version
                     );
                     rounds[here].invalid.push(Invalid::new(comment, reason));
@@ -213,7 +212,7 @@ pub fn panel_history(comments: &[Comment]) -> Vec<Round<'_>> {
                     .expect("owner names the round holding the version");
                 if let Some(first) = version.ballots.iter().find(|b| b.seat == vote.seat) {
                     let reason = format!(
-                        "second pm:vote of seat {} on version {} (first: {})",
+                        "second meerkat:vote of seat {} on version {} (first: {})",
                         vote.seat, vote.version, first.comment.html_url
                     );
                     round.invalid.push(Invalid::new(comment, reason));
@@ -227,14 +226,14 @@ pub fn panel_history(comments: &[Comment]) -> Vec<Round<'_>> {
                         Some(_) => round.invalid.push(Invalid::new(
                             comment,
                             format!(
-                                "pm:vote of seat {} votes twice on row {}",
+                                "meerkat:vote of seat {} votes twice on row {}",
                                 vote.seat, cast.row
                             ),
                         )),
                         None => round.invalid.push(Invalid::new(
                             comment,
                             format!(
-                                "pm:vote of seat {} names row {}, not in draft version {}",
+                                "meerkat:vote of seat {} names row {}, not in draft version {}",
                                 vote.seat, cast.row, vote.version
                             ),
                         )),
@@ -249,7 +248,7 @@ pub fn panel_history(comments: &[Comment]) -> Vec<Round<'_>> {
             Marker::Ruling(ruling) => {
                 let Some(&at) = owner.get(&ruling.version) else {
                     let reason = format!(
-                        "pm:ruling on version {}, which has no draft",
+                        "meerkat:ruling on version {}, which has no draft",
                         ruling.version
                     );
                     rounds[here].invalid.push(Invalid::new(comment, reason));
@@ -263,7 +262,7 @@ pub fn panel_history(comments: &[Comment]) -> Vec<Round<'_>> {
                 match &version.ruling {
                     Some(first) => {
                         let reason = format!(
-                            "second pm:ruling on version {} (first: {})",
+                            "second meerkat:ruling on version {} (first: {})",
                             ruling.version, first.comment.html_url
                         );
                         round.invalid.push(Invalid::new(comment, reason));
@@ -307,7 +306,7 @@ fn round_index(rounds: &mut Vec<Round<'_>>, number: u32) -> usize {
 }
 
 // ---------------------------------------------------------------------------
-// Decision (§A)
+// Decision
 
 /// The issue's decision: each row's outcome with its approvals and
 /// threshold, the old issues it superseded and the implementation issues
@@ -315,11 +314,11 @@ fn round_index(rounds: &mut Vec<Round<'_>>, number: u32) -> usize {
 #[derive(Debug, Clone, PartialEq)]
 pub struct DecisionView<'a> {
     pub decision: Posted<'a, Decision>,
-    /// Later `pm:decision` comments: an issue is decided once.
+    /// Later `meerkat:decision` comments: an issue is decided once.
     pub invalid: Vec<Invalid<'a>>,
 }
 
-/// The issue's first `pm:decision`, if it has one.
+/// The issue's first `meerkat:decision`, if it has one.
 pub fn decision_view(comments: &[Comment]) -> Option<DecisionView<'_>> {
     let mut view: Option<DecisionView> = None;
     for (comment, read) in read_all(comments) {
@@ -338,7 +337,7 @@ pub fn decision_view(comments: &[Comment]) -> Option<DecisionView<'_>> {
             }
             Some(view) => {
                 let reason = format!(
-                    "second pm:decision (first: {})",
+                    "second meerkat:decision (first: {})",
                     view.decision.comment.html_url
                 );
                 view.invalid.push(Invalid::new(comment, reason));
@@ -349,7 +348,7 @@ pub fn decision_view(comments: &[Comment]) -> Option<DecisionView<'_>> {
 }
 
 // ---------------------------------------------------------------------------
-// Ask timeline (§2)
+// Ask timeline
 
 /// An item of an implementation issue's timeline.
 #[derive(Debug, Clone, PartialEq)]
@@ -491,7 +490,7 @@ pub fn ask_timeline<'a>(
                 escalate(&mut entries, &asks, Posted { comment, marker });
             }
             Marker::Replaces(_) => {
-                let reason = "pm:replaces belongs in the issue body, not a comment".to_owned();
+                let reason = "meerkat:replaces belongs in the issue body, not a comment".to_owned();
                 entries.push(Entry::Done(TimelineItem::Invalid(Invalid::new(
                     comment, reason,
                 ))));
@@ -536,7 +535,7 @@ pub fn ask_timeline<'a>(
                 None => TimelineItem::Invalid(Invalid::new(
                     ask.comment,
                     format!(
-                        "open pm:ask created at {:?}, not an RFC 3339 time",
+                        "open meerkat:ask created at {:?}, not an RFC 3339 time",
                         ask.comment.created_at
                     ),
                 )),
@@ -614,7 +613,7 @@ fn escalate<'a>(
 }
 
 fn no_ask(ask: u64) -> String {
-    format!("settles ask {ask}, which is no pm:ask on this issue")
+    format!("settles ask {ask}, which is no meerkat:ask on this issue")
 }
 
 /// An escalated ask still waiting for the council.
@@ -869,8 +868,8 @@ pub fn round_of(rounds: &[Round<'_>], started_ms: f64) -> u32 {
         .map_or(1, |(round, _)| *round)
 }
 
-/// How a round's panel stopped short of a decision (§A `panel` events
-/// other than `started` and `resumed`).
+/// How a round's panel stopped short of a decision (`panel` events other
+/// than `started` and `resumed`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Stop {
     Interrupted,
@@ -879,7 +878,7 @@ pub enum Stop {
 }
 
 /// A round whose panel stopped and has not resumed since: its last
-/// `pm:panel` is `interrupted`, `blocked` or `failed`.
+/// `meerkat:panel` is `interrupted`, `blocked` or `failed`.
 pub fn stopped<'r, 'a>(round: &'r Round<'a>) -> Option<(Stop, &'r Posted<'a, Panel>)> {
     let panel = round.events.iter().rev().find_map(|event| match event {
         RoundEvent::Panel(panel) => Some(panel),
@@ -1159,7 +1158,7 @@ mod tests {
         posted(
             id,
             minute,
-            "问题？\n\n<!-- pm:ask {\"v\":1,\"tier\":\"simple\",\"session\":\"s\"} -->",
+            "问题？\n\n<!-- meerkat:ask {\"v\":1,\"tier\":\"simple\",\"session\":\"s\"} -->",
         )
     }
 
@@ -1183,9 +1182,9 @@ mod tests {
         let comments = [
             ask(10, 0),
             ask(11, 1),
-            posted(12, 2, "<!-- pm:escalated {\"v\":1,\"ask\":10,\"agenda\":\"o/pm#4\"} -->"),
-            posted(13, 3, "<!-- pm:escalated {\"v\":1,\"ask\":11,\"agenda\":\"o/pm#5\"} -->"),
-            posted(14, 4, "<!-- pm:reply {\"v\":1,\"ask\":10,\"decision\":\"o/pm#4\"} -->"),
+            posted(12, 2, "<!-- meerkat:escalated {\"v\":1,\"ask\":10,\"agenda\":\"o/agenda#4\"} -->"),
+            posted(13, 3, "<!-- meerkat:escalated {\"v\":1,\"ask\":11,\"agenda\":\"o/agenda#5\"} -->"),
+            posted(14, 4, "<!-- meerkat:reply {\"v\":1,\"ask\":10,\"decision\":\"o/agenda#4\"} -->"),
         ];
         assert_eq!(open_asks(&comments), vec![11]);
         let issue = issue_ref("o/code#3");
@@ -1196,28 +1195,28 @@ mod tests {
         );
         let open = open_escalations(&issue, &timeline);
         assert_eq!(open[0].url, "u13");
-        assert_eq!(open[0].agenda, issue_ref("o/pm#5"));
+        assert_eq!(open[0].agenda, issue_ref("o/agenda#5"));
     }
 
     #[test]
     fn a_later_replaced_settles_its_escalated_ask() {
         let comments = [
             ask(10, 0),
-            posted(12, 2, "<!-- pm:escalated {\"v\":1,\"ask\":10,\"agenda\":\"o/pm#4\"} -->"),
-            posted(14, 4, "<!-- pm:replaced {\"v\":1,\"ask\":10,\"by\":\"o/code#9\"} -->"),
+            posted(12, 2, "<!-- meerkat:escalated {\"v\":1,\"ask\":10,\"agenda\":\"o/agenda#4\"} -->"),
+            posted(14, 4, "<!-- meerkat:replaced {\"v\":1,\"ask\":10,\"by\":\"o/code#9\"} -->"),
         ];
         assert!(open_asks(&comments).is_empty());
     }
 
     // Where the shared derivation is stricter than `unsettled` was: an
-    // `escalated` naming no `pm:ask` of the issue (§2) waits on nothing; it
+    // `escalated` naming no `meerkat:ask` of the issue waits on nothing; it
     // is an invalid marker on the timeline instead.
     #[test]
     fn an_escalated_without_its_ask_is_invalid_not_open() {
         let comments = [posted(
             12,
             2,
-            "<!-- pm:escalated {\"v\":1,\"ask\":10,\"agenda\":\"o/pm#4\"} -->",
+            "<!-- meerkat:escalated {\"v\":1,\"ask\":10,\"agenda\":\"o/agenda#4\"} -->",
         )];
         assert!(open_asks(&comments).is_empty());
         let timeline = ask_timeline(
@@ -1248,8 +1247,8 @@ mod tests {
 
     #[test]
     fn prose_drops_the_marker_line() {
-        assert_eq!(prose("答复。\n\n<!-- pm:reply {} -->\n"), "答复。");
-        assert_eq!(prose("<!-- pm:reply {} -->"), "");
+        assert_eq!(prose("答复。\n\n<!-- meerkat:reply {} -->\n"), "答复。");
+        assert_eq!(prose("<!-- meerkat:reply {} -->"), "");
         assert_eq!(prose(" plain\ntext \n"), "plain\ntext");
     }
 
@@ -1295,7 +1294,7 @@ mod tests {
             let vote = ballot.cells[0].as_ref().unwrap();
             assert_eq!(vote.choice, Choice::Approve);
             assert!(vote.classification.as_deref().unwrap().starts_with("技术"));
-            assert!(!ballot.reason().is_empty() && !ballot.reason().contains("<!-- pm:"));
+            assert!(!ballot.reason().is_empty() && !ballot.reason().contains("<!-- meerkat:"));
         }
     }
 
@@ -1396,7 +1395,7 @@ mod tests {
             id,
             minute,
             &format!(
-                "<!-- pm:panel {{\"v\":1,\"event\":\"{event}\",\"round\":{round},\"sessions\":[],\"prereq\":null,\"error\":{error}}} -->"
+                "<!-- meerkat:panel {{\"v\":1,\"event\":\"{event}\",\"round\":{round},\"sessions\":[],\"prereq\":null,\"error\":{error}}} -->"
             ),
         )
     }
@@ -1470,13 +1469,13 @@ mod tests {
         assert_eq!(rounds.len(), 1);
         let invalid = reasons(&rounds[0].invalid);
         assert_eq!(invalid.len(), 4, "{invalid:?}");
-        assert!(invalid[0].starts_with("second pm:vote of seat Coordination on version 1 (first: https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/44#issuecomment-6703721691)"));
-        assert!(invalid[1].starts_with("pm:vote: unknown variant `abstain`"));
+        assert!(invalid[0].starts_with("second meerkat:vote of seat Coordination on version 1 (first: https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/44#issuecomment-6703721691)"));
+        assert!(invalid[1].starts_with("meerkat:vote: unknown variant `abstain`"));
         assert_eq!(
             invalid[2],
-            "pm:vote of seat Argon on version 7, which has no draft"
+            "meerkat:vote of seat Argon on version 7, which has no draft"
         );
-        assert!(invalid[3].starts_with("pm:tally: unknown kind"));
+        assert!(invalid[3].starts_with("meerkat:tally: unknown kind"));
         assert_eq!(
             rounds[0].invalid[0].comment_url,
             "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/44#issuecomment-6703721700"
@@ -1499,7 +1498,7 @@ mod tests {
         assert_eq!(
             reasons(&view.invalid),
             [
-                "second pm:decision (first: https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/44#issuecomment-6703758516)"
+                "second meerkat:decision (first: https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/44#issuecomment-6703758516)"
             ]
         );
     }
@@ -1683,17 +1682,17 @@ mod tests {
         assert_eq!(invalid[1].reason, second);
         assert_eq!(
             invalid[2].reason,
-            "settles ask 1234, which is no pm:ask on this issue"
+            "settles ask 1234, which is no meerkat:ask on this issue"
         );
         assert!(
             invalid[3]
                 .reason
-                .starts_with("pm:reply: invalid type: string"),
+                .starts_with("meerkat:reply: invalid type: string"),
             "{}",
             invalid[3].reason
         );
-        assert!(invalid[4].reason.starts_with("pm:nudge: unknown kind"));
-        assert!(invalid[5].reason.starts_with("pm:ask: "));
+        assert!(invalid[4].reason.starts_with("meerkat:nudge: unknown kind"));
+        assert!(invalid[5].reason.starts_with("meerkat:ask: "));
         for (invalid, comment) in invalid.iter().zip(&comments[2..]) {
             assert_eq!(invalid.comment_url, comment.html_url);
         }
@@ -1702,12 +1701,12 @@ mod tests {
     #[test]
     fn replaces_in_a_comment_and_a_bad_body_marker_are_invalid() {
         let issue = IssueText {
-            body: "正文\n\n<!-- pm:replaces {\"v\":1,\"old\":\"bad\",\"ask\":null} -->",
+            body: "正文\n\n<!-- meerkat:replaces {\"v\":1,\"old\":\"bad\",\"ask\":null} -->",
             ..plain_issue("https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/13")
         };
         let comments = [Comment {
             id: 2,
-            body: "<!-- pm:replaces {\"v\":1,\"old\":\"o/c#1\",\"ask\":null} -->".to_owned(),
+            body: "<!-- meerkat:replaces {\"v\":1,\"old\":\"o/c#1\",\"ask\":null} -->".to_owned(),
             html_url: "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/13#issuecomment-2"
                 .to_owned(),
             created_at: "2026-11-06T00:00:00Z".to_owned(),
@@ -1716,10 +1715,10 @@ mod tests {
         let [TimelineItem::Invalid(body), TimelineItem::Invalid(comment)] = items.as_slice() else {
             panic!("{items:?}")
         };
-        assert!(body.reason.starts_with("pm:replaces: "));
+        assert!(body.reason.starts_with("meerkat:replaces: "));
         assert_eq!(
             comment.reason,
-            "pm:replaces belongs in the issue body, not a comment"
+            "meerkat:replaces belongs in the issue body, not a comment"
         );
     }
 

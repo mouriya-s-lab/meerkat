@@ -26,7 +26,7 @@ pub enum Failure {
     Encoding { path: String, encoding: String },
     /// A file is not UTF-8 text.
     NotUtf8 { path: String },
-    /// The PM config directory cannot be used.
+    /// The Meerkat config directory cannot be used.
     Config(ConfigError),
     /// Reducing a session's record stopped: the error.
     ParseStopped(String),

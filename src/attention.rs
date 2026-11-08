@@ -348,7 +348,7 @@ mod tests {
 
     fn issue(n: u64) -> IssueRef {
         IssueRef {
-            repo: RepoName::try_from("o/pm".to_owned()).unwrap(),
+            repo: RepoName::try_from("o/agenda".to_owned()).unwrap(),
             number: n,
         }
     }

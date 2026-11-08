@@ -3,13 +3,12 @@
 //! `tests/fixtures/responses/` and `tests/fixtures/detail/`.
 //!
 //! What a page should show is read here from the recordings themselves,
-//! by the markers' contract (`Pepgent/pm-new#1` decision 6696709150 §A,
-//! §B; decision 6695362696 §2), not from the app's derivations: the
+//! by the markers' contract, not from the app's derivations: the
 //! Project's items, the council's queue and sessions, and each comment's
-//! last line `<!-- pm:<kind> {json} -->`.
+//! last line `<!-- meerkat:<kind> {json} -->`.
 //!
 //! The tests rewrite this process's `OMOMP_LANG`, `GH_TOKEN` and
-//! `PM_CONFIG_DIR`: each takes [`serial`]'s lock, so they run one at a
+//! `MEERKAT_CONFIG_DIR`: each takes [`serial`]'s lock, so they run one at a
 //! time whatever `--test-threads` says.
 
 mod support;
@@ -33,9 +32,9 @@ use support::{Fixture, Sandbox};
 
 /// How long the window may take to show what an answer holds.
 const SHOWN: Duration = Duration::from_secs(10);
-/// The PM repository of G25 and of the recorded council queue.
+/// The agenda repository of G25 and of the recorded council queue.
 const DESIGN: &str = "mouriya-s-lab/meerkat-e2e-design";
-/// The PM repository of the human issue that changed an old one, and of
+/// The agenda repository of the human issue that changed an old one, and of
 /// the agenda issues implementation asks became.
 const AGENDA: &str = "mouriya-s-lab/meerkat-e2e-agenda";
 /// G25: a panel with a revision round, a veto, a counterexample and a
@@ -69,9 +68,9 @@ fn agenda_with_revision_and_ruling() -> Result<(), String> {
     wait_for_run(&mut meerkat, &g25)?;
 
     // The round track, step by step: the matrix's glyphs are the version's
-    // `pm:vote` rows, the veto ⊘ and the counterexample ?; a ruled row has
+    // `meerkat:vote` rows, the veto ⊘ and the counterexample ?; a ruled row has
     // its category; the decided version has the rule in its head.
-    let decision = marker_of(&comments, "decision").expect("G25's pm:decision");
+    let decision = marker_of(&comments, "decision").expect("G25's meerkat:decision");
     let threshold = decision["rows"][0]["threshold"].as_u64().expect("a threshold") as u32;
     let rule = meerkat.say(&Msg::Rule(threshold));
     let steps = steps(&versions);
@@ -496,7 +495,7 @@ fn implementation_timelines() -> Result<(), String> {
     let (_, settled) = markers(&comments(&replaced.issue))
         .into_iter()
         .find(|(k, _)| k == "replaced")
-        .expect("its pm:replaced");
+        .expect("its meerkat:replaced");
     let new = item(settled["by"].as_str().expect("replaced by"));
     let forward = format!("label:{}", meerkat.say(&Msg::ReplacedBy(short(&new.issue))));
     meerkat.wait_for_view(&forward, SHOWN)?;
@@ -677,10 +676,10 @@ fn parse_comments(json: &str) -> Vec<Posted> {
         .collect()
 }
 
-/// The marker `body`'s last line holds: `<!-- pm:<kind> {json} -->`.
+/// The marker `body`'s last line holds: `<!-- meerkat:<kind> {json} -->`.
 fn marker(body: &str) -> Option<(String, Value)> {
     let last = body.trim_end().lines().last()?.trim();
-    let inner = last.strip_prefix("<!-- pm:")?.strip_suffix("-->")?.trim();
+    let inner = last.strip_prefix("<!-- meerkat:")?.strip_suffix("-->")?.trim();
     let (kind, json) = inner.split_once(' ')?;
     Some((kind.to_owned(), serde_json::from_str(json).ok()?))
 }
@@ -689,8 +688,8 @@ fn marker(body: &str) -> Option<(String, Value)> {
 fn prose(body: &str) -> String {
     let body = body.trim_end();
     match body.rsplit_once('\n') {
-        Some((rest, last)) if last.trim_start().starts_with("<!-- pm:") => rest.trim().to_owned(),
-        None if body.trim_start().starts_with("<!-- pm:") => String::new(),
+        Some((rest, last)) if last.trim_start().starts_with("<!-- meerkat:") => rest.trim().to_owned(),
+        None if body.trim_start().starts_with("<!-- meerkat:") => String::new(),
         _ => body.trim().to_owned(),
     }
 }
@@ -716,7 +715,7 @@ struct Version {
     ruling: Vec<(String, String)>,
 }
 
-/// A seat's `pm:vote` on a version.
+/// A seat's `meerkat:vote` on a version.
 #[derive(Debug)]
 struct Vote {
     seat: String,
@@ -725,7 +724,7 @@ struct Vote {
 }
 
 /// The versions, in comment order, each in the round of the last
-/// `pm:panel` before its draft.
+/// `meerkat:panel` before its draft.
 fn versions(comments: &[Posted]) -> Vec<Version> {
     let mut round = 1;
     let mut out: Vec<Version> = Vec::new();
@@ -929,7 +928,7 @@ fn inserted(before: &[String], after: &[String]) -> Vec<String> {
 
 // -- implementation timelines ------------------------------------------------
 
-/// An ask and what the issue's markers say of it (§2: one settlement per
+/// An ask and what the issue's markers say of it (one settlement per
 /// ask, by comment id; `escalated` hands it to the council).
 #[derive(Debug)]
 struct Ask {
@@ -1081,12 +1080,12 @@ fn short(issue: &str) -> String {
 
 // -- the window --------------------------------------------------------------
 
-/// How an issue is named where the PM repository is `pm`: its agenda
-/// number when it is one of the repository's agenda or human issues, else
-/// `#n`.
-fn agenda_label(pm: &str, item: &Item) -> String {
+/// How an issue is named where the agenda repository is `agenda_repo`: its
+/// agenda number when it is one of the repository's agenda or human
+/// issues, else `#n`.
+fn agenda_label(agenda_repo: &str, item: &Item) -> String {
     let (repo, number) = item.issue.split_once('#').expect("owner/repo#n");
-    let listed = repo == pm && matches!(item.field("Kind"), Some("Human" | "Agenda"));
+    let listed = repo == agenda_repo && matches!(item.field("Kind"), Some("Human" | "Agenda"));
     match item.field("Agenda") {
         Some(agenda) if listed => agenda.to_owned(),
         _ => format!("#{number}"),
@@ -1096,12 +1095,12 @@ fn agenda_label(pm: &str, item: &Item) -> String {
 /// The detail's header for `item`: the status word (the council's verdict
 /// `state`), agenda number, kind and drafting seat, when it was opened,
 /// the title.
-fn header(meerkat: &Fixture, pm: &str, item: &Item, state: Option<QueueState>) -> Vec<String> {
+fn header(meerkat: &Fixture, agenda_repo: &str, item: &Item, state: Option<QueueState>) -> Vec<String> {
     let mut run = Vec::new();
     if let Some(state) = state {
         run.push(meerkat.say(&Msg::Queue(state)));
     }
-    run.push(agenda_label(pm, item));
+    run.push(agenda_label(agenda_repo, item));
     if state.is_some() {
         run.push(meerkat.say(&Msg::IssueKind {
             human: item.field("Kind") == Some("Human"),

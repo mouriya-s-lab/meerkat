@@ -28,7 +28,7 @@
     },
     "created_at": "2026-11-07T06:58:44Z",
     "updated_at": "2026-11-07T06:58:44Z",
-    "body": "小组开始审议（第 1 轮）。（手写计票输入）\n<!-- pm:panel {\"v\":1,\"event\":\"started\",\"round\":1,\"sessions\":[],\"prereq\":null,\"error\":null} -->\n",
+    "body": "小组开始审议（第 1 轮）。（手写计票输入）\n<!-- meerkat:panel {\"v\":1,\"event\":\"started\",\"round\":1,\"sessions\":[],\"prereq\":null,\"error\":null} -->\n",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -75,7 +75,7 @@
     },
     "created_at": "2026-11-07T06:58:45Z",
     "updated_at": "2026-11-07T06:58:45Z",
-    "body": "人类议题 H 的草案 v1（C3 ev 手写计票输入）。\n<!-- pm:draft {\"v\":1,\"version\":1,\"rows\":[{\"id\":\"r1\",\"what\":\"便签导出统一为 JSON，取代旧议题 O 的方案\",\"where\":\"cmd/notes export\",\"how\":\"export 只输出 JSON\",\"tradeoff\":\"不再支持文本导出\",\"category\":\"意图\",\"missingDesign\":false,\"deliver\":null}],\"supersedes\":[\"mouriya-s-lab/meerkat-e2e-agenda#39\"],\"settle\":null,\"withdrawn\":null} -->\n",
+    "body": "人类议题 H 的草案 v1（C3 ev 手写计票输入）。\n<!-- meerkat:draft {\"v\":1,\"version\":1,\"rows\":[{\"id\":\"r1\",\"what\":\"便签导出统一为 JSON，取代旧议题 O 的方案\",\"where\":\"cmd/notes export\",\"how\":\"export 只输出 JSON\",\"tradeoff\":\"不再支持文本导出\",\"category\":\"意图\",\"missingDesign\":false,\"deliver\":null}],\"supersedes\":[\"mouriya-s-lab/meerkat-e2e-agenda#39\"],\"settle\":null,\"withdrawn\":null} -->\n",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -122,7 +122,7 @@
     },
     "created_at": "2026-11-07T06:58:47Z",
     "updated_at": "2026-11-07T06:58:47Z",
-    "body": "Coordination 对 v1 的投票（C3 smoke 手写）。\n<!-- pm:vote {\"v\":1,\"seat\":\"Coordination\",\"version\":1,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":null}]} -->\n",
+    "body": "Coordination 对 v1 的投票（C3 smoke 手写）。\n<!-- meerkat:vote {\"v\":1,\"seat\":\"Coordination\",\"version\":1,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":null}]} -->\n",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -169,7 +169,7 @@
     },
     "created_at": "2026-11-07T06:58:48Z",
     "updated_at": "2026-11-07T06:58:48Z",
-    "body": "ClaudeHigh 对 v1 的投票（C3 smoke 手写）。\n<!-- pm:vote {\"v\":1,\"seat\":\"ClaudeHigh\",\"version\":1,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":null}]} -->\n",
+    "body": "ClaudeHigh 对 v1 的投票（C3 smoke 手写）。\n<!-- meerkat:vote {\"v\":1,\"seat\":\"ClaudeHigh\",\"version\":1,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":null}]} -->\n",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -216,7 +216,7 @@
     },
     "created_at": "2026-11-07T06:58:49Z",
     "updated_at": "2026-11-07T06:58:49Z",
-    "body": "Argon 对 v1 的投票（C3 smoke 手写）。\n<!-- pm:vote {\"v\":1,\"seat\":\"Argon\",\"version\":1,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":null}]} -->\n",
+    "body": "Argon 对 v1 的投票（C3 smoke 手写）。\n<!-- meerkat:vote {\"v\":1,\"seat\":\"Argon\",\"version\":1,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":null}]} -->\n",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -263,7 +263,7 @@
     },
     "created_at": "2026-11-07T06:58:50Z",
     "updated_at": "2026-11-07T06:58:50Z",
-    "body": "LeadMentor 对 v1 的投票（C3 smoke 手写）。\n<!-- pm:vote {\"v\":1,\"seat\":\"LeadMentor\",\"version\":1,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":null}]} -->\n",
+    "body": "LeadMentor 对 v1 的投票（C3 smoke 手写）。\n<!-- meerkat:vote {\"v\":1,\"seat\":\"LeadMentor\",\"version\":1,\"rows\":[{\"row\":\"r1\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":null}]} -->\n",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -310,7 +310,7 @@
     },
     "created_at": "2026-11-07T07:00:45Z",
     "updated_at": "2026-11-07T07:00:45Z",
-    "body": "决策表第 1 版定案。\n\n| 行 | 结果 | 赞成 | 门槛 | 理由 |\n|---|---|---|---|---|\n| r1 | passed | 4 | 3 | approve 4 meets threshold 3 |\n\n变更的旧议题：mouriya-s-lab/meerkat-e2e-agenda#39\n\n<!-- pm:decision {\"v\":1,\"version\":1,\"rows\":[{\"row\":\"r1\",\"outcome\":\"passed\",\"approve\":4,\"threshold\":3,\"reason\":\"approve 4 meets threshold 3\"}],\"impl\":[],\"superseded\":[\"mouriya-s-lab/meerkat-e2e-agenda#39\"]} -->",
+    "body": "决策表第 1 版定案。\n\n| 行 | 结果 | 赞成 | 门槛 | 理由 |\n|---|---|---|---|---|\n| r1 | passed | 4 | 3 | approve 4 meets threshold 3 |\n\n变更的旧议题：mouriya-s-lab/meerkat-e2e-agenda#39\n\n<!-- meerkat:decision {\"v\":1,\"version\":1,\"rows\":[{\"row\":\"r1\",\"outcome\":\"passed\",\"approve\":4,\"threshold\":3,\"reason\":\"approve 4 meets threshold 3\"}],\"impl\":[],\"superseded\":[\"mouriya-s-lab/meerkat-e2e-agenda#39\"]} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {

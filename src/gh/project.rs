@@ -1,4 +1,4 @@
-//! The Project's items (GraphQL, every page): each issue with its PM fields,
+//! The Project's items (GraphQL, every page): each issue with its Meerkat fields,
 //! parent, Blocked by and sub-issue summary. Field and option names come
 //! from `shared/project.yaml`.
 

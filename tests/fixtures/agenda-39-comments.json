@@ -28,7 +28,7 @@
     },
     "created_at": "2026-11-07T07:00:46Z",
     "updated_at": "2026-11-07T07:00:46Z",
-    "body": "本议题被人类议题 mouriya-s-lab/meerkat-e2e-agenda#40 变更，不再审议。\n\n<!-- pm:superseded {\"v\":1,\"by\":\"mouriya-s-lab/meerkat-e2e-agenda#40\"} -->",
+    "body": "本议题被人类议题 mouriya-s-lab/meerkat-e2e-agenda#40 变更，不再审议。\n\n<!-- meerkat:superseded {\"v\":1,\"by\":\"mouriya-s-lab/meerkat-e2e-agenda#40\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -75,7 +75,7 @@
     },
     "created_at": "2026-11-07T07:00:54Z",
     "updated_at": "2026-11-07T07:00:54Z",
-    "body": "小组开始审议（第 1 轮）。\n\n<!-- pm:panel {\"v\":1,\"event\":\"started\",\"round\":1,\"sessions\":[],\"prereq\":null,\"error\":null} -->",
+    "body": "小组开始审议（第 1 轮）。\n\n<!-- meerkat:panel {\"v\":1,\"event\":\"started\",\"round\":1,\"sessions\":[],\"prereq\":null,\"error\":null} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {

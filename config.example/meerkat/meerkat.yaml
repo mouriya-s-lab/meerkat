@@ -25,17 +25,17 @@ attention:
 digest:
   keepTools:
     # council plugin
-    - pm_draft
-    - pm_vote
-    - pm_ruling
-    - pm_read_issue
-    - pm_proxy_read
+    - meerkat_draft
+    - meerkat_vote
+    - meerkat_ruling
+    - meerkat_read_issue
+    - meerkat_proxy_read
     # guardians plugin
-    - pm_base_ready
-    - pm_return_facts
-    - pm_reply
-    - pm_replace
-    - pm_escalate
+    - meerkat_base_ready
+    - meerkat_return_facts
+    - meerkat_reply
+    - meerkat_replace
+    - meerkat_escalate
   foldTools:
     - read
     - grep

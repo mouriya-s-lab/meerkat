@@ -1,6 +1,6 @@
 //! Meerkat (`nsh.json` `"root"` names [`App`]): one Rust
 //! app for macOS (`cargo run`) and the web (`nsh package --target web`).
-//! It owns no PM state: it reads GitHub and the council and guardians
+//! It owns no Meerkat state: it reads GitHub and the council and guardians
 //! programs, and shows what it read.
 
 pub mod attention;
@@ -11,7 +11,7 @@ pub mod digest;
 pub mod failure;
 pub mod gh;
 mod http;
-pub mod pmconfig;
+pub mod configrepo;
 pub mod programs;
 pub mod sources;
 pub mod time;
@@ -30,7 +30,7 @@ fn native(registry: &mut Registry) {
 
 /// The root: the overview for the config it loads, drawn with its
 /// theme's tokens in its appearance, or what is wrong with that config,
-/// in the UI's language. macOS's load reads `PM_CONFIG_DIR` and resolves
+/// in the UI's language. macOS's load reads `MEERKAT_CONFIG_DIR` and resolves
 /// almost at once; the web's fetches `/config/` from the site, so the
 /// first frame says it is loading (nothing else can be drawn until the
 /// theme is known: every page reads its tokens).
@@ -63,13 +63,13 @@ pub fn App() -> impl IntoElement {
 }
 
 /// The config this build loads: the site's `/config/` on the web, the
-/// `PM_CONFIG_DIR` directory elsewhere.
+/// `MEERKAT_CONFIG_DIR` directory elsewhere.
 #[cfg(target_arch = "wasm32")]
 async fn load_config() -> Result<config::AppConfig, config::ConfigError> {
     config::load().await
 }
 
-/// The config this build loads: the `PM_CONFIG_DIR` directory.
+/// The config this build loads: the `MEERKAT_CONFIG_DIR` directory.
 #[cfg(not(target_arch = "wasm32"))]
 async fn load_config() -> Result<config::AppConfig, config::ConfigError> {
     config::load()

@@ -28,7 +28,7 @@
     },
     "created_at": "2026-11-06T23:14:15Z",
     "updated_at": "2026-11-06T23:14:15Z",
-    "body": "实现 `notes list --open` 时，输出里每条便签的编号应沿用它在全部便签中的原编号，还是在过滤结果里从 1 重新编号？请依据设计书与现有代码答复。\n\n<!-- pm:ask {\"v\":1,\"tier\":\"simple\",\"session\":\"manual\"} -->",
+    "body": "实现 `notes list --open` 时，输出里每条便签的编号应沿用它在全部便签中的原编号，还是在过滤结果里从 1 重新编号？请依据设计书与现有代码答复。\n\n<!-- meerkat:ask {\"v\":1,\"tier\":\"simple\",\"session\":\"manual\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -75,7 +75,7 @@
     },
     "created_at": "2026-11-06T23:17:16Z",
     "updated_at": "2026-11-06T23:17:16Z",
-    "body": "应沿用便签在全部便签中的原编号，不在过滤结果里从 1 重新编号。\n\n依据：\n\n- 设计书 §2 规定 `notes list --open` 的行为只是“只列出未完成的便签”（`../meerkat-e2e-design/notes.md:15`），并未引入任何重新编号语义；同表中的 `notes list` 是“按添加顺序列出全部便签，已完成的带 `x`”（`../meerkat-e2e-design/notes.md:12`），因此 `--open` 是对同一列表的过滤，而非生成新的序号。\n- 设计书 §4 规定“编号从 1 开始递增，删除之后也不复用”（`../meerkat-e2e-design/notes.md:21-23`），编号是便签自身的标识，而不是输出行号。\n- 现有实现中编号在 `Add` 时一次性分配：`s.data.LastID++` 后写入 `Note{ID: s.data.LastID, ...}`（`store.go:62-64`），删除后仍不复用（`store.go:82-88`；测试断言删除 3、1 后新增编号为 4，`store_test.go:60-64`）。\n- `list` 分支直接遍历 `store.List()` 并打印每条便签自身的 `n.ID`（`main.go:43-49`），`Store.List` 也只是返回按插入顺序保存的原始 `[]Note`（`store.go:68-69`）。过滤实现应只跳过 `n.Done` 为真的条目，保留其余条目的 `n.ID` 原值。\n\n结论：`notes list --open` 的输出编号必须使用便签原始编号；若重新从 1 编号，输出编号将无法用于 `notes done <id>` / `notes rm <id>`，也违背设计书 §4。\n\n<!-- pm:reply {\"v\":1,\"ask\":6698169063,\"decision\":null} -->",
+    "body": "应沿用便签在全部便签中的原编号，不在过滤结果里从 1 重新编号。\n\n依据：\n\n- 设计书 §2 规定 `notes list --open` 的行为只是“只列出未完成的便签”（`../meerkat-e2e-design/notes.md:15`），并未引入任何重新编号语义；同表中的 `notes list` 是“按添加顺序列出全部便签，已完成的带 `x`”（`../meerkat-e2e-design/notes.md:12`），因此 `--open` 是对同一列表的过滤，而非生成新的序号。\n- 设计书 §4 规定“编号从 1 开始递增，删除之后也不复用”（`../meerkat-e2e-design/notes.md:21-23`），编号是便签自身的标识，而不是输出行号。\n- 现有实现中编号在 `Add` 时一次性分配：`s.data.LastID++` 后写入 `Note{ID: s.data.LastID, ...}`（`store.go:62-64`），删除后仍不复用（`store.go:82-88`；测试断言删除 3、1 后新增编号为 4，`store_test.go:60-64`）。\n- `list` 分支直接遍历 `store.List()` 并打印每条便签自身的 `n.ID`（`main.go:43-49`），`Store.List` 也只是返回按插入顺序保存的原始 `[]Note`（`store.go:68-69`）。过滤实现应只跳过 `n.Done` 为真的条目，保留其余条目的 `n.ID` 原值。\n\n结论：`notes list --open` 的输出编号必须使用便签原始编号；若重新从 1 编号，输出编号将无法用于 `notes done <id>` / `notes rm <id>`，也违背设计书 §4。\n\n<!-- meerkat:reply {\"v\":1,\"ask\":6698169063,\"decision\":null} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -122,7 +122,7 @@
     },
     "created_at": "2026-11-06T23:18:03Z",
     "updated_at": "2026-11-06T23:18:03Z",
-    "body": "`notes list --open` 的输出格式是否与 `notes list` 相同（同样带 `[ ]` 标记列）？请依据设计书与现有代码答复。\n\n<!-- pm:ask {\"v\":1,\"tier\":\"simple\",\"session\":\"manual-restart\"} -->",
+    "body": "`notes list --open` 的输出格式是否与 `notes list` 相同（同样带 `[ ]` 标记列）？请依据设计书与现有代码答复。\n\n<!-- meerkat:ask {\"v\":1,\"tier\":\"simple\",\"session\":\"manual-restart\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -169,7 +169,7 @@
     },
     "created_at": "2026-11-06T23:18:41Z",
     "updated_at": "2026-11-06T23:18:41Z",
-    "body": "是，`notes list --open` 的输出格式与 `notes list` 相同，仍然输出 `[ ] <id> <text>` 这一行，并保留标记列。\n\n依据：\n\n- 现有 `list` 分支在 `main.go:43-50`：`case \"list\"` 遍历 `store.List()`，未完成的便签使用空格标记 `mark = \" \"`，已完成的便签使用 `mark = \"x\"`，最后统一以 `fmt.Printf(\"[%s] %d %s\\n\", mark, n.ID, n.Text)` 输出。`--open` 只是对同一输出格式下的便签集合做过滤，不应引入第二种格式。\n- 存储层 `store.go:68-69` 的 `List()` 按插入顺序返回全部便签，`Note.Done` 字段定义于 `store.go:12-16`；因此过滤条件是 `!n.Done`，被过滤掉的便签不产生任何输出行。\n- `README.md:8` 记录的现有用法为 `notes list           print notes with their ids`，issue 正文只要求“只列出未完成的便签”，未要求改变输出格式。\n\n因此，实现应为：`notes list` 输出全部便签；`notes list --open` 输出其中 `Done == false` 的子集，每行仍是 `[ ] <id> <text>`（标记列保留空格；由于过滤后不存在已完成便签，不会出现 `x`）。未带 `--open` 的既有行为保持不变，`--open` 应是 `list` 的可选参数。\n\n补充说明：设计书 `notes.md` 不在本仓库检出内（仓库中不存在该文件），因此无法直接引用其 §2 的原文；上述结论依据 issue 正文所给要求与现有实现得出。若设计书对标记列另有明确规定，应以设计书为准并同步反馈。\n\n<!-- pm:reply {\"v\":1,\"ask\":6698259941,\"decision\":null} -->",
+    "body": "是，`notes list --open` 的输出格式与 `notes list` 相同，仍然输出 `[ ] <id> <text>` 这一行，并保留标记列。\n\n依据：\n\n- 现有 `list` 分支在 `main.go:43-50`：`case \"list\"` 遍历 `store.List()`，未完成的便签使用空格标记 `mark = \" \"`，已完成的便签使用 `mark = \"x\"`，最后统一以 `fmt.Printf(\"[%s] %d %s\\n\", mark, n.ID, n.Text)` 输出。`--open` 只是对同一输出格式下的便签集合做过滤，不应引入第二种格式。\n- 存储层 `store.go:68-69` 的 `List()` 按插入顺序返回全部便签，`Note.Done` 字段定义于 `store.go:12-16`；因此过滤条件是 `!n.Done`，被过滤掉的便签不产生任何输出行。\n- `README.md:8` 记录的现有用法为 `notes list           print notes with their ids`，issue 正文只要求“只列出未完成的便签”，未要求改变输出格式。\n\n因此，实现应为：`notes list` 输出全部便签；`notes list --open` 输出其中 `Done == false` 的子集，每行仍是 `[ ] <id> <text>`（标记列保留空格；由于过滤后不存在已完成便签，不会出现 `x`）。未带 `--open` 的既有行为保持不变，`--open` 应是 `list` 的可选参数。\n\n补充说明：设计书 `notes.md` 不在本仓库检出内（仓库中不存在该文件），因此无法直接引用其 §2 的原文；上述结论依据 issue 正文所给要求与现有实现得出。若设计书对标记列另有明确规定，应以设计书为准并同步反馈。\n\n<!-- meerkat:reply {\"v\":1,\"ask\":6698259941,\"decision\":null} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -216,7 +216,7 @@
     },
     "created_at": "2026-11-07T05:36:24Z",
     "updated_at": "2026-11-07T05:36:24Z",
-    "body": "询问（C3 smoke 手写）：notes list --open 是否应包含已归档的便签？\n<!-- pm:ask {\"v\":1,\"tier\":\"simple\",\"session\":\"manual-c3-smoke\"} -->\n",
+    "body": "询问（C3 smoke 手写）：notes list --open 是否应包含已归档的便签？\n<!-- meerkat:ask {\"v\":1,\"tier\":\"simple\",\"session\":\"manual-c3-smoke\"} -->\n",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -263,7 +263,7 @@
     },
     "created_at": "2026-11-07T05:37:39Z",
     "updated_at": "2026-11-07T05:37:39Z",
-    "body": "询问已提为议题（C3 smoke 手写）。\n<!-- pm:escalated {\"v\":1,\"ask\":6702887478,\"agenda\":\"mouriya-s-lab/meerkat-e2e-agenda#31\"} -->",
+    "body": "询问已提为议题（C3 smoke 手写）。\n<!-- meerkat:escalated {\"v\":1,\"ask\":6702887478,\"agenda\":\"mouriya-s-lab/meerkat-e2e-agenda#31\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -310,7 +310,7 @@
     },
     "created_at": "2026-11-07T05:38:52Z",
     "updated_at": "2026-11-07T05:38:52Z",
-    "body": "议题 mouriya-s-lab/meerkat-e2e-agenda#31（议程 D29）已定案。\n\n--open 只列未完成且未归档的便签；归档便签不在其中。\n\n| 行 | 结果 | 赞成 | 门槛 | 理由 |\n|---|---|---|---|---|\n| r1 | passed | 4 | 3 | approve 4 meets threshold 3 |\n\n<!-- pm:reply {\"v\":1,\"ask\":6702887478,\"decision\":\"mouriya-s-lab/meerkat-e2e-agenda#31\"} -->",
+    "body": "议题 mouriya-s-lab/meerkat-e2e-agenda#31（议程 D29）已定案。\n\n--open 只列未完成且未归档的便签；归档便签不在其中。\n\n| 行 | 结果 | 赞成 | 门槛 | 理由 |\n|---|---|---|---|---|\n| r1 | passed | 4 | 3 | approve 4 meets threshold 3 |\n\n<!-- meerkat:reply {\"v\":1,\"ask\":6702887478,\"decision\":\"mouriya-s-lab/meerkat-e2e-agenda#31\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -357,7 +357,7 @@
     },
     "created_at": "2026-11-07T06:39:05Z",
     "updated_at": "2026-11-07T06:39:05Z",
-    "body": "询问（C3 ev 手写）：notes list --open 是否应包含已归档的便签？\n<!-- pm:ask {\"v\":1,\"tier\":\"simple\",\"session\":\"manual-c3-ev\"} -->",
+    "body": "询问（C3 ev 手写）：notes list --open 是否应包含已归档的便签？\n<!-- meerkat:ask {\"v\":1,\"tier\":\"simple\",\"session\":\"manual-c3-ev\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -404,7 +404,7 @@
     },
     "created_at": "2026-11-07T06:39:18Z",
     "updated_at": "2026-11-07T06:39:18Z",
-    "body": "询问已提为议题（C3 ev 手写）。\n<!-- pm:escalated {\"v\":1,\"ask\":6703467995,\"agenda\":\"mouriya-s-lab/meerkat-e2e-agenda#36\"} -->",
+    "body": "询问已提为议题（C3 ev 手写）。\n<!-- meerkat:escalated {\"v\":1,\"ask\":6703467995,\"agenda\":\"mouriya-s-lab/meerkat-e2e-agenda#36\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -451,7 +451,7 @@
     },
     "created_at": "2026-11-07T06:42:43Z",
     "updated_at": "2026-11-07T06:42:43Z",
-    "body": "议题 mouriya-s-lab/meerkat-e2e-agenda#36（议程 D34）已定案。\n\n--open 只列未完成且未归档的便签；归档便签不在其中。\n\n| 行 | 结果 | 赞成 | 门槛 | 理由 |\n|---|---|---|---|---|\n| r1 | passed | 4 | 3 | approve 4 meets threshold 3 |\n\n<!-- pm:reply {\"v\":1,\"ask\":6703467995,\"decision\":\"mouriya-s-lab/meerkat-e2e-agenda#36\"} -->",
+    "body": "议题 mouriya-s-lab/meerkat-e2e-agenda#36（议程 D34）已定案。\n\n--open 只列未完成且未归档的便签；归档便签不在其中。\n\n| 行 | 结果 | 赞成 | 门槛 | 理由 |\n|---|---|---|---|---|\n| r1 | passed | 4 | 3 | approve 4 meets threshold 3 |\n\n<!-- meerkat:reply {\"v\":1,\"ask\":6703467995,\"decision\":\"mouriya-s-lab/meerkat-e2e-agenda#36\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -498,7 +498,7 @@
     },
     "created_at": "2026-11-07T07:06:14Z",
     "updated_at": "2026-11-07T07:06:14Z",
-    "body": "询问（C3 ev2 手写）：notes list --open 是否应包含已归档的便签？\n<!-- pm:ask {\"v\":1,\"tier\":\"simple\",\"session\":\"manual-c3-ev2\"} -->",
+    "body": "询问（C3 ev2 手写）：notes list --open 是否应包含已归档的便签？\n<!-- meerkat:ask {\"v\":1,\"tier\":\"simple\",\"session\":\"manual-c3-ev2\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -545,7 +545,7 @@
     },
     "created_at": "2026-11-07T07:06:16Z",
     "updated_at": "2026-11-07T07:06:16Z",
-    "body": "询问已提为议题（C3 ev2 手写）。\n<!-- pm:escalated {\"v\":1,\"ask\":6703719036,\"agenda\":\"mouriya-s-lab/meerkat-e2e-agenda#43\"} -->",
+    "body": "询问已提为议题（C3 ev2 手写）。\n<!-- meerkat:escalated {\"v\":1,\"ask\":6703719036,\"agenda\":\"mouriya-s-lab/meerkat-e2e-agenda#43\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
@@ -592,7 +592,7 @@
     },
     "created_at": "2026-11-07T07:09:53Z",
     "updated_at": "2026-11-07T07:09:53Z",
-    "body": "议题 mouriya-s-lab/meerkat-e2e-agenda#43（议程 D41）已定案。\n\n--open 只列未完成且未归档的便签；归档便签不在其中。\n\n| 行 | 结果 | 赞成 | 门槛 | 理由 |\n|---|---|---|---|---|\n| r1 | passed | 4 | 3 | approve 4 meets threshold 3 |\n\n<!-- pm:reply {\"v\":1,\"ask\":6703719036,\"decision\":\"mouriya-s-lab/meerkat-e2e-agenda#43\"} -->",
+    "body": "议题 mouriya-s-lab/meerkat-e2e-agenda#43（议程 D41）已定案。\n\n--open 只列未完成且未归档的便签；归档便签不在其中。\n\n| 行 | 结果 | 赞成 | 门槛 | 理由 |\n|---|---|---|---|---|\n| r1 | passed | 4 | 3 | approve 4 meets threshold 3 |\n\n<!-- meerkat:reply {\"v\":1,\"ask\":6703719036,\"decision\":\"mouriya-s-lab/meerkat-e2e-agenda#43\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {

@@ -28,7 +28,7 @@
     },
     "created_at": "2026-11-06T22:55:49Z",
     "updated_at": "2026-11-06T22:55:49Z",
-    "body": "工人会话 01a1b313-4c24-710e-889b-fde5e6549e38 开始实现本 issue。\n\n<!-- pm:impl {\"v\":1,\"host\":\"MouriyadeMac-mini.local\",\"pid\":85522,\"agenda\":\"c2bd9945-4294-491d-8930-2dfeda0b770f\",\"session\":\"01a1b313-4c24-710e-889b-fde5e6549e38\",\"file\":\"/Users/mouriya/Ext/work/dispatch-ev-204b/sessions/c2bd9945-4294-491d-8930-2dfeda0b770f/2026-11-06T22-55-48-772Z_01a1b313-4c24-710e-889b-fde5e6549e38.jsonl\"} -->",
+    "body": "工人会话 01a1b313-4c24-710e-889b-fde5e6549e38 开始实现本 issue。\n\n<!-- meerkat:impl {\"v\":1,\"host\":\"MouriyadeMac-mini.local\",\"pid\":85522,\"agenda\":\"c2bd9945-4294-491d-8930-2dfeda0b770f\",\"session\":\"01a1b313-4c24-710e-889b-fde5e6549e38\",\"file\":\"/Users/mouriya/Ext/work/dispatch-ev-204b/sessions/c2bd9945-4294-491d-8930-2dfeda0b770f/2026-11-06T22-55-48-772Z_01a1b313-4c24-710e-889b-fde5e6549e38.jsonl\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
