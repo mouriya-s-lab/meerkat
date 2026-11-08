@@ -250,6 +250,12 @@ The GitHub token is `GH_TOKEN`, or what `gh auth token` prints when
 the credential is being fetched; the council's and the guardians' load at
 once.
 
+`deploy/package-macos.sh <dir>` builds `<dir>/Quorum.app` (`nsh package
+--target macos`, with the same `nsh` and LLVM as the web build below) and
+lets the app load plain `http://` addresses: the council, guardians and
+dispatch addresses in `targets.macos` are the operator's HTTP endpoints,
+which App Transport Security blocks in a bundled app otherwise.
+
 ## Web
 
 Needs the [`nsh` CLI](https://nsh.dev/docs/installation.md)
@@ -322,4 +328,5 @@ through too), and `SITE_DIR` is served for everything else.
 | `src/ui/text.rs` | Every word the UI shows, in Chinese and English |
 | `src/ui/lang.rs` | Which of the two the UI speaks, and redrawing in a new one |
 | `deploy/Caddyfile` | The web build's same-origin proxy: the site, its `/config`, GitHub, the two programs and the dispatch launcher's check |
+| `deploy/package-macos.sh` | The macOS `Quorum.app`: `nsh package --target macos` plus the `Info.plist` entry that lets it load the `http://` targets |
 | `config.example/` | A PM config directory for local runs |
