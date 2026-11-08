@@ -236,15 +236,6 @@ impl Context {
         self.attention.session_failure_hours.get()
     }
 
-    /// Shows `issue` selected on the 「议题」 page.
-    pub fn open_issue(&self, nav: Nav, issue: IssueRef) {
-        batch(|| {
-            self.agenda.close();
-            self.issues.select(Some(issue));
-            nav.page.set(Page::Issues);
-        });
-    }
-
     /// Shows the detail of the agenda issue `issue` (#4 「议题详情」).
     pub fn open_detail(&self, nav: Nav, issue: IssueRef) {
         batch(|| {

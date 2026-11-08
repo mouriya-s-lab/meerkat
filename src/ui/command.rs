@@ -156,7 +156,7 @@ fn hits(sources: Sources, context: &Context, query: &str) -> Vec<(Msg, Vec<Hit>)
 fn open(hit: &Hit, sources: Sources, context: &Context, nav: Nav, palette: Palette) {
     batch(|| {
         match hit {
-            Hit::Issue { issue, .. } => context.open_issue(nav, issue.clone()),
+            Hit::Issue { issue, .. } => context.open_detail(nav, issue.clone()),
             Hit::Session { open, .. } => nav.open_session(open.clone()),
             Hit::Command(Command::Go(page)) => nav.page.set(*page),
             Hit::Command(Command::Refresh) => sources.refresh(),
