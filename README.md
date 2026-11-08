@@ -1,6 +1,6 @@
-# Quorum
+# Meerkat
 
-Quorum: one [NSH](https://nsh.dev) Rust app that runs as a
+Meerkat: one [NSH](https://nsh.dev) Rust app that runs as a
 native macOS window and as a static web site. It owns no PM state; it reads
 GitHub (the PM repository's Project, implementation issues and their marker
 comments, the API rate limit, and the files of the PM config repository's
@@ -13,7 +13,7 @@ reads it (`POST /v1/config/check` to the council and the guardians,
 `POST /pm-config/check` to the omp-dispatch launcher), and the commit of
 that file to the config repository's branch once all of them pass.
 
-Windows at least 900 pt wide show a sidebar: Quorum's name, a search field
+Windows at least 900 pt wide show a sidebar: Meerkat's name, a search field
 that opens the command bar, the pages with a count each (概览: what needs
 you; 议题: unsettled agenda issues; 实现: implementation issues waiting on
 an answer; 会话: running sessions; 运行状况: failed and stale bases; 配置:
@@ -89,7 +89,7 @@ The pages:
 - **会话** (sessions): the sessions of both programs in one table with
   their count by hour, filtered by state, program and kind and searched by
   issue, model or error. Selecting one shows its facts, its error, and its
-  decision log, reduced by `quorum.yaml`'s `digest` rules: the opening
+  decision log, reduced by `meerkat.yaml`'s `digest` rules: the opening
   message, the program's later prompts, kept tools' calls with arguments
   and results, a count per run of a folded tool, the assistant's text when
   configured, and highlighted LLM errors, automatic retries (a run of the
@@ -120,16 +120,16 @@ The pages:
   files it loads: the council and the guardians get the branch's files
   their `GET /v1/config` lists with the edited one in its place; the
   dispatch launcher gets `shared/repos.yaml`, `shared/project.yaml` and
-  `dispatch/delivery.yaml`; Quorum parses its own four files with the same
+  `dispatch/delivery.yaml`; Meerkat parses its own four files with the same
   parsers it starts with. The rail shows each reader's conclusion (通过,
   the errors with their file, key path and reason, or 不可达 with why);
   「保存到 <branch>」 is enabled only when every reader passed this very
   text. A save commits the one file through the contents API
-  (`quorum: edit <path>`, with the sha it was opened at) and links the
+  (`meerkat: edit <path>`, with the sha it was opened at) and links the
   commit; when the branch's file changed since it was opened, GitHub
   refuses (409), nothing is overwritten, and the page says so and opens the
   branch's file again. Under 正在用的版本 the council and the guardians
-  (their `GET /v1/config` shas), and this Quorum (the shas it loaded), each
+  (their `GET /v1/config` shas), and this Meerkat (the shas it loaded), each
   read 「与 <branch> 一致」 or 「运行旧版」 with the files that differ; on
   macOS the local checkout `PM_CONFIG_DIR` shows how many commits it is
   behind `origin/<branch>` (after a `git fetch`) and 拉取 runs
@@ -139,12 +139,12 @@ Every source loads, fails and refreshes on its own: a panel whose source
 fails shows the error with a retry button and keeps the data it had.
 
 Every page draws from one design system: the colors, type sizes,
-spacings, radii and graph lengths of `quorum/theme.json`, and one
+spacings, radii and graph lengths of `meerkat/theme.json`, and one
 vocabulary of state words and glyphs shared by all pages.
 
 ## Language
 
-Quorum speaks Chinese or English, following the oh-my-omp convention for
+Meerkat speaks Chinese or English, following the oh-my-omp convention for
 person-facing text: `OMOMP_LANG` (`en` or `zh`), then the first of
 `LC_ALL`, `LC_MESSAGES` and `LANG` that is set (`zh…` is Chinese), then the
 platform's preferred languages (macOS: the system's, web: the browser's;
@@ -152,20 +152,20 @@ Chinese when a `zh…` language comes before the first `en…` one), then
 English. The web has no environment, so only the browser's languages
 count there. When the browser's language changes, the page switches
 without a reload. Any `zh…` reads Simplified Chinese; the app's name is
-Quorum in both. Data (issue titles, repositories, models, seats) and the
+Meerkat in both. Data (issue titles, repositories, models, seats) and the
 errors programs, GitHub and the config parser give are shown as they are.
-For example `OMOMP_LANG=en Quorum.app/Contents/MacOS/Quorum` opens it in
+For example `OMOMP_LANG=en Meerkat.app/Contents/MacOS/Meerkat` opens it in
 English.
 
 ## Configuration
 
 Both builds read the PM config directory (the layout shared with
-pm-council and pm-guardians):
+meerkat-council and meerkat-guardians):
 
 ```
 <config dir>/
-  quorum/quorum.yaml
-  quorum/theme.json
+  meerkat/meerkat.yaml
+  meerkat/theme.json
   shared/repos.yaml
   shared/project.yaml
 ```
@@ -173,13 +173,13 @@ pm-council and pm-guardians):
 `config.example/` is a complete directory for local runs against the e2e
 repositories.
 
-`quorum/quorum.yaml`:
+`meerkat/meerkat.yaml`:
 
 | Key | Meaning |
 |---|---|
-| `config.repo` | The PM config repository (`owner/name`) the 配置 page shows and commits to, e.g. `oh-my-omp/pm-config` |
+| `config.repo` | The PM config repository (`owner/name`) the 配置 page shows and commits to, e.g. `mouriya-s-lab/meerkat-config` |
 | `config.branch` | The branch the 配置 page lists, compares what runs with and commits to (the deployed instance: `main`) |
-| `config.readers` | Directory prefix (`council/`, ending in `/`) → the programs that read and check the files under it, each of `council`, `guardians`, `quorum`, `dispatch`, at least one, none twice; a file's readers are those of every prefix it starts with |
+| `config.readers` | Directory prefix (`council/`, ending in `/`) → the programs that read and check the files under it, each of `council`, `guardians`, `meerkat`, `dispatch`, at least one, none twice; a file's readers are those of every prefix it starts with |
 | `targets.macos.githubApi` | GitHub API root for the macOS app (`https://api.github.com`) |
 | `targets.macos.council` | Council daemon address for the macOS app |
 | `targets.macos.guardians` | Guardians program address for the macOS app |
@@ -199,9 +199,9 @@ repositories.
 | `filters.humanOnly` | The 「仅人类议题」 filter when the app starts: human issues and the issues they block, transitively |
 | `appearance` | `system` follows the system's light or dark appearance (the browser's on the web), `light` or `dark` keeps that one whatever the system's; the macOS window, title bar included, opens in it |
 
-`quorum/theme.json` holds the design tokens: `cssVars.theme` (fonts
+`meerkat/theme.json` holds the design tokens: `cssVars.theme` (fonts
 and lengths), `cssVars.light` and `cssVars.dark` (colors), each with
-exactly the tokens of `config.example/quorum/theme.json`. Colors are
+exactly the tokens of `config.example/meerkat/theme.json`. Colors are
 `#rrggbb`, lengths `<n>px`, fonts CSS family lists. A missing token, an
 unknown one or a value that does not parse is an error that names the
 file, the token's key path (`cssVars.light.ok-text`) and what is wrong;
@@ -216,7 +216,7 @@ and omp repositories; `shared/project.yaml` gives the Project's field and
 option names (`fields.status`, `fields.kind`, `fields.agenda`,
 `fields.proposer`). Unknown keys and missing keys are errors that name the
 file and the key path, for example
-``quorum/quorum.yaml: missing field `refreshSeconds` ``.
+``meerkat/meerkat.yaml: missing field `refreshSeconds` ``.
 
 ### How each build gets it
 
@@ -225,7 +225,7 @@ loads on one loads on the other.
 
 - **macOS** reads the directory `PM_CONFIG_DIR` names when it starts. A
   missing variable, file or key shows a configuration error in the window.
-- **Web** fetches `/config/quorum/quorum.yaml`, `/config/quorum/theme.json`,
+- **Web** fetches `/config/meerkat/meerkat.yaml`, `/config/meerkat/theme.json`,
   `/config/shared/repos.yaml` and `/config/shared/project.yaml` when the page
   starts, from the same origin it was served by. `deploy/Caddyfile` serves
   them out of `CONFIG_DIR`. Nothing is embedded in the WebAssembly module, so
@@ -250,7 +250,7 @@ The GitHub token is `GH_TOKEN`, or what `gh auth token` prints when
 the credential is being fetched; the council's and the guardians' load at
 once.
 
-`deploy/package-macos.sh <dir>` builds `<dir>/Quorum.app` (`nsh package
+`deploy/package-macos.sh <dir>` builds `<dir>/Meerkat.app` (`nsh package
 --target macos`, with the same `nsh` and LLVM as the web build below) and
 lets the app load plain `http://` addresses: the council, guardians and
 dispatch addresses in `targets.macos` are the operator's HTTP endpoints,
@@ -268,7 +268,7 @@ wasm-bindgen; `nsh package` prints the exact `cargo install` line when the
 CLI is missing).
 
 ```sh
-PATH=/opt/homebrew/opt/llvm/bin:$PATH nsh package --target web -o /tmp/quorum-web
+PATH=/opt/homebrew/opt/llvm/bin:$PATH nsh package --target web -o /tmp/meerkat-web
 ```
 
 The site holds no credential. It reaches GitHub, the two programs and the
@@ -281,8 +281,8 @@ from the web with no login of its own. To run it locally (with the example
 config's web addresses):
 
 ```sh
-LISTEN=:8088 SITE_DIR=/tmp/quorum-web CONFIG_DIR=$PWD/config.example \
-  GH_TOKEN=<token> CONFIG_REPO=oh-my-omp/pm-config \
+LISTEN=:8088 SITE_DIR=/tmp/meerkat-web CONFIG_DIR=$PWD/config.example \
+  GH_TOKEN=<token> CONFIG_REPO=mouriya-s-lab/meerkat-config \
   COUNCIL_URL=http://127.0.0.1:7421 GUARDIANS_URL=http://127.0.0.1:7410 \
   DISPATCH_URL=http://127.0.0.1:47593 \
   caddy run --config deploy/Caddyfile --adapter caddyfile
@@ -319,7 +319,7 @@ through too), and `SITE_DIR` is served for everything else.
 | `src/dag.rs` | The 「议题」 model: the issue graph, its groups, readiness columns, folded settled issues and filters |
 | `src/detail.rs` | An agenda issue's history (rounds, drafts, votes per seat and row, rulings, decision, its council sessions) and an implementation issue's ask timeline, from their markers |
 | `src/time.rs` | Timestamps, "how long ago", durations and hourly counts |
-| `src/failure.rs` | Why something Quorum asked for did not come: its own reasons as variants (worded by `src/ui/text.rs`), others' words as they are |
+| `src/failure.rs` | Why something Meerkat asked for did not come: its own reasons as variants (worded by `src/ui/text.rs`), others' words as they are |
 | `src/ui/shell.rs` | The sidebar or top bar, the toolbar, the shortcuts, a list beside its inspector or (narrow) the inspector full width under 返回, and the configuration error |
 | `src/ui/command.rs` | The command bar (⌘K) |
 | `src/ui/overview.rs`, `issues.rs`, `implementations.rs`, `sessions.rs`, `runtime.rs`, `config.rs` | The six pages |
@@ -328,5 +328,5 @@ through too), and `SITE_DIR` is served for everything else.
 | `src/ui/text.rs` | Every word the UI shows, in Chinese and English |
 | `src/ui/lang.rs` | Which of the two the UI speaks, and redrawing in a new one |
 | `deploy/Caddyfile` | The web build's same-origin proxy: the site, its `/config`, GitHub, the two programs and the dispatch launcher's check |
-| `deploy/package-macos.sh` | The macOS `Quorum.app`: `nsh package --target macos` plus the `Info.plist` entry that lets it load the `http://` targets |
+| `deploy/package-macos.sh` | The macOS `Meerkat.app`: `nsh package --target macos` plus the `Info.plist` entry that lets it load the `http://` targets |
 | `config.example/` | A PM config directory for local runs |

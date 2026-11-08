@@ -1,4 +1,4 @@
-//! Quorum's own controls, styled once from the theme's tokens: panels and
+//! Meerkat's own controls, styled once from the theme's tokens: panels and
 //! their heads, buttons, segmented choices, filter tokens, a search field,
 //! table heads, selectable rows and group headers, inline error and wait
 //! bars, skeleton rows, key–value lines, meters and the summary sentence.

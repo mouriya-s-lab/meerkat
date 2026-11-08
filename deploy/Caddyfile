@@ -1,4 +1,4 @@
-# Serves Quorum's web build and, on the same origin, the PM config it
+# Serves Meerkat's web build and, on the same origin, the PM config it
 # loads, the GitHub API, the two programs it reads and dispatch's PM config
 # check. The browser holds no credential: the GitHub token comes from this
 # process's environment. That
@@ -13,7 +13,7 @@
 #                  checkout's config.example; read-only, never cached
 #   GH_TOKEN       token sent to the GitHub API (may be able to write)
 #   CONFIG_REPO    the config repo whose files the web build may save, e.g.
-#                  oh-my-omp/pm-config; unset: no write is passed
+#                  mouriya-s-lab/meerkat-config; unset: no write is passed
 #   COUNCIL_URL    the council daemon, e.g. http://127.0.0.1:7421
 #   GUARDIANS_URL  the guardians program, e.g. http://127.0.0.1:7410
 #   DISPATCH_URL   the omp-dispatch launcher's PM config check listener,

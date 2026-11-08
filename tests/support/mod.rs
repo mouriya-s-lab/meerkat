@@ -1,5 +1,5 @@
-//! The headless fixture Quorum's integration tests start from (#23): the
-//! real [`quorum::App`] on an engine with no window, its council, guardians
+//! The headless fixture Meerkat's integration tests start from (#23): the
+//! real [`meerkat::App`] on an engine with no window, its council, guardians
 //! and GitHub answered from the responses recorded under
 //! `tests/fixtures/responses/`, driven the way a person drives it: pressing
 //! the sidebar's pages and reading what the window shows.
@@ -30,17 +30,17 @@ use nsh_core::{
 };
 use nsh_engine::EngineConfig;
 use nsh_testing::{Headless, StubNetwork, StubResponse, StubRoute};
-use quorum::{Lang, Msg};
+use meerkat::{Lang, Msg};
 
 /// The stub network's GitHub host: `targets.*.githubApi` in
-/// `tests/fixtures/config/quorum/quorum.yaml`.
+/// `tests/fixtures/config/meerkat/meerkat.yaml`.
 pub const GITHUB: &str = "http://github.test";
 /// The stub network's council host.
 pub const COUNCIL: &str = "http://council.test";
 /// The stub network's guardians host.
 const GUARDIANS: &str = "http://guardians.test";
 /// The agenda repository the fixture config names (`repos.pm.repo`).
-const PM: &str = "oh-my-omp/pm-e2e-agenda";
+const PM: &str = "mouriya-s-lab/meerkat-e2e-agenda";
 
 // What `tests/fixtures/responses/` recorded: the local council
 // (`127.0.0.1:7741`), the local guardians (`127.0.0.1:7740`) and GitHub's
@@ -58,7 +58,7 @@ const PROJECT: &str = include_str!("../fixtures/responses/github-project.json");
 const RATE_LIMIT: &str = include_str!("../fixtures/responses/github-rate-limit.json");
 const CONFIG_BRANCH: &str = include_str!("../fixtures/responses/github-config-branch.json");
 const CONFIG_TREE: &str = include_str!("../fixtures/responses/github-config-tree.json");
-// `gh api repos/oh-my-omp/pm-e2e-agenda/contents/README.md?ref=main`, its
+// `gh api repos/mouriya-s-lab/meerkat-e2e-agenda/contents/README.md?ref=main`, its
 // `download_url` without the raw-content token GitHub appends.
 const CONFIG_README: &str = include_str!("../fixtures/responses/github-config-readme.json");
 
@@ -102,7 +102,7 @@ fn recorded() -> Vec<(String, StubRoute)> {
         .collect()
 }
 
-/// Quorum running on the headless engine in one language: the window's
+/// Meerkat running on the headless engine in one language: the window's
 /// contents, and what it asked the stub network.
 pub struct Fixture {
     app: Headless,
@@ -111,36 +111,36 @@ pub struct Fixture {
 }
 
 impl Fixture {
-    /// Starts Quorum in `lang` on the recorded answers, in the fixture
+    /// Starts Meerkat in `lang` on the recorded answers, in the fixture
     /// config directory, and waits for its first frame.
     pub fn start(lang: Lang) -> Fixture {
         Fixture::start_with(lang, Vec::new())
     }
 
-    /// Starts Quorum in `lang` with `routes` ahead of the recorded ones, so a
+    /// Starts Meerkat in `lang` with `routes` ahead of the recorded ones, so a
     /// test answers some requests itself.
     pub fn start_with(lang: Lang, routes: Vec<(String, StubRoute)>) -> Fixture {
         Fixture::start_in(lang, &config_dir(), routes)
     }
 
-    /// Starts Quorum in `lang` on the config directory `dir`, with `routes`
+    /// Starts Meerkat in `lang` on the config directory `dir`, with `routes`
     /// ahead of the recorded ones.
     pub fn start_in(lang: Lang, dir: &Path, routes: Vec<(String, StubRoute)>) -> Fixture {
         set_language(lang);
         // SAFETY: the tests that write the environment run one at a time
         // (`--test-threads=1`), so nothing else reads it while it is written.
-        unsafe { std::env::set_var(quorum::config::CONFIG_DIR_VAR, dir) };
+        unsafe { std::env::set_var(meerkat::config::CONFIG_DIR_VAR, dir) };
         let mut routes = routes;
         routes.extend(recorded());
         let network = Arc::new(StubNetwork::new(routes));
-        let mut config = EngineConfig::new(Root::of::<quorum::App>());
+        let mut config = EngineConfig::new(Root::of::<meerkat::App>());
         // The sidebar shows at 900 points and up: the tests press its pages.
         config.viewport = Size::new(Points(1200.0), Points(900.0));
         config.environment.window = config.viewport;
         config.network = Some(network.clone());
         let mut app = Headless::start(config).expect("the app starts headless");
         app.first_render()
-            .unwrap_or_else(|error| panic!("Quorum's first frame: {error}"));
+            .unwrap_or_else(|error| panic!("Meerkat's first frame: {error}"));
         Fixture { app, network, lang }
     }
 
@@ -248,7 +248,7 @@ impl Fixture {
         self.app.wait_until(what, timeout, move |screen| done(&screen.texts()))
     }
 
-    /// How many `method` requests for `url` Quorum made.
+    /// How many `method` requests for `url` Meerkat made.
     pub fn requests(&self, method: &str, url: &str) -> usize {
         self.network
             .requests()
@@ -324,7 +324,7 @@ pub fn health_versions() -> Vec<String> {
     [COUNCIL_HEALTH, GUARDIANS_HEALTH]
         .iter()
         .map(|json| {
-            let health: quorum::programs::Health =
+            let health: meerkat::programs::Health =
                 serde_json::from_str(json).expect("a program's health");
             health.short_version().to_owned()
         })
@@ -426,7 +426,7 @@ pub fn sessions_with(newer: &str) -> String {
     serde_json::Value::Array(sessions).to_string()
 }
 
-/// The route of the comments of `issue` (`owner/repo#n`), as Quorum asks
+/// The route of the comments of `issue` (`owner/repo#n`), as Meerkat asks
 /// GitHub for them.
 pub fn comments_route(issue: &str) -> String {
     let (repo, number) = issue.split_once('#').expect("an issue is owner/repo#n");
@@ -449,9 +449,9 @@ pub fn detail_project() -> String {
 pub fn recorded_comments(issue: &str) -> Option<String> {
     let (repo, number) = issue.split_once('#').expect("an issue is owner/repo#n");
     let prefix = match repo {
-        "oh-my-omp/pm-e2e-design" => "design",
-        "oh-my-omp/pm-e2e-code" => "code",
-        "oh-my-omp/pm-e2e-agenda" => "agenda",
+        "mouriya-s-lab/meerkat-e2e-design" => "design",
+        "mouriya-s-lab/meerkat-e2e-code" => "code",
+        "mouriya-s-lab/meerkat-e2e-agenda" => "agenda",
         _ => return None,
     };
     let name = format!("{prefix}-{number}-comments.json");
@@ -474,9 +474,9 @@ pub fn recorded_issues() -> Vec<String> {
                 continue;
             }
             let repo = match prefix {
-                "design" => "oh-my-omp/pm-e2e-design",
-                "code" => "oh-my-omp/pm-e2e-code",
-                "agenda" => "oh-my-omp/pm-e2e-agenda",
+                "design" => "mouriya-s-lab/meerkat-e2e-design",
+                "code" => "mouriya-s-lab/meerkat-e2e-code",
+                "agenda" => "mouriya-s-lab/meerkat-e2e-agenda",
                 _ => continue,
             };
             let issue = format!("{repo}#{number}");
@@ -540,7 +540,7 @@ fn copy_dir(from: &Path, to: &Path) {
     }
 }
 
-/// Quorum in `lang` on a copy of the fixture config whose PM repository is
+/// Meerkat in `lang` on a copy of the fixture config whose PM repository is
 /// `repo`, answered from the detail recordings, `routes` ahead of them.
 pub fn start_detail(sandbox: &Sandbox, repo: &str, lang: Lang, routes: Vec<(String, StubRoute)>) -> Fixture {
     set_github_token("gho_q4_detail_token");
@@ -580,7 +580,7 @@ impl Sandbox {
     /// The directory named after `name`, empty.
     pub fn new(name: &str) -> Sandbox {
         let dir = std::env::temp_dir().join(format!(
-            "quorum-credential-{name}-{}",
+            "meerkat-credential-{name}-{}",
             std::process::id()
         ));
         let _ = std::fs::remove_dir_all(&dir);

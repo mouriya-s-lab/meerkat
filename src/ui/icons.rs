@@ -1,4 +1,4 @@
-//! Quorum's own 16 pt line icons (#9 「跨平台的画法」): Lucide's geometry
+//! Meerkat's own 16 pt line icons (#9 「跨平台的画法」): Lucide's geometry
 //! on a 16-unit grid, 1.5 pt strokes, drawn with a `Painter` as the status
 //! glyphs are, in the color they sit in. They name pages, actions and
 //! event kinds, never a state.

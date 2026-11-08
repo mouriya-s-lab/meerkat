@@ -1,6 +1,6 @@
 {
-  "name": "Quorum",
-  "id": "io.github.oh-my-omp.quorum",
+  "name": "Meerkat",
+  "id": "io.github.mouriya-s-lab.meerkat",
   "icon": "assets/icon.png",
   "version": "0.1.0",
   "appearance": "system",

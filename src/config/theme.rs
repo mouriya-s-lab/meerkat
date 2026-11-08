@@ -1,4 +1,4 @@
-//! `quorum/theme.json`: Quorum's visual values, in shadcn's
+//! `meerkat/theme.json`: Meerkat's visual values, in shadcn's
 //! `cssVars` layout. `theme` holds the fonts and the lengths (text sizes,
 //! spacing, radii, row heights, the sidebar's width, the DAG's geometry),
 //! `light` and `dark` the colors of each appearance. Every token is
@@ -9,8 +9,8 @@ use serde_json::{Map, Value};
 
 use super::schema::{ConfigError, HexColor, Problem};
 
-/// `quorum/theme.json`, relative to the PM config directory.
-pub const THEME_FILE: &str = "quorum/theme.json";
+/// `meerkat/theme.json`, relative to the PM config directory.
+pub const THEME_FILE: &str = "meerkat/theme.json";
 
 /// A font family token (`cssVars.theme`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -305,7 +305,7 @@ pub struct ThemeColor {
     pub dark: HexColor,
 }
 
-/// `quorum/theme.json`, parsed: every token's value, indexed as the
+/// `meerkat/theme.json`, parsed: every token's value, indexed as the
 /// tokens' `ALL` lists them.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Theme {
@@ -331,7 +331,7 @@ impl Theme {
     }
 }
 
-/// Parses `quorum/theme.json`: the first missing, unknown or bad token,
+/// Parses `meerkat/theme.json`: the first missing, unknown or bad token,
 /// with its key path (`cssVars.light.ok-text`).
 pub fn parse(text: &str) -> Result<Theme, ConfigError> {
     let error = |path: String, message: Problem| ConfigError {
@@ -442,7 +442,7 @@ fn object<'a>(
 mod tests {
     use super::*;
 
-    const EXAMPLE: &str = include_str!("../../config.example/quorum/theme.json");
+    const EXAMPLE: &str = include_str!("../../config.example/meerkat/theme.json");
 
     fn edited(edit: impl FnOnce(&mut Value)) -> String {
         let mut json: Value = serde_json::from_str(EXAMPLE).unwrap();

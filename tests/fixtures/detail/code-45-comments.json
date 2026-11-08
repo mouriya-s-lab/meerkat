@@ -1,8 +1,8 @@
 [
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6704737798",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/45#issuecomment-6704737798",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/45",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6704737798",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/45#issuecomment-6704737798",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/45",
     "id": 6704737798,
     "node_id": "IC_kwDOVloFec8AAAABj6IuBg",
     "user": {
@@ -28,11 +28,11 @@
     },
     "created_at": "2026-11-07T08:54:31Z",
     "updated_at": "2026-11-07T08:54:31Z",
-    "body": "council fix evidence (oh-my-omp/pm-council#7) 产生的实现 issue，不实施。",
+    "body": "council fix evidence (mouriya-s-lab/meerkat-council#7) 产生的实现 issue，不实施。",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6704737798/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6704737798/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,

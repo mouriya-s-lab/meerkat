@@ -1,4 +1,4 @@
-//! The three PM config files Quorum reads, as types: what they may
+//! The three PM config files Meerkat reads, as types: what they may
 //! hold is what parses.
 //!
 //! Every error names the file and the key path (`targets.web.council`).
@@ -10,8 +10,8 @@ use std::{
 
 use serde::{Deserialize, de::DeserializeOwned};
 
-/// `quorum/quorum.yaml`, relative to the PM config directory.
-pub const QUORUM_FILE: &str = "quorum/quorum.yaml";
+/// `meerkat/meerkat.yaml`, relative to the PM config directory.
+pub const MEERKAT_FILE: &str = "meerkat/meerkat.yaml";
 /// `shared/repos.yaml`, relative to the PM config directory.
 pub const REPOS_FILE: &str = "shared/repos.yaml";
 /// `shared/project.yaml`, relative to the PM config directory.
@@ -26,7 +26,7 @@ pub struct ConfigError {
     pub message: Problem,
 }
 
-/// What is wrong with a config file. Quorum's own findings are variants
+/// What is wrong with a config file. Meerkat's own findings are variants
 /// (the UI words them); the parser's and the system's words pass through.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(from = "String")]
@@ -67,7 +67,7 @@ impl From<String> for Problem {
 /// The text of the three files.
 #[derive(Debug, Clone, Copy)]
 pub struct ConfigText<'a> {
-    pub quorum: &'a str,
+    pub meerkat: &'a str,
     pub repos: &'a str,
     pub project: &'a str,
 }
@@ -75,7 +75,7 @@ pub struct ConfigText<'a> {
 /// The three files, parsed.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Config {
-    pub quorum: Quorum,
+    pub meerkat: Meerkat,
     pub repos: Repos,
     pub project: Project,
 }
@@ -84,7 +84,7 @@ pub struct Config {
 /// path.
 pub fn parse(text: ConfigText<'_>) -> Result<Config, ConfigError> {
     Ok(Config {
-        quorum: parse_file(QUORUM_FILE, text.quorum)?,
+        meerkat: parse_file(MEERKAT_FILE, text.meerkat)?,
         repos: parse_file(REPOS_FILE, text.repos)?,
         project: parse_file(PROJECT_FILE, text.project)?,
     })
@@ -111,12 +111,12 @@ fn parse_file<T: DeserializeOwned>(file: &str, text: &str) -> Result<T, ConfigEr
 }
 
 // ---------------------------------------------------------------------------
-// quorum/quorum.yaml
+// meerkat/meerkat.yaml
 
-/// `quorum/quorum.yaml`.
+/// `meerkat/meerkat.yaml`.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Quorum {
+pub struct Meerkat {
     /// The PM config repository the config page shows and saves to.
     pub config: ConfigRepo,
     pub targets: Targets,
@@ -294,12 +294,12 @@ pub struct ConfigRepo {
 pub enum Reader {
     Council,
     Guardians,
-    Quorum,
+    Meerkat,
     Dispatch,
 }
 
 impl Reader {
-    pub const ALL: [Reader; 4] = [Reader::Council, Reader::Guardians, Reader::Quorum, Reader::Dispatch];
+    pub const ALL: [Reader; 4] = [Reader::Council, Reader::Guardians, Reader::Meerkat, Reader::Dispatch];
 }
 
 /// Directory prefixes (`council/`) and the readers of the files under
@@ -522,19 +522,19 @@ impl TryFrom<String> for Name {
 mod tests {
     use super::*;
 
-    const QUORUM: &str = include_str!("../../config.example/quorum/quorum.yaml");
+    const MEERKAT: &str = include_str!("../../config.example/meerkat/meerkat.yaml");
     const REPOS: &str = include_str!("../../config.example/shared/repos.yaml");
     const PROJECT: &str = include_str!("../../config.example/shared/project.yaml");
 
     /// The example config with its `appearance` line replaced by `line`.
     fn with_appearance(line: &str) -> Result<Config, ConfigError> {
-        let quorum = QUORUM
+        let meerkat = MEERKAT
             .lines()
             .map(|l| if l.starts_with("appearance:") { line } else { l })
             .collect::<Vec<_>>()
             .join("\n");
         parse(ConfigText {
-            quorum: &quorum,
+            meerkat: &meerkat,
             repos: REPOS,
             project: PROJECT,
         })
@@ -543,24 +543,24 @@ mod tests {
     #[test]
     fn the_example_config_parses() {
         let config = parse(ConfigText {
-            quorum: QUORUM,
+            meerkat: MEERKAT,
             repos: REPOS,
             project: PROJECT,
         })
         .unwrap();
-        assert_eq!(config.quorum.appearance, Appearance::System);
+        assert_eq!(config.meerkat.appearance, Appearance::System);
     }
 
     #[test]
     fn appearance_is_system_light_or_dark() {
         let of = |value: &str| {
-            with_appearance(&format!("appearance: {value}")).map(|c| c.quorum.appearance)
+            with_appearance(&format!("appearance: {value}")).map(|c| c.meerkat.appearance)
         };
         assert_eq!(of("system"), Ok(Appearance::System));
         assert_eq!(of("light"), Ok(Appearance::Light));
         assert_eq!(of("dark"), Ok(Appearance::Dark));
         let error = of("dim").unwrap_err();
-        assert_eq!(error.file, QUORUM_FILE);
+        assert_eq!(error.file, MEERKAT_FILE);
         assert_eq!(error.path, "appearance");
         assert!(
             matches!(&error.message, Problem::Said(said) if said.starts_with("unknown variant `dim`")),
@@ -573,7 +573,7 @@ mod tests {
     #[test]
     fn appearance_is_required() {
         let error = with_appearance("").unwrap_err();
-        assert_eq!(error.file, QUORUM_FILE);
+        assert_eq!(error.file, MEERKAT_FILE);
         assert!(
             matches!(&error.message, Problem::Said(said) if said.contains("missing field `appearance`")),
             "{:?}",

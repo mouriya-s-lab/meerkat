@@ -1,5 +1,5 @@
 //! JSON over NSH's `fetch`, with errors as the person reading the
-//! Quorum needs them: the URL, the status and the server's own message.
+//! Meerkat needs them: the URL, the status and the server's own message.
 
 use nsh_core::prelude::{HttpRequest, HttpResponse, fetch};
 use serde::{Deserialize, de::DeserializeOwned};

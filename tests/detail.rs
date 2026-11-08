@@ -21,7 +21,7 @@ use std::{
 };
 
 use nsh_testing::StubRoute;
-use quorum::{
+use meerkat::{
     Lang, Msg,
     detail::{ImplGroup, Stance},
     gh::markers::Outcome,
@@ -34,13 +34,13 @@ use support::{Fixture, Sandbox};
 /// How long the window may take to show what an answer holds.
 const SHOWN: Duration = Duration::from_secs(10);
 /// The PM repository of G25 and of the recorded council queue.
-const DESIGN: &str = "oh-my-omp/pm-e2e-design";
+const DESIGN: &str = "mouriya-s-lab/meerkat-e2e-design";
 /// The PM repository of the human issue that changed an old one, and of
 /// the agenda issues implementation asks became.
-const AGENDA: &str = "oh-my-omp/pm-e2e-agenda";
+const AGENDA: &str = "mouriya-s-lab/meerkat-e2e-agenda";
 /// G25: a panel with a revision round, a veto, a counterexample and a
 /// ruling.
-const G25: &str = "oh-my-omp/pm-e2e-design#23";
+const G25: &str = "mouriya-s-lab/meerkat-e2e-design#23";
 /// The stub network's queue request.
 const QUEUE: &str = "GET http://council.test/v1/queue";
 
@@ -56,55 +56,55 @@ fn serial() -> MutexGuard<'static, ()> {
 fn agenda_with_revision_and_ruling() -> Result<(), String> {
     let _serial = serial();
     let sandbox = Sandbox::new("detail-revision-ruling");
-    let mut quorum = support::start_detail(&sandbox, DESIGN, Lang::Zh, Vec::new());
+    let mut meerkat = support::start_detail(&sandbox, DESIGN, Lang::Zh, Vec::new());
     let item = item(G25);
     let comments = comments(G25);
     let versions = versions(&comments);
-    open_from_list(&mut quorum, &item.title)?;
+    open_from_list(&mut meerkat, &item.title)?;
 
     // The header: status, agenda number, kind and drafting seat, when it
     // was opened, the title — as the Project item (and the council's
     // verdict on it) has them.
-    let g25 = header(&quorum, DESIGN, &item, Some(queue_state(&recorded_queue(), G25)));
-    wait_for_run(&mut quorum, &g25)?;
+    let g25 = header(&meerkat, DESIGN, &item, Some(queue_state(&recorded_queue(), G25)));
+    wait_for_run(&mut meerkat, &g25)?;
 
     // The round track, step by step: the matrix's glyphs are the version's
     // `pm:vote` rows, the veto ⊘ and the counterexample ?; a ruled row has
     // its category; the decided version has the rule in its head.
     let decision = marker_of(&comments, "decision").expect("G25's pm:decision");
     let threshold = decision["rows"][0]["threshold"].as_u64().expect("a threshold") as u32;
-    let rule = quorum.say(&Msg::Rule(threshold));
+    let rule = meerkat.say(&Msg::Rule(threshold));
     let steps = steps(&versions);
     assert_eq!(steps.len(), 3, "G25's track: draft v1, revision v1 → v2, draft v2");
     let mut saw = (false, false);
     for (title, shown) in &steps {
         // A press's re-render may come after the press has settled: the
         // step is chosen once the track, matrix and results show it.
-        let step = format!("label:{}", quorum.say(title));
-        quorum.press(&step)?;
-        quorum.wait_for_selected(&step, SHOWN)?;
+        let step = format!("label:{}", meerkat.say(title));
+        meerkat.press(&step)?;
+        meerkat.wait_for_selected(&step, SHOWN)?;
         let version = versions.iter().find(|v| v.number == *shown).expect("the step's version");
         let cells = cells(version);
         for cell in &cells {
-            let label = cell.label(&quorum);
-            assert_eq!(quorum.count(&format!("label:{label}"))?, 1, "the matrix has no cell {label}");
-            assert_eq!(quorum.count(&cell.selector(&quorum))?, 1, "the cell {label} is not {}", glyph(cell.stance));
+            let label = cell.label(&meerkat);
+            assert_eq!(meerkat.count(&format!("label:{label}"))?, 1, "the matrix has no cell {label}");
+            assert_eq!(meerkat.count(&cell.selector(&meerkat))?, 1, "the cell {label} is not {}", glyph(cell.stance));
             saw.0 |= cell.stance == Stance::Veto;
             saw.1 |= cell.stance == Stance::Counterexample;
         }
         for (row, category) in &version.ruling {
-            let ruled = quorum.say(&Msg::Ruled(category.clone()));
-            assert!(quorum.shows(&ruled), "v{shown}'s row {row} has no 「{ruled}」");
+            let ruled = meerkat.say(&Msg::Ruled(category.clone()));
+            assert!(meerkat.shows(&ruled), "v{shown}'s row {row} has no 「{ruled}」");
         }
         if version.ruling.is_empty() {
-            let ruled = quorum.say(&Msg::Ruled(String::new()));
+            let ruled = meerkat.say(&Msg::Ruled(String::new()));
             assert!(
-                !quorum.texts().iter().any(|t| t.starts_with(ruled.trim_end())),
+                !meerkat.texts().iter().any(|t| t.starts_with(ruled.trim_end())),
                 "v{shown} has no ruling, yet a row shows one"
             );
         }
         let decided = decision["version"].as_u64() == Some(u64::from(*shown));
-        assert_eq!(quorum.shows(&rule), decided, "the rule 「{rule}」 in v{shown}'s head");
+        assert_eq!(meerkat.shows(&rule), decided, "the rule 「{rule}」 in v{shown}'s head");
     }
     assert_eq!(saw, (true, true), "the recording has a veto and a counterexample");
 
@@ -113,21 +113,21 @@ fn agenda_with_revision_and_ruling() -> Result<(), String> {
     let mut outcomes: BTreeMap<String, usize> = BTreeMap::new();
     for row in decision["rows"].as_array().expect("the decision's rows") {
         let outcome: Outcome = serde_json::from_value(row["outcome"].clone()).expect("an outcome");
-        let line = quorum.say(&Msg::OutcomeCount {
+        let line = meerkat.say(&Msg::OutcomeCount {
             outcome,
             approve: row["approve"].as_u64().expect("approvals") as u32,
             threshold: row["threshold"].as_u64().expect("a threshold") as u32,
         });
         *outcomes.entry(line).or_default() += 1;
         let reason = row["reason"].as_str().expect("a reason");
-        assert!(quorum.shows(reason), "the decision's reason {reason:?} is not shown");
+        assert!(meerkat.shows(reason), "the decision's reason {reason:?} is not shown");
     }
     for (line, n) in &outcomes {
-        assert_eq!(quorum.count(&format!("text:{line}"))?, *n, "rows that read 「{line}」");
+        assert_eq!(meerkat.count(&format!("text:{line}"))?, *n, "rows that read 「{line}」");
     }
     for created in decision["impl"].as_array().expect("the decision's impl") {
         let created = created.as_str().expect("an issue");
-        assert_eq!(quorum.count(&format!("label:{created}"))?, 1, "the decision's implementation {created}");
+        assert_eq!(meerkat.count(&format!("label:{created}"))?, 1, "the decision's implementation {created}");
     }
 
     // A veto cell on the version it was cast on: its reason pops over —
@@ -146,18 +146,18 @@ fn agenda_with_revision_and_ruling() -> Result<(), String> {
         .iter()
         .find(|(title, _)| matches!(title, Msg::StepDraft { version: v, .. } if *v == version.number))
         .expect("the veto's version's step");
-    let step = format!("label:{}", quorum.say(&draft.0));
-    quorum.press(&step)?;
-    quorum.wait_for_selected(&step, SHOWN)?;
+    let step = format!("label:{}", meerkat.say(&draft.0));
+    meerkat.press(&step)?;
+    meerkat.wait_for_selected(&step, SHOWN)?;
     let cell = Cell {
         seat: vote.seat.clone(),
         row: row["row"].as_str().expect("a row").to_owned(),
         stance: Stance::Veto,
     };
-    quorum.press(&format!("label:{}", cell.label(&quorum)))?;
+    meerkat.press(&format!("label:{}", cell.label(&meerkat)))?;
     let reason = prose(&vote.body);
     assert!(!reason.is_empty(), "the veto's comment has text above its marker");
-    quorum.wait_for(&reason, SHOWN)?;
+    meerkat.wait_for(&reason, SHOWN)?;
     for (field, msg) in [
         ("counterexample", Msg::Counterexample),
         ("citation", Msg::Citation),
@@ -165,8 +165,8 @@ fn agenda_with_revision_and_ruling() -> Result<(), String> {
     ] {
         match row[field].as_str() {
             Some(value) => {
-                assert!(quorum.shows(value), "the veto's {field} {value:?} is not in its reason");
-                assert!(quorum.shows(&quorum.say(&msg)), "the reason does not name its {field}");
+                assert!(meerkat.shows(value), "the veto's {field} {value:?} is not in its reason");
+                assert!(meerkat.shows(&meerkat.say(&msg)), "the reason does not name its {field}");
             }
             None => assert!(row[field].is_null(), "the veto's {field} is neither text nor null"),
         }
@@ -190,33 +190,33 @@ fn agenda_with_revision_and_ruling() -> Result<(), String> {
         .iter()
         .find(|(title, _)| matches!(title, Msg::StepDraft { version: v, .. } if *v == version.number))
         .expect("the counterexample's version's step");
-    let step = format!("label:{}", quorum.say(&draft.0));
-    quorum.press(&step)?;
-    quorum.wait_for_selected(&step, SHOWN)?;
+    let step = format!("label:{}", meerkat.say(&draft.0));
+    meerkat.press(&step)?;
+    meerkat.wait_for_selected(&step, SHOWN)?;
     let cell = Cell {
         seat: vote.seat.clone(),
         row: row["row"].as_str().expect("a row").to_owned(),
         stance: Stance::Counterexample,
     };
-    quorum.press(&format!("label:{}", cell.label(&quorum)))?;
+    meerkat.press(&format!("label:{}", cell.label(&meerkat)))?;
     let reason = prose(&vote.body);
     assert!(!reason.is_empty(), "the counterexample's comment has text above its marker");
-    quorum.wait_for(counterexample, SHOWN)?;
-    assert!(quorum.shows(&reason), "the counterexample's reason {reason:?} is not in its popup");
+    meerkat.wait_for(counterexample, SHOWN)?;
+    assert!(meerkat.shows(&reason), "the counterexample's reason {reason:?} is not in its popup");
     for (field, msg) in [
         ("citation", Msg::Citation),
         ("classification", Msg::Classification),
     ] {
         match row[field].as_str() {
             Some(value) => {
-                assert!(quorum.shows(value), "the counterexample's {field} {value:?} is not in its reason");
-                assert!(quorum.shows(&quorum.say(&msg)), "the reason does not name its {field}");
+                assert!(meerkat.shows(value), "the counterexample's {field} {value:?} is not in its reason");
+                assert!(meerkat.shows(&meerkat.say(&msg)), "the reason does not name its {field}");
             }
             None => assert!(row[field].is_null(), "the counterexample's {field} is neither text nor null"),
         }
     }
     assert!(
-        quorum.shows(&quorum.say(&Msg::Counterexample)),
+        meerkat.shows(&meerkat.say(&Msg::Counterexample)),
         "the reason does not name its counterexample"
     );
     Ok(())
@@ -230,7 +230,7 @@ fn human_agenda_supersedes() -> Result<(), String> {
     let queue = support::detail("agenda-queue.json");
     let sandbox = Sandbox::new("detail-supersedes");
     let routes = vec![(QUEUE.to_owned(), StubRoute::Response(support::answer(200, &queue)))];
-    let mut quorum = support::start_detail(&sandbox, AGENDA, Lang::Zh, routes);
+    let mut meerkat = support::start_detail(&sandbox, AGENDA, Lang::Zh, routes);
 
     // The human issue whose decision changed an old one.
     let (human, superseded) = items()
@@ -244,23 +244,23 @@ fn human_agenda_supersedes() -> Result<(), String> {
         })
         .expect("a recorded human issue whose decision supersedes an old one");
     let old = item(&superseded);
-    open_from_list(&mut quorum, &human.title)?;
+    open_from_list(&mut meerkat, &human.title)?;
 
     // Its detail lists the old issue it changed; a press opens that one.
-    let changed = quorum.say(&Msg::Supersedes);
-    quorum.wait_for(&changed, SHOWN)?;
+    let changed = meerkat.say(&Msg::Supersedes);
+    meerkat.wait_for(&changed, SHOWN)?;
     let link = format!("label:{}", old.title);
-    quorum.wait_for_view(&link, SHOWN)?;
-    quorum.press(&link)?;
+    meerkat.wait_for_view(&link, SHOWN)?;
+    meerkat.press(&link)?;
 
     // The old issue's detail says 已取代, as the council's verdict on it.
     let state = queue_state(&queue, &superseded);
-    assert_eq!(quorum.say(&Msg::Queue(state)), "已取代");
-    let old_header = header(&quorum, AGENDA, &old, Some(state));
-    wait_for_run(&mut quorum, &old_header)?;
+    assert_eq!(meerkat.say(&Msg::Queue(state)), "已取代");
+    let old_header = header(&meerkat, AGENDA, &old, Some(state));
+    wait_for_run(&mut meerkat, &old_header)?;
     // ... and names the human issue that changed it.
-    quorum.wait_for(&quorum.say(&Msg::SupersededBy), SHOWN)?;
-    assert_eq!(quorum.count(&format!("label:{}", human.title))?, 1, "the old issue's detail names {}", human.issue);
+    meerkat.wait_for(&meerkat.say(&Msg::SupersededBy), SHOWN)?;
+    assert_eq!(meerkat.count(&format!("label:{}", human.title))?, 1, "the old issue's detail names {}", human.issue);
     Ok(())
 }
 
@@ -270,10 +270,10 @@ fn human_agenda_supersedes() -> Result<(), String> {
 fn sessions_by_round() -> Result<(), String> {
     let _serial = serial();
     let sandbox = Sandbox::new("detail-sessions");
-    let mut quorum = support::start_detail(&sandbox, DESIGN, Lang::Zh, Vec::new());
+    let mut meerkat = support::start_detail(&sandbox, DESIGN, Lang::Zh, Vec::new());
     let item = item(G25);
     let comments = comments(G25);
-    open_from_list(&mut quorum, &item.title)?;
+    open_from_list(&mut meerkat, &item.title)?;
 
     // The council's recorded sessions whose `ref` is G25, by the round
     // each started in: the last round whose panel started at or before it.
@@ -290,16 +290,16 @@ fn sessions_by_round() -> Result<(), String> {
         by_round.entry(round).or_default().push(session);
     }
 
-    let head = quorum.say(&Msg::CouncilSessions);
-    let end = quorum.say(&Msg::Relations);
+    let head = meerkat.say(&Msg::CouncilSessions);
+    let end = meerkat.say(&Msg::Relations);
     {
         let expected = sessions.len().to_string();
         let (head, end) = (head.clone(), end.clone());
-        quorum.wait_until("G25's sessions panel", SHOWN, move |texts| {
+        meerkat.wait_until("G25's sessions panel", SHOWN, move |texts| {
             panel_of(texts, &head, &end).is_some_and(|panel| panel.first().copied() == Some(expected.as_str()))
         })?;
     }
-    let texts = quorum.texts();
+    let texts = meerkat.texts();
     let panel = panel_of(&texts.iter().map(String::as_str).collect::<Vec<_>>(), &head, &end).expect("the panel");
 
     // Each round's header, then its sessions — the same ones the recording
@@ -307,7 +307,7 @@ fn sessions_by_round() -> Result<(), String> {
     let headers: Vec<(u32, usize)> = by_round
         .keys()
         .map(|round| {
-            let name = quorum.say(&Msg::RoundNumber(*round));
+            let name = meerkat.say(&Msg::RoundNumber(*round));
             let at = panel.iter().position(|t| *t == name).unwrap_or_else(|| panic!("no 「{name}」 in {panel:?}"));
             (*round, at)
         })
@@ -316,7 +316,7 @@ fn sessions_by_round() -> Result<(), String> {
         let until = headers.iter().map(|(_, h)| *h).filter(|h| h > at).min().unwrap_or(panel.len());
         let shown = &panel[at + 1..until];
         let expected = &by_round[round];
-        let titles: Vec<String> = expected.iter().map(|s| s.title(&quorum)).collect();
+        let titles: Vec<String> = expected.iter().map(|s| s.title(&meerkat)).collect();
         let lines: Vec<&str> = shown.iter().copied().filter(|t| titles.iter().any(|title| title == t)).collect();
         assert_eq!(lines.len(), expected.len(), "round {round}'s sessions: {shown:?}");
         for title in &titles {
@@ -326,7 +326,7 @@ fn sessions_by_round() -> Result<(), String> {
         }
         let kinds: Vec<&str> = lines
             .iter()
-            .map(|line| expected.iter().find(|s| s.title(&quorum) == *line).expect("a session").kind.as_str())
+            .map(|line| expected.iter().find(|s| s.title(&meerkat) == *line).expect("a session").kind.as_str())
             .collect();
         for (i, kind) in kinds.iter().enumerate() {
             assert!(
@@ -344,25 +344,25 @@ fn sessions_by_round() -> Result<(), String> {
         .expect("the logged session is G25's");
     assert_eq!(logged.kind, "vote");
     let round = by_round.iter().find(|(_, s)| s.iter().any(|s| s.id == logged.id)).map(|(r, _)| *r).expect("its round");
-    let title = logged.title(&quorum);
+    let title = logged.title(&meerkat);
     // Rounds show newest first: the same line of later rounds comes before.
     let before = by_round
         .range(round + 1..)
         .flat_map(|(_, s)| s)
-        .filter(|s| s.title(&quorum) == title)
+        .filter(|s| s.title(&meerkat) == title)
         .count();
-    assert_eq!(by_round[&round].iter().filter(|s| s.title(&quorum) == title).count(), 1);
+    assert_eq!(by_round[&round].iter().filter(|s| s.title(&meerkat) == title).count(), 1);
     let collapsed = panel.iter().map(|t| (*t).to_owned()).collect::<Vec<_>>();
-    quorum.press(&format!("label:{title} >> nth={before}"))?;
-    let open = quorum.say(&Msg::OpenSession);
-    let parsing = quorum.say(&Msg::Parsing);
+    meerkat.press(&format!("label:{title} >> nth={before}"))?;
+    let open = meerkat.say(&Msg::OpenSession);
+    let parsing = meerkat.say(&Msg::Parsing);
     {
         let (open, parsing) = (open.clone(), parsing.clone());
-        quorum.wait_until("the session's log in place", SHOWN, move |texts| {
+        meerkat.wait_until("the session's log in place", SHOWN, move |texts| {
             texts.contains(&open.as_str()) && !texts.contains(&parsing.as_str())
         })?;
     }
-    let texts = quorum.texts();
+    let texts = meerkat.texts();
     let expanded: Vec<String> = panel_of(&texts.iter().map(String::as_str).collect::<Vec<_>>(), &head, &end)
         .expect("the panel")
         .iter()
@@ -379,12 +379,12 @@ fn sessions_by_round() -> Result<(), String> {
         .collect();
     assert!(log.iter().any(|t| clocks.contains(t)), "the expanded log is not the recorded one: {log:?}");
 
-    quorum.press(&format!("label:{open}"))?;
+    meerkat.press(&format!("label:{open}"))?;
     let want = log.clone();
-    quorum.wait_until("the same log on 「会话」", SHOWN, move |texts| {
+    meerkat.wait_until("the same log on 「会话」", SHOWN, move |texts| {
         texts.windows(want.len()).any(|w| w.iter().zip(&want).all(|(a, b)| *a == b))
     })?;
-    assert!(quorum.shows(&logged.id), "「会话」 does not show the session {}", logged.id);
+    assert!(meerkat.shows(&logged.id), "「会话」 does not show the session {}", logged.id);
     Ok(())
 }
 
@@ -394,7 +394,7 @@ fn sessions_by_round() -> Result<(), String> {
 fn implementation_timelines() -> Result<(), String> {
     let _serial = serial();
     let sandbox = Sandbox::new("detail-implementations");
-    let mut quorum = support::start_detail(&sandbox, AGENDA, Lang::Zh, Vec::new());
+    let mut meerkat = support::start_detail(&sandbox, AGENDA, Lang::Zh, Vec::new());
     let started = time::now_ms();
     let implementations: Vec<Item> = items()
         .into_iter()
@@ -409,21 +409,21 @@ fn implementation_timelines() -> Result<(), String> {
 
     // 「实现」: the groups in order 等答复, 进行中, 待办, 完成, each with its
     // count and its issues; 完成 unfolds on a press.
-    quorum.open(Msg::PageImplementations)?;
-    let done = quorum.say(&Msg::ImplGroup(ImplGroup::Done));
-    quorum.wait_for_view(&format!("label:{done}"), SHOWN)?;
-    quorum.press(&format!("label:{done}"))?;
+    meerkat.open(Msg::PageImplementations)?;
+    let done = meerkat.say(&Msg::ImplGroup(ImplGroup::Done));
+    meerkat.wait_for_view(&format!("label:{done}"), SHOWN)?;
+    meerkat.press(&format!("label:{done}"))?;
     {
         let titles: Vec<String> = titles.iter().map(|t| (*t).to_owned()).collect();
-        quorum.wait_until("every implementation issue", SHOWN, move |texts| {
+        meerkat.wait_until("every implementation issue", SHOWN, move |texts| {
             titles.iter().all(|t| texts.contains(&t.as_str()))
         })?;
     }
-    let texts = quorum.texts();
+    let texts = meerkat.texts();
     let headers: Vec<(ImplGroup, usize)> = ImplGroup::ALL
         .into_iter()
         .map(|group| {
-            let name = quorum.say(&Msg::ImplGroup(group));
+            let name = meerkat.say(&Msg::ImplGroup(group));
             let count = groups[&group].len().to_string();
             let at = texts
                 .windows(2)
@@ -433,7 +433,7 @@ fn implementation_timelines() -> Result<(), String> {
         })
         .collect();
     assert!(headers.windows(2).all(|w| w[0].1 < w[1].1), "the groups are out of order: {headers:?}");
-    // Each row names its issue first (「pm-e2e-code#N · 来自 …」): titles
+    // Each row names its issue first (「meerkat-e2e-code#N · 来自 …」): titles
     // repeat in the recording, issue numbers do not.
     for (group, at) in &headers {
         let until = headers.iter().map(|(_, h)| *h).filter(|h| h > at).min().unwrap_or(texts.len());
@@ -475,41 +475,41 @@ fn implementation_timelines() -> Result<(), String> {
     for item in [resumed, council, replaced, waiting] {
         let same = titles.iter().filter(|t| **t == item.title).count();
         assert_eq!(same, 1, "{}'s title is not unique among the implementations", item.issue);
-        quorum.press(&format!("label:{}", item.title))?;
+        meerkat.press(&format!("label:{}", item.title))?;
         let asks = asks(&comments(&item.issue));
-        quorum.wait_for_view(&format!("label:{}", asks[0].head(&quorum)), SHOWN)?;
+        meerkat.wait_for_view(&format!("label:{}", asks[0].head(&meerkat)), SHOWN)?;
         for ask in &asks {
-            ask.check(&mut quorum, started)?;
+            ask.check(&mut meerkat, started)?;
         }
     }
 
     // The resumed issue: one start, then each later `impl` a resume.
-    quorum.press(&format!("label:{}", resumed.title))?;
+    meerkat.press(&format!("label:{}", resumed.title))?;
     let impls = markers(&comments(&resumed.issue)).iter().filter(|(k, _)| k == "impl").count();
-    quorum.wait_for(&quorum.say(&Msg::ImplStarted), SHOWN)?;
-    assert_eq!(quorum.count(&format!("text:{}", quorum.say(&Msg::ImplStarted)))?, 1);
-    assert_eq!(quorum.count(&format!("text:{}", quorum.say(&Msg::ImplResumed)))?, impls - 1);
+    meerkat.wait_for(&meerkat.say(&Msg::ImplStarted), SHOWN)?;
+    assert_eq!(meerkat.count(&format!("text:{}", meerkat.say(&Msg::ImplStarted)))?, 1);
+    assert_eq!(meerkat.count(&format!("text:{}", meerkat.say(&Msg::ImplResumed)))?, impls - 1);
 
     // The replaced issue points at the new one; the new one's `replaces`
     // points back.
-    quorum.press(&format!("label:{}", replaced.title))?;
+    meerkat.press(&format!("label:{}", replaced.title))?;
     let (_, settled) = markers(&comments(&replaced.issue))
         .into_iter()
         .find(|(k, _)| k == "replaced")
         .expect("its pm:replaced");
     let new = item(settled["by"].as_str().expect("replaced by"));
-    let forward = format!("label:{}", quorum.say(&Msg::ReplacedBy(short(&new.issue))));
-    quorum.wait_for_view(&forward, SHOWN)?;
-    quorum.press(&forward)?;
+    let forward = format!("label:{}", meerkat.say(&Msg::ReplacedBy(short(&new.issue))));
+    meerkat.wait_for_view(&forward, SHOWN)?;
+    meerkat.press(&forward)?;
     let (kind, replaces) = marker(&new.body).expect("the new issue's body ends with a marker");
     assert_eq!(kind, "replaces");
     assert_eq!(replaces["old"].as_str(), Some(replaced.issue.as_str()));
-    let back = format!("label:{}", quorum.say(&Msg::Replaces(short(&replaced.issue))));
-    quorum.wait_for_view(&back, SHOWN)?;
-    quorum.wait_for(&new.title, SHOWN)?;
-    quorum.press(&back)?;
+    let back = format!("label:{}", meerkat.say(&Msg::Replaces(short(&replaced.issue))));
+    meerkat.wait_for_view(&back, SHOWN)?;
+    meerkat.wait_for(&new.title, SHOWN)?;
+    meerkat.press(&back)?;
     let asks = asks(&comments(&replaced.issue));
-    quorum.wait_for_view(&format!("label:{}", asks[0].head(&quorum)), SHOWN)?;
+    meerkat.wait_for_view(&format!("label:{}", asks[0].head(&meerkat)), SHOWN)?;
     Ok(())
 }
 
@@ -519,43 +519,43 @@ fn implementation_timelines() -> Result<(), String> {
 fn click_paths() -> Result<(), String> {
     let _serial = serial();
     let sandbox = Sandbox::new("detail-click-paths");
-    let mut quorum = support::start_detail(&sandbox, DESIGN, Lang::Zh, Vec::new());
+    let mut meerkat = support::start_detail(&sandbox, DESIGN, Lang::Zh, Vec::new());
     let g25_item = item(G25);
-    let g25 = header(&quorum, DESIGN, &g25_item, Some(queue_state(&recorded_queue(), G25)));
+    let g25 = header(&meerkat, DESIGN, &g25_item, Some(queue_state(&recorded_queue(), G25)));
     let latest = versions(&comments(G25)).pop().expect("G25's latest version");
     let cells = cells(&latest);
     let node = format!("label:{}", g25_item.title);
-    let open_detail = format!("label:{}", quorum.say(&Msg::OpenDetail));
-    let issues = quorum.say(&Msg::PageIssues);
+    let open_detail = format!("label:{}", meerkat.say(&Msg::OpenDetail));
+    let issues = meerkat.say(&Msg::PageIssues);
 
     // The graph: a press selects the node, the inspector shows the latest
     // version's seat × row matrix; 「打开详情」 opens the detail, whose
     // matrix is the same.
-    quorum.open(Msg::PageIssues)?;
-    quorum.press(&format!("label:{}", quorum.say(&Msg::ViewGraph)))?;
+    meerkat.open(Msg::PageIssues)?;
+    meerkat.press(&format!("label:{}", meerkat.say(&Msg::ViewGraph)))?;
     // Fit the canvas to the window: every column's node is then on screen.
-    let fit = format!("label:{}", quorum.say(&Msg::Fit));
-    quorum.wait_for_view(&fit, SHOWN)?;
-    quorum.press(&fit)?;
-    quorum.wait_for_view(&node, SHOWN)?;
-    quorum.press(&node)?;
-    quorum.wait_for_view(&cells[0].selector(&quorum), SHOWN)?;
-    assert!(quorum.selected(&node)?, "the graph's node is not selected");
-    same_cells(&quorum, &cells, "the inspector's matrix")?;
-    quorum.press(&open_detail)?;
-    wait_for_run(&mut quorum, &g25)?;
-    quorum.wait_for_view(&cells[0].selector(&quorum), SHOWN)?;
-    same_cells(&quorum, &cells, "the detail's matrix")?;
+    let fit = format!("label:{}", meerkat.say(&Msg::Fit));
+    meerkat.wait_for_view(&fit, SHOWN)?;
+    meerkat.press(&fit)?;
+    meerkat.wait_for_view(&node, SHOWN)?;
+    meerkat.press(&node)?;
+    meerkat.wait_for_view(&cells[0].selector(&meerkat), SHOWN)?;
+    assert!(meerkat.selected(&node)?, "the graph's node is not selected");
+    same_cells(&meerkat, &cells, "the inspector's matrix")?;
+    meerkat.press(&open_detail)?;
+    wait_for_run(&mut meerkat, &g25)?;
+    meerkat.wait_for_view(&cells[0].selector(&meerkat), SHOWN)?;
+    same_cells(&meerkat, &cells, "the detail's matrix")?;
 
     // The list: the same through a row.
-    quorum.press(&format!("label:{issues} >> nth=1"))?;
-    quorum.press(&format!("label:{}", quorum.say(&Msg::ViewList)))?;
-    quorum.wait_for_view(&node, SHOWN)?;
-    quorum.press(&node)?;
-    quorum.wait_for_view(&cells[0].selector(&quorum), SHOWN)?;
-    same_cells(&quorum, &cells, "the list inspector's matrix")?;
-    quorum.press(&open_detail)?;
-    wait_for_run(&mut quorum, &g25)?;
+    meerkat.press(&format!("label:{issues} >> nth=1"))?;
+    meerkat.press(&format!("label:{}", meerkat.say(&Msg::ViewList)))?;
+    meerkat.wait_for_view(&node, SHOWN)?;
+    meerkat.press(&node)?;
+    meerkat.wait_for_view(&cells[0].selector(&meerkat), SHOWN)?;
+    same_cells(&meerkat, &cells, "the list inspector's matrix")?;
+    meerkat.press(&open_detail)?;
+    wait_for_run(&mut meerkat, &g25)?;
 
     // 概览 「需要你处理」: the open escalation's button opens the agenda
     // issue it waits on.
@@ -566,12 +566,12 @@ fn click_paths() -> Result<(), String> {
         .find(|(k, _)| k == "escalated")
         .expect("an open escalation");
     let agenda = item(escalated["agenda"].as_str().expect("an agenda issue"));
-    quorum.open(Msg::PageOverview)?;
-    let button = format!("label:{}", quorum.say(&Msg::OpenAgenda(agenda_label(DESIGN, &agenda))));
-    quorum.wait_for_view(&button, SHOWN)?;
-    quorum.press(&button)?;
-    let opened = header(&quorum, DESIGN, &agenda, None);
-    wait_for_run(&mut quorum, &opened)?;
+    meerkat.open(Msg::PageOverview)?;
+    let button = format!("label:{}", meerkat.say(&Msg::OpenAgenda(agenda_label(DESIGN, &agenda))));
+    meerkat.wait_for_view(&button, SHOWN)?;
+    meerkat.press(&button)?;
+    let opened = header(&meerkat, DESIGN, &agenda, None);
+    wait_for_run(&mut meerkat, &opened)?;
     Ok(())
 }
 
@@ -830,8 +830,8 @@ struct Cell {
 }
 
 impl Cell {
-    fn label(&self, quorum: &Fixture) -> String {
-        quorum.say(&Msg::Cell {
+    fn label(&self, meerkat: &Fixture) -> String {
+        meerkat.say(&Msg::Cell {
             seat: self.seat.clone(),
             row: self.row.clone(),
             stance: self.stance,
@@ -839,8 +839,8 @@ impl Cell {
     }
 
     /// The cell showing its glyph.
-    fn selector(&self, quorum: &Fixture) -> String {
-        format!("label:{} >> text:{}", self.label(quorum), glyph(self.stance))
+    fn selector(&self, meerkat: &Fixture) -> String {
+        format!("label:{} >> text:{}", self.label(meerkat), glyph(self.stance))
     }
 }
 
@@ -860,11 +860,11 @@ fn cells(version: &Version) -> Vec<Cell> {
 }
 
 /// Each of `cells` shows once with its glyph.
-fn same_cells(quorum: &Fixture, cells: &[Cell], what: &str) -> Result<(), String> {
+fn same_cells(meerkat: &Fixture, cells: &[Cell], what: &str) -> Result<(), String> {
     for cell in cells {
-        let n = quorum.count(&cell.selector(quorum))?;
+        let n = meerkat.count(&cell.selector(meerkat))?;
         if n != 1 {
-            return Err(format!("{what}: {} shows {n} times", cell.selector(quorum)));
+            return Err(format!("{what}: {} shows {n} times", cell.selector(meerkat)));
         }
     }
     Ok(())
@@ -884,9 +884,9 @@ struct Session {
 
 impl Session {
     /// Its line's title: kind and the seat its label names.
-    fn title(&self, quorum: &Fixture) -> String {
+    fn title(&self, meerkat: &Fixture) -> String {
         let seat = self.label.split_whitespace().nth(1).filter(|seat| *seat != self.reference);
-        quorum.say(&Msg::SessionSeat {
+        meerkat.say(&Msg::SessionSeat {
             kind: self.kind.clone(),
             seat: seat.map(str::to_owned),
         })
@@ -978,13 +978,13 @@ fn ms(at: &str) -> f64 {
 
 impl Ask {
     /// The unit's head: number, time, how long until answered or escalated.
-    fn head(&self, quorum: &Fixture) -> String {
+    fn head(&self, meerkat: &Fixture) -> String {
         let asked = ms(&self.ask.at);
         let answered = match (&self.escalated, &self.settled) {
             (None, Some(settled)) => Some(time::ago(asked, ms(&settled.at))),
             _ => None,
         };
-        quorum.say(&Msg::AskHead {
+        meerkat.say(&Msg::AskHead {
             n: self.n,
             at: time::hm(asked),
             answered,
@@ -994,25 +994,25 @@ impl Ask {
 
     /// The unit holds the question, its escalation and its settlement, or
     /// what it waits on and for how long.
-    fn check(&self, quorum: &mut Fixture, started: f64) -> Result<(), String> {
-        let unit = format!("label:{}", self.head(quorum));
-        let inside = |quorum: &Fixture, text: &str| -> Result<(), String> {
-            match quorum.count(&format!("{unit} >> text:{text}"))? {
+    fn check(&self, meerkat: &mut Fixture, started: f64) -> Result<(), String> {
+        let unit = format!("label:{}", self.head(meerkat));
+        let inside = |meerkat: &Fixture, text: &str| -> Result<(), String> {
+            match meerkat.count(&format!("{unit} >> text:{text}"))? {
                 1 => Ok(()),
                 n => Err(format!("{unit} holds 「{text}」 {n} times")),
             }
         };
-        if quorum.count(&unit)? != 1 {
+        if meerkat.count(&unit)? != 1 {
             return Err(format!("no single unit {unit}"));
         }
         let question = prose(&self.ask.body);
         if !question.is_empty() {
-            inside(quorum, &question)?;
+            inside(meerkat, &question)?;
         }
         if let Some(escalated) = &self.escalated {
             let (_, marker) = escalated.marker.as_ref().expect("a marker");
             let agenda = marker["agenda"].as_str().expect("an agenda issue");
-            inside(quorum, &quorum.say(&Msg::Escalate(agenda_label(AGENDA, &item(agenda)))))?;
+            inside(meerkat, &meerkat.say(&Msg::Escalate(agenda_label(AGENDA, &item(agenda)))))?;
         }
         match &self.settled {
             Some(settled) => {
@@ -1023,10 +1023,10 @@ impl Ask {
                     ("replaced", _, Some(by)) => Msg::ReplacedBy(short(by)),
                     other => panic!("a settlement {other:?}"),
                 };
-                inside(quorum, &quorum.say(&title))?;
+                inside(meerkat, &meerkat.say(&title))?;
                 let quoted = prose(&settled.body);
                 if !quoted.is_empty() {
-                    inside(quorum, &quoted)?;
+                    inside(meerkat, &quoted)?;
                 }
             }
             None => {
@@ -1038,15 +1038,15 @@ impl Ask {
                     }
                     None => Msg::WaitGuardians,
                 };
-                inside(quorum, &quorum.say(&waiting))?;
+                inside(meerkat, &meerkat.say(&waiting))?;
                 // How long it has waited, as of when it was drawn.
                 let asked = ms(&self.ask.at);
                 let then: Ago = time::ago(asked, started);
                 let now: Ago = time::ago(asked, time::now_ms());
-                let words: Vec<String> = [then, now].iter().map(|ago| quorum.say(&Msg::Waited(*ago))).collect();
+                let words: Vec<String> = [then, now].iter().map(|ago| meerkat.say(&Msg::Waited(*ago))).collect();
                 let shown = words
                     .iter()
-                    .map(|w| quorum.count(&format!("{unit} >> text:{w}")))
+                    .map(|w| meerkat.count(&format!("{unit} >> text:{w}")))
                     .collect::<Result<Vec<_>, _>>()?;
                 if !shown.contains(&1) {
                     return Err(format!("{unit} does not say how long it waited: {words:?}"));
@@ -1096,40 +1096,40 @@ fn agenda_label(pm: &str, item: &Item) -> String {
 /// The detail's header for `item`: the status word (the council's verdict
 /// `state`), agenda number, kind and drafting seat, when it was opened,
 /// the title.
-fn header(quorum: &Fixture, pm: &str, item: &Item, state: Option<QueueState>) -> Vec<String> {
+fn header(meerkat: &Fixture, pm: &str, item: &Item, state: Option<QueueState>) -> Vec<String> {
     let mut run = Vec::new();
     if let Some(state) = state {
-        run.push(quorum.say(&Msg::Queue(state)));
+        run.push(meerkat.say(&Msg::Queue(state)));
     }
     run.push(agenda_label(pm, item));
     if state.is_some() {
-        run.push(quorum.say(&Msg::IssueKind {
+        run.push(meerkat.say(&Msg::IssueKind {
             human: item.field("Kind") == Some("Human"),
             proposer: item.field("Proposer").map(str::to_owned),
         }));
     }
-    run.push(quorum.say(&Msg::CreatedAt(time::short(&item.created_at))));
+    run.push(meerkat.say(&Msg::CreatedAt(time::short(&item.created_at))));
     run.push(item.title.clone());
     run
 }
 
 /// Waits for `run` as consecutive texts.
-fn wait_for_run(quorum: &mut Fixture, run: &[String]) -> Result<(), String> {
+fn wait_for_run(meerkat: &mut Fixture, run: &[String]) -> Result<(), String> {
     let run = run.to_vec();
-    quorum.wait_until(&format!("{run:?} in a row"), SHOWN, move |texts| {
+    meerkat.wait_until(&format!("{run:?} in a row"), SHOWN, move |texts| {
         texts.windows(run.len()).any(|w| w.iter().zip(&run).all(|(a, b)| a.trim() == b))
     })
 }
 
 /// 议题 as a list: a press on `title`'s row selects it, 「打开详情」 in the
 /// inspector opens its detail (#9: a press selects).
-fn open_from_list(quorum: &mut Fixture, title: &str) -> Result<(), String> {
-    quorum.open(Msg::PageIssues)?;
-    quorum.press(&format!("label:{}", quorum.say(&Msg::ViewList)))?;
+fn open_from_list(meerkat: &mut Fixture, title: &str) -> Result<(), String> {
+    meerkat.open(Msg::PageIssues)?;
+    meerkat.press(&format!("label:{}", meerkat.say(&Msg::ViewList)))?;
     let row = format!("label:{title}");
-    quorum.wait_for_view(&row, SHOWN)?;
-    quorum.press(&row)?;
-    let open = format!("label:{}", quorum.say(&Msg::OpenDetail));
-    quorum.wait_for_view(&open, SHOWN)?;
-    quorum.press(&open)
+    meerkat.wait_for_view(&row, SHOWN)?;
+    meerkat.press(&row)?;
+    let open = format!("label:{}", meerkat.say(&Msg::OpenDetail));
+    meerkat.wait_for_view(&open, SHOWN)?;
+    meerkat.press(&open)
 }

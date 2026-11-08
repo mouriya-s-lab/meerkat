@@ -1,12 +1,12 @@
 config:
-  repo: oh-my-omp/pm-config
+  repo: mouriya-s-lab/meerkat-config
   branch: main
   readers:
     council/: [council]
     guardians/: [guardians]
-    quorum/: [quorum]
+    meerkat/: [meerkat]
     dispatch/: [dispatch]
-    shared/: [council, guardians, quorum, dispatch]
+    shared/: [council, guardians, meerkat, dispatch]
 targets:
   macos:
     githubApi: https://api.github.com

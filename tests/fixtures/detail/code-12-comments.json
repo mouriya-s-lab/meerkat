@@ -1,8 +1,8 @@
 [
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6698338624",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/12#issuecomment-6698338624",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/12",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6698338624",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/12#issuecomment-6698338624",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/12",
     "id": 6698338624,
     "node_id": "IC_kwDOVloFec8AAAABj0CJQA",
     "user": {
@@ -32,7 +32,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6698338624/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6698338624/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -47,9 +47,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6698377629",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/12#issuecomment-6698377629",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/12",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6698377629",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/12#issuecomment-6698377629",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/12",
     "id": 6698377629,
     "node_id": "IC_kwDOVloFec8AAAABj0EhnQ",
     "user": {
@@ -75,11 +75,11 @@
     },
     "created_at": "2026-11-06T23:23:10Z",
     "updated_at": "2026-11-06T23:23:10Z",
-    "body": "原 issue oh-my-omp/pm-e2e-code#12 要求依据 oh-my-omp/pm-e2e-agenda#1 让 `notes list --open` 按“最后修改时间倒序”输出未完成便签，但该排序要求与仓库现状及设计范围不符，因此本 issue 被取代。当前数据模型中单条便签只有 `id`、`text`、`done` 三个字段（`store.go:12-16`），磁盘文件布局只有 `last_id` 与 `notes`（`store.go:20-23`），仓库内不存在任何记录最后修改时间的字段；现有 `list` 分支也不解析任何参数，只按 `store.List()` 返回的插入顺序逐条打印（`main.go:43-50`、`store.go:68-69`）。要实现按最后修改时间排序，必须额外引入时间字段、定义修改时点的更新规则以及旧数据文件的兼容策略，这些都超出设计书 §2 对 `notes list --open` 的规定。若该排序能力仍需要，应先在设计文档中补充时间字段与迁移规范，再单独开出实现 issue，而不是在本冒烟 issue 中夹带。\n\n<!-- pm:replaced {\"v\":1,\"ask\":6698338624,\"by\":\"oh-my-omp/pm-e2e-code#13\"} -->",
+    "body": "原 issue mouriya-s-lab/meerkat-e2e-code#12 要求依据 mouriya-s-lab/meerkat-e2e-agenda#1 让 `notes list --open` 按“最后修改时间倒序”输出未完成便签，但该排序要求与仓库现状及设计范围不符，因此本 issue 被取代。当前数据模型中单条便签只有 `id`、`text`、`done` 三个字段（`store.go:12-16`），磁盘文件布局只有 `last_id` 与 `notes`（`store.go:20-23`），仓库内不存在任何记录最后修改时间的字段；现有 `list` 分支也不解析任何参数，只按 `store.List()` 返回的插入顺序逐条打印（`main.go:43-50`、`store.go:68-69`）。要实现按最后修改时间排序，必须额外引入时间字段、定义修改时点的更新规则以及旧数据文件的兼容策略，这些都超出设计书 §2 对 `notes list --open` 的规定。若该排序能力仍需要，应先在设计文档中补充时间字段与迁移规范，再单独开出实现 issue，而不是在本冒烟 issue 中夹带。\n\n<!-- pm:replaced {\"v\":1,\"ask\":6698338624,\"by\":\"mouriya-s-lab/meerkat-e2e-code#13\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6698377629/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6698377629/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,

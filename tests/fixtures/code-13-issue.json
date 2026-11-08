@@ -1,10 +1,10 @@
 {
-  "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/13",
-  "repository_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code",
-  "labels_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/13/labels{/name}",
-  "comments_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/13/comments",
-  "events_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/13/events",
-  "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/13",
+  "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/13",
+  "repository_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code",
+  "labels_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/13/labels{/name}",
+  "comments_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/13/comments",
+  "events_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/13/events",
+  "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/13",
   "id": 6252436806,
   "node_id": "I_kwDOVloFec8AAAABdKydRg",
   "number": 13,
@@ -49,17 +49,17 @@
     "completed": 0,
     "percent_completed": 0
   },
-  "parent_issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-agenda/issues/1",
+  "parent_issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-agenda/issues/1",
   "issue_dependencies_summary": {
     "blocked_by": 0,
     "total_blocked_by": 0,
     "blocking": 0,
     "total_blocking": 0
   },
-  "body": "原 issue oh-my-omp/pm-e2e-code#12 要求依据 oh-my-omp/pm-e2e-agenda#1 让 `notes list --open` 按“最后修改时间倒序”输出未完成便签，但该排序要求与仓库现状及设计范围不符，因此本 issue 被取代。当前数据模型中单条便签只有 `id`、`text`、`done` 三个字段（`store.go:12-16`），磁盘文件布局只有 `last_id` 与 `notes`（`store.go:20-23`），仓库内不存在任何记录最后修改时间的字段；现有 `list` 分支也不解析任何参数，只按 `store.List()` 返回的插入顺序逐条打印（`main.go:43-50`、`store.go:68-69`）。要实现按最后修改时间排序，必须额外引入时间字段、定义修改时点的更新规则以及旧数据文件的兼容策略，这些都超出设计书 §2 对 `notes list --open` 的规定。若该排序能力仍需要，应先在设计文档中补充时间字段与迁移规范，再单独开出实现 issue，而不是在本冒烟 issue 中夹带。\n\n## 要实现什么\n\n在现有 CLI 中实现 `notes list --open`：\n\n- `notes list --open` 只列出未完成（`done` 为 `false`）的便签；输出格式沿用现有格式 `[ ] <id> <text>`，即未完成标记为空格（`main.go:43-50`）。\n- 未完成便签之间保持现有插入顺序输出，不引入按时间或其他字段的排序，也不修改磁盘数据格式。\n- `notes list`（不带参数）行为保持不变，仍列出全部便签并按插入顺序输出。\n- 对 `list` 的未知参数返回明确的用法错误，退出码沿用现有的错误路径（`main.go:26-28` 退出码 2）。\n- 不改动 ID 分配与“删除后 ID 不复用”的既有语义（`store.go:18-23,57-66,81-89`）。\n\n## 验收方式\n\n- `go test ./...` 通过。\n- 新增测试覆盖：`notes list --open` 在混合完成/未完成的数据下只输出未完成便签，且输出顺序为插入顺序；`notes list` 不加参数时仍输出全部便签；`notes list` 传入未知参数时报错。\n- 测试可使用 `t.TempDir()` 下的临时 JSON 文件，与现有测试风格一致（`store_test.go:9-79`）。\n\n[启动 dispatch](http://127.0.0.1:47591/oh-my-omp/pm-e2e-code/issues/13?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fpm-e2e%2Fpm-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n\n<!-- pm:replaces {\"v\":1,\"old\":\"oh-my-omp/pm-e2e-code#12\",\"ask\":6698338624} -->",
+  "body": "原 issue mouriya-s-lab/meerkat-e2e-code#12 要求依据 mouriya-s-lab/meerkat-e2e-agenda#1 让 `notes list --open` 按“最后修改时间倒序”输出未完成便签，但该排序要求与仓库现状及设计范围不符，因此本 issue 被取代。当前数据模型中单条便签只有 `id`、`text`、`done` 三个字段（`store.go:12-16`），磁盘文件布局只有 `last_id` 与 `notes`（`store.go:20-23`），仓库内不存在任何记录最后修改时间的字段；现有 `list` 分支也不解析任何参数，只按 `store.List()` 返回的插入顺序逐条打印（`main.go:43-50`、`store.go:68-69`）。要实现按最后修改时间排序，必须额外引入时间字段、定义修改时点的更新规则以及旧数据文件的兼容策略，这些都超出设计书 §2 对 `notes list --open` 的规定。若该排序能力仍需要，应先在设计文档中补充时间字段与迁移规范，再单独开出实现 issue，而不是在本冒烟 issue 中夹带。\n\n## 要实现什么\n\n在现有 CLI 中实现 `notes list --open`：\n\n- `notes list --open` 只列出未完成（`done` 为 `false`）的便签；输出格式沿用现有格式 `[ ] <id> <text>`，即未完成标记为空格（`main.go:43-50`）。\n- 未完成便签之间保持现有插入顺序输出，不引入按时间或其他字段的排序，也不修改磁盘数据格式。\n- `notes list`（不带参数）行为保持不变，仍列出全部便签并按插入顺序输出。\n- 对 `list` 的未知参数返回明确的用法错误，退出码沿用现有的错误路径（`main.go:26-28` 退出码 2）。\n- 不改动 ID 分配与“删除后 ID 不复用”的既有语义（`store.go:18-23,57-66,81-89`）。\n\n## 验收方式\n\n- `go test ./...` 通过。\n- 新增测试覆盖：`notes list --open` 在混合完成/未完成的数据下只输出未完成便签，且输出顺序为插入顺序；`notes list` 不加参数时仍输出全部便签；`notes list` 传入未知参数时报错。\n- 测试可使用 `t.TempDir()` 下的临时 JSON 文件，与现有测试风格一致（`store_test.go:9-79`）。\n\n[启动 dispatch](http://127.0.0.1:47591/mouriya-s-lab/meerkat-e2e-code/issues/13?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fmeerkat-e2e%2Fmeerkat-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n\n<!-- pm:replaces {\"v\":1,\"old\":\"mouriya-s-lab/meerkat-e2e-code#12\",\"ask\":6698338624} -->",
   "closed_by": null,
   "reactions": {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/13/reactions",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/13/reactions",
     "total_count": 0,
     "+1": 0,
     "-1": 0,
@@ -70,7 +70,7 @@
     "rocket": 0,
     "eyes": 0
   },
-  "timeline_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/13/timeline",
+  "timeline_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/13/timeline",
   "performed_via_github_app": null,
   "state_reason": null,
   "pinned_comment": null

@@ -1,4 +1,4 @@
-//! Why something Quorum asked for did not come. Quorum's own reasons are
+//! Why something Meerkat asked for did not come. Meerkat's own reasons are
 //! variants with their data, worded by the UI in its language
 //! (`Msg::Failure`); what a program, GitHub, git, the system or a parser
 //! said passes through as it is ([`Failure::Said`]).

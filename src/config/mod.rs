@@ -2,8 +2,8 @@
 //! `PM_CONFIG_DIR` at startup; the web build fetches the same four files
 //! from the site's `/config/` when it starts, so a config change takes
 //! effect on the next deploy and refresh, with no rebuild. Both parse the
-//! YAML files with [`schema`] and `quorum/theme.json` with [`theme`], use
-//! their own section of `quorum.yaml`'s `targets`, and remember the git
+//! YAML files with [`schema`] and `meerkat/theme.json` with [`theme`], use
+//! their own section of `meerkat.yaml`'s `targets`, and remember the git
 //! blob sha of every file they loaded.
 
 pub mod schema;
@@ -32,7 +32,7 @@ pub struct AppConfig {
     pub fields: Fields,
     pub theme: Theme,
     /// Every file the config was loaded from, with its git blob sha: what
-    /// runs, named so it compares against pm-config's `main`.
+    /// runs, named so it compares against meerkat-config's `main`.
     pub loaded: Vec<LoadedFile>,
 }
 
@@ -68,22 +68,22 @@ pub fn blob_sha(bytes: &[u8]) -> String {
 impl AppConfig {
     fn of(config: Config, theme: Theme, loaded: Vec<LoadedFile>) -> Self {
         let Config {
-            quorum,
+            meerkat,
             repos,
             project,
         } = config;
         #[cfg(target_arch = "wasm32")]
-        let endpoints = quorum.targets.web;
+        let endpoints = meerkat.targets.web;
         #[cfg(not(target_arch = "wasm32"))]
-        let endpoints = quorum.targets.macos;
+        let endpoints = meerkat.targets.macos;
         Self {
             endpoints,
-            config_repo: quorum.config,
-            refresh: Duration::from_secs(u64::from(quorum.refresh_seconds.get())),
-            attention: quorum.attention,
-            digest: quorum.digest,
-            filters: quorum.filters,
-            appearance: quorum.appearance,
+            config_repo: meerkat.config,
+            refresh: Duration::from_secs(u64::from(meerkat.refresh_seconds.get())),
+            attention: meerkat.attention,
+            digest: meerkat.digest,
+            filters: meerkat.filters,
+            appearance: meerkat.appearance,
             repos,
             fields: project.fields,
             theme,
@@ -104,13 +104,13 @@ fn text_of<'a>(file: &'static str, bytes: &'a [u8]) -> Result<&'a str, ConfigErr
 /// The config of the four files' bytes: each parsed by the same parsers
 /// every end uses, and each remembered by its git blob sha.
 fn assemble(
-    quorum: &[u8],
+    meerkat: &[u8],
     theme: &[u8],
     repos: &[u8],
     project: &[u8],
 ) -> Result<AppConfig, ConfigError> {
     let loaded = [
-        LoadedFile::of(schema::QUORUM_FILE, quorum),
+        LoadedFile::of(schema::MEERKAT_FILE, meerkat),
         LoadedFile::of(theme::THEME_FILE, theme),
         LoadedFile::of(schema::REPOS_FILE, repos),
         LoadedFile::of(schema::PROJECT_FILE, project),
@@ -118,7 +118,7 @@ fn assemble(
     .into_iter()
     .collect();
     let config = schema::parse(ConfigText {
-        quorum: text_of(schema::QUORUM_FILE, quorum)?,
+        meerkat: text_of(schema::MEERKAT_FILE, meerkat)?,
         repos: text_of(schema::REPOS_FILE, repos)?,
         project: text_of(schema::PROJECT_FILE, project)?,
     })?;
@@ -129,9 +129,9 @@ fn assemble(
     ))
 }
 
-/// The four files Quorum loads, by their path in the PM config directory.
+/// The four files Meerkat loads, by their path in the PM config directory.
 pub const FILES: [&str; 4] = [
-    schema::QUORUM_FILE,
+    schema::MEERKAT_FILE,
     theme::THEME_FILE,
     schema::REPOS_FILE,
     schema::PROJECT_FILE,
@@ -140,8 +140,8 @@ pub const FILES: [&str; 4] = [
 /// Whether the four files (in [`FILES`]' order) load: the same parsers
 /// both ends start with, run on candidate bytes; the first error.
 pub fn check(files: [&[u8]; 4]) -> Result<(), ConfigError> {
-    let [quorum, theme, repos, project] = files;
-    assemble(quorum, theme, repos, project).map(drop)
+    let [meerkat, theme, repos, project] = files;
+    assemble(meerkat, theme, repos, project).map(drop)
 }
 
 /// The environment variable naming the PM config directory.
@@ -152,11 +152,11 @@ pub const CONFIG_DIR_VAR: &str = "PM_CONFIG_DIR";
 /// was for.
 #[cfg(target_arch = "wasm32")]
 pub async fn load() -> Result<AppConfig, ConfigError> {
-    let quorum = fetch(schema::QUORUM_FILE).await?;
+    let meerkat = fetch(schema::MEERKAT_FILE).await?;
     let theme = fetch(theme::THEME_FILE).await?;
     let repos = fetch(schema::REPOS_FILE).await?;
     let project = fetch(schema::PROJECT_FILE).await?;
-    assemble(&quorum, &theme, &repos, &project)
+    assemble(&meerkat, &theme, &repos, &project)
 }
 
 /// `/config/<file>` of the site the page came from, fetched in full.
@@ -209,11 +209,11 @@ pub fn load() -> Result<AppConfig, ConfigError> {
             message: Problem::Said(format!("{}: {error}", path.display())),
         })
     };
-    let quorum = read(schema::QUORUM_FILE)?;
+    let meerkat = read(schema::MEERKAT_FILE)?;
     let theme = read(theme::THEME_FILE)?;
     let repos = read(schema::REPOS_FILE)?;
     let project = read(schema::PROJECT_FILE)?;
-    assemble(&quorum, &theme, &repos, &project)
+    assemble(&meerkat, &theme, &repos, &project)
 }
 
 #[cfg(test)]
@@ -228,7 +228,7 @@ mod tests {
                 .unwrap_or_else(|error| panic!("config.example/{file}: {error}"))
         };
         [
-            read(schema::QUORUM_FILE),
+            read(schema::MEERKAT_FILE),
             read(theme::THEME_FILE),
             read(schema::REPOS_FILE),
             read(schema::PROJECT_FILE),
@@ -254,10 +254,10 @@ mod tests {
     /// bytes.
     #[test]
     fn loading_records_each_files_blob_sha() {
-        let [quorum, theme, repos, project] = example();
-        let config = assemble(&quorum, &theme, &repos, &project).unwrap();
+        let [meerkat, theme, repos, project] = example();
+        let config = assemble(&meerkat, &theme, &repos, &project).unwrap();
         let expected = [
-            (schema::QUORUM_FILE, &quorum),
+            (schema::MEERKAT_FILE, &meerkat),
             (theme::THEME_FILE, &theme),
             (schema::REPOS_FILE, &repos),
             (schema::PROJECT_FILE, &project),
@@ -274,10 +274,10 @@ mod tests {
     /// key path that is wrong.
     #[test]
     fn a_bad_file_names_itself_and_its_key() {
-        let [quorum, theme, repos, project] = example();
-        let unknown = String::from_utf8(quorum).unwrap() + "unexpectedKey: 1\n";
+        let [meerkat, theme, repos, project] = example();
+        let unknown = String::from_utf8(meerkat).unwrap() + "unexpectedKey: 1\n";
         let error = assemble(unknown.as_bytes(), &theme, &repos, &project).unwrap_err();
-        assert_eq!(error.file, schema::QUORUM_FILE);
+        assert_eq!(error.file, schema::MEERKAT_FILE);
         assert_eq!(error.path, "unexpectedKey");
         assert!(matches!(&error.message, Problem::Said(said) if said.contains("unknown field")), "{:?}", error.message);
     }
@@ -287,7 +287,7 @@ mod tests {
     fn a_file_that_is_not_utf8_is_an_error() {
         let [_, theme, repos, project] = example();
         let error = assemble(&[0xff, 0xfe], &theme, &repos, &project).unwrap_err();
-        assert_eq!(error.file, schema::QUORUM_FILE);
+        assert_eq!(error.file, schema::MEERKAT_FILE);
         assert!(matches!(error.message, Problem::NotUtf8(_)), "{:?}", error.message);
     }
 }

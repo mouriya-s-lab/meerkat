@@ -1,5 +1,5 @@
 //! The shell (#9 「骨架与导航」): in windows at least 900 pt wide a 224 pt
-//! sidebar (Quorum, the ⌘K search, the pages in their groups with what
+//! sidebar (Meerkat, the ⌘K search, the pages in their groups with what
 //! needs you there, the programs and the GitHub API at its foot) beside
 //! the page; narrower windows keep the pages as tabs in a top bar. Each
 //! page opens under a toolbar with its title and, once, how fresh the data
@@ -914,7 +914,7 @@ fn top_bar(sources: Sources, context: Rc<Context>, nav: Nav) -> View {
         .bg(color(Sidebar))
         .border_b_1()
         .border_b_color(color(Border))
-        .child(text("Quorum").ty(Type::Heading))
+        .child(text("Meerkat").ty(Type::Heading))
         .child(
             view()
                 .flex_row()

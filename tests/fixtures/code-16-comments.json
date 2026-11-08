@@ -1,8 +1,8 @@
 [
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6698892101",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/16#issuecomment-6698892101",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/16",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6698892101",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/16#issuecomment-6698892101",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/16",
     "id": 6698892101,
     "node_id": "IC_kwDOVloFec8AAAABj0j7RQ",
     "user": {
@@ -32,7 +32,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6698892101/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6698892101/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -47,9 +47,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6698906382",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/16#issuecomment-6698906382",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/16",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6698906382",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/16#issuecomment-6698906382",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/16",
     "id": 6698906382,
     "node_id": "IC_kwDOVloFec8AAAABj0kzDg",
     "user": {
@@ -75,11 +75,11 @@
     },
     "created_at": "2026-11-06T23:48:15Z",
     "updated_at": "2026-11-06T23:48:15Z",
-    "body": "该询问需要议会决策，已提为议题 oh-my-omp/pm-e2e-agenda#13；议会定案后以答复或取代了结。\n\n<!-- pm:escalated {\"v\":1,\"ask\":6698892101,\"agenda\":\"oh-my-omp/pm-e2e-agenda#13\"} -->",
+    "body": "该询问需要议会决策，已提为议题 mouriya-s-lab/meerkat-e2e-agenda#13；议会定案后以答复或取代了结。\n\n<!-- pm:escalated {\"v\":1,\"ask\":6698892101,\"agenda\":\"mouriya-s-lab/meerkat-e2e-agenda#13\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6698906382/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6698906382/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,

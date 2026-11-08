@@ -2,7 +2,7 @@
 //! the configured branch is the one authority. Its files are listed and
 //! opened from GitHub every time; a candidate file is judged by every
 //! program that reads it (council and guardians `POST /v1/config/check`,
-//! the dispatch launcher's `POST /pm-config/check`, Quorum's own parsers);
+//! the dispatch launcher's `POST /pm-config/check`, Meerkat's own parsers);
 //! a save is one contents-API commit that GitHub refuses when the branch
 //! moved on; what each program runs is compared with the branch by git
 //! blob sha. Nothing here keeps a copy of a file or a verdict.
@@ -298,7 +298,7 @@ impl ConfigRepoClient {
                     Err(error) => Verdict::NoInput(error),
                 }
             }
-            Reader::Quorum => {
+            Reader::Meerkat => {
                 let paths = config::FILES.iter().map(|file| (*file).to_owned());
                 match self.candidate(paths, path, draft).await {
                     Ok(files) => {
@@ -327,7 +327,7 @@ impl ConfigRepoClient {
     }
 
     /// Commits `draft` as `opened.path` on the branch, replacing the file
-    /// that was opened (`quorum: edit <path>`).
+    /// that was opened (`meerkat: edit <path>`).
     pub async fn save(&self, opened: &Opened, draft: &str) -> Result<Saved, Failure> {
         #[derive(Serialize)]
         struct Put<'a> {
@@ -351,7 +351,7 @@ impl ConfigRepoClient {
             .put(
                 &path,
                 &Put {
-                    message: format!("quorum: edit {}", opened.path),
+                    message: format!("meerkat: edit {}", opened.path),
                     content: STANDARD.encode(draft),
                     sha: &opened.sha,
                     branch: self.branch(),

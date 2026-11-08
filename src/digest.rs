@@ -1,5 +1,5 @@
 //! The decision log (C4 `logDigest`): an omp session file reduced by
-//! `quorum.yaml`'s `digest` rules. The opening message, the program's
+//! `meerkat.yaml`'s `digest` rules. The opening message, the program's
 //! later prompts, the kept tools' calls with their arguments and results,
 //! a count for each run of a folded tool, the assistant's text when the
 //! rules show it, LLM errors, automatic retries, the plugin's continuation
@@ -484,10 +484,10 @@ mod tests {
             panic!("{:?}", items[1])
         };
         assert_eq!(meta.kind, "proxy");
-        assert_eq!(meta.reference.as_deref(), Some("oh-my-omp/pm-e2e-agenda#1"));
+        assert_eq!(meta.reference.as_deref(), Some("mouriya-s-lab/meerkat-e2e-agenda#1"));
         assert_eq!(meta.seat.as_deref(), Some("ClaudeHigh"));
         // The fork's opening, not the base's warm-up prompt.
-        assert!(matches!(items[2], DigestItem::Opening(Body::Text(t)) if t.contains("代读仓库 oh-my-omp/pm-e2e-code") && t.contains("列出入口文件路径")));
+        assert!(matches!(items[2], DigestItem::Opening(Body::Text(t)) if t.contains("代读仓库 mouriya-s-lab/meerkat-e2e-code") && t.contains("列出入口文件路径")));
         let DigestItem::ToolCall { name, args, result } = items[3] else {
             panic!("{:?}", items[3])
         };

@@ -983,7 +983,7 @@ pub fn impl_summary(
 // The council's sessions on an issue (#4 「审议会话与议题的关联」)
 
 /// The seat a council session sat for: its label is `<kind> <seat> <ref>`
-/// (pm-council `internal/sessions` `Summary.Label`); none for a label
+/// (meerkat-council `internal/sessions` `Summary.Label`); none for a label
 /// without a seat.
 pub fn council_seat(session: &Session) -> Option<&str> {
     let mut words = session.label.split_whitespace();
@@ -1312,14 +1312,14 @@ mod tests {
         assert_eq!((row.approve, row.threshold), (4, 3));
         assert_eq!(
             decision.implementations,
-            [issue_ref("oh-my-omp/pm-e2e-code#35")]
+            [issue_ref("mouriya-s-lab/meerkat-e2e-code#35")]
         );
         assert!(decision.superseded.is_empty());
         assert!(view.decision.text().starts_with("决策表第 2 版定案。"));
         assert!(
             view.decision
                 .text()
-                .ends_with("实现 issue：oh-my-omp/pm-e2e-code#35")
+                .ends_with("实现 issue：mouriya-s-lab/meerkat-e2e-code#35")
         );
     }
 
@@ -1333,7 +1333,7 @@ mod tests {
         let v1 = &rounds[0].versions[&1];
         let veto = cell(v1, "Argon", "r1").unwrap();
         assert_eq!(veto.choice, Choice::Veto);
-        assert_eq!(veto.citation.as_deref(), Some("oh-my-omp/pm-e2e-agenda#18"));
+        assert_eq!(veto.citation.as_deref(), Some("mouriya-s-lab/meerkat-e2e-agenda#18"));
         assert_eq!(veto.classification.as_deref(), Some("意图"));
         assert_eq!(v1.ruling.as_ref().unwrap().marker.seat, "LeadMentor");
         assert_eq!(v1.ruled("r1"), Some("意图"));
@@ -1362,7 +1362,7 @@ mod tests {
     #[test]
     fn human_issue_lists_the_issue_it_supersedes() {
         let comments = comments!("agenda-40-comments.json");
-        let old = issue_ref("oh-my-omp/pm-e2e-agenda#39");
+        let old = issue_ref("mouriya-s-lab/meerkat-e2e-agenda#39");
         let rounds = panel_history(&comments);
         assert_eq!(
             rounds[0].versions[&1].draft.marker.supersedes,
@@ -1382,7 +1382,7 @@ mod tests {
             [RoundEvent::Superseded(superseded), RoundEvent::Panel(_)] => {
                 assert_eq!(
                     superseded.marker.by,
-                    issue_ref("oh-my-omp/pm-e2e-agenda#40")
+                    issue_ref("mouriya-s-lab/meerkat-e2e-agenda#40")
                 );
             }
             other => panic!("{other:?}"),
@@ -1403,7 +1403,7 @@ mod tests {
 
     #[test]
     fn a_round_whose_last_panel_event_stops_it_is_stopped() {
-        // Round 2 fails on publishing as pm-e2e-design#14's did; round 1
+        // Round 2 fails on publishing as meerkat-e2e-design#14's did; round 1
         // fails and resumes.
         let comments = [
             panel(1, 0, "started", 1, "null"),
@@ -1421,7 +1421,7 @@ mod tests {
                 4,
                 "failed",
                 2,
-                "\"create issue in oh-my-omp/pm-e2e-code: GraphQL: Title can't be blank (createIssue)\"",
+                "\"create issue in mouriya-s-lab/meerkat-e2e-code: GraphQL: Title can't be blank (createIssue)\"",
             ),
         ];
         let rounds = panel_history(&comments);
@@ -1470,7 +1470,7 @@ mod tests {
         assert_eq!(rounds.len(), 1);
         let invalid = reasons(&rounds[0].invalid);
         assert_eq!(invalid.len(), 4, "{invalid:?}");
-        assert!(invalid[0].starts_with("second pm:vote of seat Coordination on version 1 (first: https://github.com/oh-my-omp/pm-e2e-agenda/issues/44#issuecomment-6703721691)"));
+        assert!(invalid[0].starts_with("second pm:vote of seat Coordination on version 1 (first: https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/44#issuecomment-6703721691)"));
         assert!(invalid[1].starts_with("pm:vote: unknown variant `abstain`"));
         assert_eq!(
             invalid[2],
@@ -1479,7 +1479,7 @@ mod tests {
         assert!(invalid[3].starts_with("pm:tally: unknown kind"));
         assert_eq!(
             rounds[0].invalid[0].comment_url,
-            "https://github.com/oh-my-omp/pm-e2e-agenda/issues/44#issuecomment-6703721700"
+            "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/44#issuecomment-6703721700"
         );
         let v1 = &rounds[0].versions[&1];
         assert_eq!(
@@ -1494,12 +1494,12 @@ mod tests {
         let view = decision_view(&comments).unwrap();
         assert_eq!(
             view.decision.comment.html_url,
-            "https://github.com/oh-my-omp/pm-e2e-agenda/issues/44#issuecomment-6703758516"
+            "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/44#issuecomment-6703758516"
         );
         assert_eq!(
             reasons(&view.invalid),
             [
-                "second pm:decision (first: https://github.com/oh-my-omp/pm-e2e-agenda/issues/44#issuecomment-6703758516)"
+                "second pm:decision (first: https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/44#issuecomment-6703758516)"
             ]
         );
     }
@@ -1523,7 +1523,7 @@ mod tests {
     #[test]
     fn replies_pair_with_their_asks_between_impls() {
         let comments = comments!("code-20-comments.json");
-        let issue = plain_issue("https://github.com/oh-my-omp/pm-e2e-code/issues/20");
+        let issue = plain_issue("https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/20");
         let items = ask_timeline(issue, &comments, at("2026-11-07T01:00:00Z"));
         assert_eq!(items.len(), 5, "{items:?}");
         for (i, item) in items.iter().enumerate() {
@@ -1555,14 +1555,14 @@ mod tests {
     #[test]
     fn escalated_asks_carry_the_council_settlement() {
         let comments = comments!("code-3-comments.json");
-        let issue = plain_issue("https://github.com/oh-my-omp/pm-e2e-code/issues/3");
+        let issue = plain_issue("https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/3");
         let items = ask_timeline(issue, &comments, at("2026-11-07T08:00:00Z"));
         assert_eq!(items.len(), 5, "{items:?}");
         for item in &items[..2] {
             assert!(settled(item).1.is_none());
         }
         for (item, agenda) in items[2..].iter().zip([31, 36, 43]) {
-            let agenda = issue_ref(&format!("oh-my-omp/pm-e2e-agenda#{agenda}"));
+            let agenda = issue_ref(&format!("mouriya-s-lab/meerkat-e2e-agenda#{agenda}"));
             let (thread, escalated, settlement) = settled(item);
             let escalated = escalated.unwrap();
             assert_eq!(
@@ -1581,7 +1581,7 @@ mod tests {
     #[test]
     fn escalated_open_ask_waits_on_the_council() {
         let comments = comments!("code-16-comments.json");
-        let issue = plain_issue("https://github.com/oh-my-omp/pm-e2e-code/issues/16");
+        let issue = plain_issue("https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/16");
         let items = ask_timeline(issue, &comments, at("2026-11-07T01:17:25Z"));
         let [TimelineItem::Ask(thread)] = items.as_slice() else {
             panic!("{items:?}")
@@ -1595,7 +1595,7 @@ mod tests {
         };
         assert_eq!(
             escalated.marker.agenda,
-            issue_ref("oh-my-omp/pm-e2e-agenda#13")
+            issue_ref("mouriya-s-lab/meerkat-e2e-agenda#13")
         );
         assert_eq!(escalated.marker.ask, thread.ask.comment.id);
         assert_eq!(*age, SignedDuration::from_mins(90));
@@ -1605,7 +1605,7 @@ mod tests {
     #[test]
     fn unsettled_ask_waits_on_the_guardians() {
         let comments = comments!("code-23-comments.json");
-        let issue = plain_issue("https://github.com/oh-my-omp/pm-e2e-code/issues/23");
+        let issue = plain_issue("https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/23");
         let asked = at(&comments[0].created_at);
         let now = asked.checked_add(SignedDuration::from_secs(42)).unwrap();
         let items = ask_timeline(issue, &comments, now);
@@ -1625,7 +1625,7 @@ mod tests {
     #[test]
     fn replaced_and_replaces_point_at_each_other() {
         let old_comments = comments!("code-12-comments.json");
-        let old_issue = plain_issue("https://github.com/oh-my-omp/pm-e2e-code/issues/12");
+        let old_issue = plain_issue("https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/12");
         let new_json: serde_json::Value =
             serde_json::from_str(include_str!("../tests/fixtures/code-13-issue.json")).unwrap();
         let new_issue = IssueText {
@@ -1644,18 +1644,18 @@ mod tests {
         let Settlement::Replaced(replaced) = settlement else {
             panic!("{settlement:?}")
         };
-        assert_eq!(replaced.marker.by, issue_ref("oh-my-omp/pm-e2e-code#13"));
+        assert_eq!(replaced.marker.by, issue_ref("mouriya-s-lab/meerkat-e2e-code#13"));
         assert_eq!(replaced.marker.ask, Some(thread.ask.comment.id));
 
         let new = ask_timeline(new_issue, &[], now);
         let [TimelineItem::Replaces { issue, marker }] = new.as_slice() else {
             panic!("{new:?}")
         };
-        assert_eq!(marker.old, issue_ref("oh-my-omp/pm-e2e-code#12"));
+        assert_eq!(marker.old, issue_ref("mouriya-s-lab/meerkat-e2e-code#12"));
         assert_eq!(marker.ask, Some(thread.ask.comment.id));
         assert_eq!(
             issue.url,
-            "https://github.com/oh-my-omp/pm-e2e-code/issues/13"
+            "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/13"
         );
     }
 
@@ -1665,7 +1665,7 @@ mod tests {
     #[test]
     fn timeline_invalid_markers_are_kept_with_their_reason() {
         let comments = comments!("code-14-handbuilt-invalid-comments.json");
-        let issue = plain_issue("https://github.com/oh-my-omp/pm-e2e-code/issues/14");
+        let issue = plain_issue("https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/14");
         let items = ask_timeline(issue, &comments, at("2026-11-07T08:00:00Z"));
         assert_eq!(items.len(), 7, "{items:?}");
         let (_, _, settlement) = settled(&items[0]);
@@ -1677,7 +1677,7 @@ mod tests {
                 other => panic!("{other:?}"),
             })
             .collect();
-        let first = "https://github.com/oh-my-omp/pm-e2e-code/issues/14#issuecomment-6698655483";
+        let first = "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/14#issuecomment-6698655483";
         let second = format!("second settlement of ask 6698636994 (first: {first})");
         assert_eq!(invalid[0].reason, second);
         assert_eq!(invalid[1].reason, second);
@@ -1703,12 +1703,12 @@ mod tests {
     fn replaces_in_a_comment_and_a_bad_body_marker_are_invalid() {
         let issue = IssueText {
             body: "正文\n\n<!-- pm:replaces {\"v\":1,\"old\":\"bad\",\"ask\":null} -->",
-            ..plain_issue("https://github.com/oh-my-omp/pm-e2e-code/issues/13")
+            ..plain_issue("https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/13")
         };
         let comments = [Comment {
             id: 2,
             body: "<!-- pm:replaces {\"v\":1,\"old\":\"o/c#1\",\"ask\":null} -->".to_owned(),
-            html_url: "https://github.com/oh-my-omp/pm-e2e-code/issues/13#issuecomment-2"
+            html_url: "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/13#issuecomment-2"
                 .to_owned(),
             created_at: "2026-11-06T00:00:00Z".to_owned(),
         }];
@@ -1953,7 +1953,7 @@ mod tests {
     fn an_open_ask_outranks_a_running_worker() {
         let waiting = comments!("code-16-comments.json");
         let timeline = ask_timeline(
-            plain_issue("https://github.com/oh-my-omp/pm-e2e-code/issues/16"),
+            plain_issue("https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/16"),
             &waiting,
             at("2026-11-07T08:00:00Z"),
         );
@@ -1963,14 +1963,14 @@ mod tests {
         assert_eq!(
             summary.open_ask,
             Some(OpenAsk {
-                council: Some(issue_ref("oh-my-omp/pm-e2e-agenda#13")),
+                council: Some(issue_ref("mouriya-s-lab/meerkat-e2e-agenda#13")),
                 since: "2026-11-06T23:47:25Z".to_owned(),
             })
         );
 
         let guardians = comments!("code-23-comments.json");
         let gtimeline = ask_timeline(
-            plain_issue("https://github.com/oh-my-omp/pm-e2e-code/issues/23"),
+            plain_issue("https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/23"),
             &guardians,
             at("2026-11-07T08:00:00Z"),
         );
@@ -1990,7 +1990,7 @@ mod tests {
     fn settled_asks_with_a_worker_session_are_running_until_closed() {
         let comments = comments!("code-20-comments.json");
         let timeline = ask_timeline(
-            plain_issue("https://github.com/oh-my-omp/pm-e2e-code/issues/20"),
+            plain_issue("https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/20"),
             &comments,
             at("2026-11-07T01:00:00Z"),
         );
@@ -2034,9 +2034,9 @@ mod tests {
     #[test]
     fn an_unsettled_escalation_waits_on_its_agenda_issue() {
         let comments = comments!("code-16-comments.json");
-        let issue = issue_ref("oh-my-omp/pm-e2e-code#16");
+        let issue = issue_ref("mouriya-s-lab/meerkat-e2e-code#16");
         let timeline = ask_timeline(
-            plain_issue("https://github.com/oh-my-omp/pm-e2e-code/issues/16"),
+            plain_issue("https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/16"),
             &comments,
             at("2026-11-07T01:17:25Z"),
         );
@@ -2044,7 +2044,7 @@ mod tests {
         assert_eq!(open.len(), 1);
         assert_eq!(open[0].issue, issue);
         assert_eq!(open[0].ask, 6698892101);
-        assert_eq!(open[0].agenda, issue_ref("oh-my-omp/pm-e2e-agenda#13"));
+        assert_eq!(open[0].agenda, issue_ref("mouriya-s-lab/meerkat-e2e-agenda#13"));
         assert_eq!(open[0].created_at, "2026-11-06T23:48:15Z");
         assert!(open[0].url.ends_with("#issuecomment-6698906382"));
     }
@@ -2053,18 +2053,18 @@ mod tests {
     #[test]
     fn settled_and_never_escalated_asks_leave_nothing_open() {
         let settled = comments!("code-3-comments.json");
-        let issue = issue_ref("oh-my-omp/pm-e2e-code#3");
+        let issue = issue_ref("mouriya-s-lab/meerkat-e2e-code#3");
         let timeline = ask_timeline(
-            plain_issue("https://github.com/oh-my-omp/pm-e2e-code/issues/3"),
+            plain_issue("https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/3"),
             &settled,
             at("2026-11-07T08:00:00Z"),
         );
         assert!(open_escalations(&issue, &timeline).is_empty());
 
         let plain = comments!("code-23-comments.json");
-        let pissue = issue_ref("oh-my-omp/pm-e2e-code#23");
+        let pissue = issue_ref("mouriya-s-lab/meerkat-e2e-code#23");
         let ptimeline = ask_timeline(
-            plain_issue("https://github.com/oh-my-omp/pm-e2e-code/issues/23"),
+            plain_issue("https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/23"),
             &plain,
             at("2026-11-07T08:00:00Z"),
         );
@@ -2074,10 +2074,10 @@ mod tests {
     // Hand-built sessions: the seat sits between the kind and the ref.
     #[test]
     fn the_seat_is_the_label_word_after_the_kind() {
-        let issue = "oh-my-omp/pm-e2e-agenda#38";
+        let issue = "mouriya-s-lab/meerkat-e2e-agenda#38";
         let vote = test_session(
             "vote",
-            "vote Argon oh-my-omp/pm-e2e-agenda#38",
+            "vote Argon mouriya-s-lab/meerkat-e2e-agenda#38",
             Some(issue),
             "2026-11-07T06:49:00Z",
             SessionState::Done,
@@ -2085,7 +2085,7 @@ mod tests {
         assert_eq!(council_seat(&vote), Some("Argon"));
         let kind_mismatch = test_session(
             "draft",
-            "vote Argon oh-my-omp/pm-e2e-agenda#38",
+            "vote Argon mouriya-s-lab/meerkat-e2e-agenda#38",
             Some(issue),
             "2026-11-07T06:50:00Z",
             SessionState::Done,
@@ -2101,7 +2101,7 @@ mod tests {
         assert_eq!(council_seat(&seatless), None);
         let ref_as_seat = test_session(
             "vote",
-            "vote oh-my-omp/pm-e2e-agenda#38 extra",
+            "vote mouriya-s-lab/meerkat-e2e-agenda#38 extra",
             Some(issue),
             "2026-11-07T06:50:00Z",
             SessionState::Done,
@@ -2109,7 +2109,7 @@ mod tests {
         assert_eq!(council_seat(&ref_as_seat), None);
         let unlinked = test_session(
             "vote",
-            "vote Argon oh-my-omp/pm-e2e-agenda#38",
+            "vote Argon mouriya-s-lab/meerkat-e2e-agenda#38",
             None,
             "2026-11-07T06:50:00Z",
             SessionState::Done,
@@ -2122,40 +2122,40 @@ mod tests {
     fn sessions_group_by_round_with_drafts_before_votes() {
         let comments = comments!("agenda-38-comments.json");
         let rounds = panel_history(&comments);
-        let issue = issue_ref("oh-my-omp/pm-e2e-agenda#38");
+        let issue = issue_ref("mouriya-s-lab/meerkat-e2e-agenda#38");
         let sessions = [
             test_session(
                 "vote",
-                "vote Argon oh-my-omp/pm-e2e-agenda#38",
-                Some("oh-my-omp/pm-e2e-agenda#38"),
+                "vote Argon mouriya-s-lab/meerkat-e2e-agenda#38",
+                Some("mouriya-s-lab/meerkat-e2e-agenda#38"),
                 "2026-11-07T06:49:00Z",
                 SessionState::Done,
             ),
             test_session(
                 "draft",
-                "draft Argon oh-my-omp/pm-e2e-agenda#38",
-                Some("oh-my-omp/pm-e2e-agenda#38"),
+                "draft Argon mouriya-s-lab/meerkat-e2e-agenda#38",
+                Some("mouriya-s-lab/meerkat-e2e-agenda#38"),
                 "2026-11-07T06:50:00Z",
                 SessionState::Done,
             ),
             test_session(
                 "vote",
-                "vote ClaudeHigh oh-my-omp/pm-e2e-agenda#38",
-                Some("oh-my-omp/pm-e2e-agenda#38"),
+                "vote ClaudeHigh mouriya-s-lab/meerkat-e2e-agenda#38",
+                Some("mouriya-s-lab/meerkat-e2e-agenda#38"),
                 "2026-11-07T06:40:00Z",
                 SessionState::Done,
             ),
             test_session(
                 "vote",
-                "vote Argon oh-my-omp/pm-e2e-agenda#44",
-                Some("oh-my-omp/pm-e2e-agenda#44"),
+                "vote Argon mouriya-s-lab/meerkat-e2e-agenda#44",
+                Some("mouriya-s-lab/meerkat-e2e-agenda#44"),
                 "2026-11-07T06:49:00Z",
                 SessionState::Done,
             ),
             test_session(
                 "vote",
-                "vote LeadMentor oh-my-omp/pm-e2e-agenda#38",
-                Some("oh-my-omp/pm-e2e-agenda#38"),
+                "vote LeadMentor mouriya-s-lab/meerkat-e2e-agenda#38",
+                Some("mouriya-s-lab/meerkat-e2e-agenda#38"),
                 "soon",
                 SessionState::Running,
             ),
@@ -2181,43 +2181,43 @@ mod tests {
         let sessions = [
             test_session(
                 "vote",
-                "vote Argon oh-my-omp/pm-e2e-agenda#38",
-                Some("oh-my-omp/pm-e2e-agenda#38"),
+                "vote Argon mouriya-s-lab/meerkat-e2e-agenda#38",
+                Some("mouriya-s-lab/meerkat-e2e-agenda#38"),
                 "2026-11-07T06:40:00Z",
                 SessionState::Done,
             ),
             test_session(
                 "vote",
-                "vote Argon oh-my-omp/pm-e2e-agenda#38",
-                Some("oh-my-omp/pm-e2e-agenda#38"),
+                "vote Argon mouriya-s-lab/meerkat-e2e-agenda#38",
+                Some("mouriya-s-lab/meerkat-e2e-agenda#38"),
                 "2026-11-07T06:41:00Z",
                 SessionState::Done,
             ),
             test_session(
                 "vote",
-                "vote Scout oh-my-omp/pm-e2e-agenda#38",
-                Some("oh-my-omp/pm-e2e-agenda#38"),
+                "vote Scout mouriya-s-lab/meerkat-e2e-agenda#38",
+                Some("mouriya-s-lab/meerkat-e2e-agenda#38"),
                 "2026-11-07T06:41:00Z",
                 SessionState::Running,
             ),
             test_session(
                 "vote",
-                "vote Rookie oh-my-omp/pm-e2e-agenda#38",
-                Some("oh-my-omp/pm-e2e-agenda#38"),
+                "vote Rookie mouriya-s-lab/meerkat-e2e-agenda#38",
+                Some("mouriya-s-lab/meerkat-e2e-agenda#38"),
                 "2026-11-07T06:41:00Z",
                 SessionState::Failed,
             ),
             test_session(
                 "vote",
-                "vote Observer oh-my-omp/pm-e2e-agenda#38",
-                Some("oh-my-omp/pm-e2e-agenda#38"),
+                "vote Observer mouriya-s-lab/meerkat-e2e-agenda#38",
+                Some("mouriya-s-lab/meerkat-e2e-agenda#38"),
                 "2026-11-07T06:41:00Z",
                 SessionState::Done,
             ),
             test_session(
                 "draft",
-                "draft Drafty oh-my-omp/pm-e2e-agenda#38",
-                Some("oh-my-omp/pm-e2e-agenda#38"),
+                "draft Drafty mouriya-s-lab/meerkat-e2e-agenda#38",
+                Some("mouriya-s-lab/meerkat-e2e-agenda#38"),
                 "2026-11-07T06:41:00Z",
                 SessionState::Running,
             ),

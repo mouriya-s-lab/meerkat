@@ -405,8 +405,8 @@ pub enum Msg {
     NoInput,
     VersionsTitle,
     BranchAt { branch: String, head: Option<String> },
-    /// This build of Quorum: web or macOS.
-    QuorumHere,
+    /// This build of Meerkat: web or macOS.
+    MeerkatHere,
     SameAs(String),
     RunningOld(Vec<String>),
     Checkout,
@@ -771,7 +771,7 @@ fn reader(r: Reader, lang: Lang) -> &'static str {
     match r {
         Reader::Council => pick(lang, "议会", "Council"),
         Reader::Guardians => pick(lang, "守护", "Guardians"),
-        Reader::Quorum => "Quorum",
+        Reader::Meerkat => "Meerkat",
         Reader::Dispatch => "dispatch",
     }
 }
@@ -865,11 +865,11 @@ impl Msg {
             Msg::ConfigError => say(f, "配置有误", "Configuration error"),
             Msg::ConfigHint => say(
                 f,
-                "配置目录应包含 quorum/quorum.yaml、quorum/theme.json、shared/repos.yaml、shared/project.yaml；修正后重新加载。",
-                "The config directory must hold quorum/quorum.yaml, quorum/theme.json, shared/repos.yaml and shared/project.yaml; fix it and reload.",
+                "配置目录应包含 meerkat/meerkat.yaml、meerkat/theme.json、shared/repos.yaml、shared/project.yaml；修正后重新加载。",
+                "The config directory must hold meerkat/meerkat.yaml, meerkat/theme.json, shared/repos.yaml and shared/project.yaml; fix it and reload.",
             ),
             Msg::LoadingConfig => say(f, "正在读取配置…", "Loading the configuration…"),
-            Msg::AppName => f.write_str("Quorum"),
+            Msg::AppName => f.write_str("Meerkat"),
             Msg::AppMark => f.write_str("Q"),
             Msg::GitHubApi => f.write_str("GitHub API"),
             Msg::GitHubBucket(api) => write!(f, "GitHub {}", api_name(*api)),
@@ -1620,9 +1620,9 @@ impl Msg {
                 None => f.write_str(branch),
             },
             #[cfg(target_arch = "wasm32")]
-            Msg::QuorumHere => f.write_str("Quorum web"),
+            Msg::MeerkatHere => f.write_str("Meerkat web"),
             #[cfg(not(target_arch = "wasm32"))]
-            Msg::QuorumHere => f.write_str("Quorum macOS"),
+            Msg::MeerkatHere => f.write_str("Meerkat macOS"),
             Msg::SameAs(branch) => match lang {
                 Zh => write!(f, "与 {branch} 一致"),
                 En => write!(f, "Same as {branch}"),

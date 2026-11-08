@@ -1,4 +1,4 @@
-//! Runs Quorum in a native macOS window (`cargo run`), reading the
+//! Runs Meerkat in a native macOS window (`cargo run`), reading the
 //! PM config directory `PM_CONFIG_DIR` names.
 
 #[cfg(target_os = "macos")]
@@ -10,13 +10,13 @@ fn main() -> impl std::process::Termination {
     // (NSH sets `NSWindow.appearance` only from `AppOptions`; the app's
     // `set_color_scheme` reaches the views). A config that does not load
     // shows its error in the system's.
-    let appearance = quorum::config::load()
-        .map(|config| quorum::appearance(config.appearance))
+    let appearance = meerkat::config::load()
+        .map(|config| meerkat::appearance(config.appearance))
         .unwrap_or(platform::Appearance::System);
     platform::run_app(
-        platform::AppSource::Rust(platform::Root::of::<quorum::App>()),
+        platform::AppSource::Rust(platform::Root::of::<meerkat::App>()),
         platform::AppOptions {
-            title: "Quorum".to_owned(),
+            title: "Meerkat".to_owned(),
             size: (1200, 820),
             appearance,
             ..Default::default()

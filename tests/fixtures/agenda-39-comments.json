@@ -1,8 +1,8 @@
 [
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-agenda/issues/comments/6703665789",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/39#issuecomment-6703665789",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-agenda/issues/39",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-agenda/issues/comments/6703665789",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/39#issuecomment-6703665789",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-agenda/issues/39",
     "id": 6703665789,
     "node_id": "IC_kwDOVloFRs8AAAABj5HSfQ",
     "user": {
@@ -28,11 +28,11 @@
     },
     "created_at": "2026-11-07T07:00:46Z",
     "updated_at": "2026-11-07T07:00:46Z",
-    "body": "本议题被人类议题 oh-my-omp/pm-e2e-agenda#40 变更，不再审议。\n\n<!-- pm:superseded {\"v\":1,\"by\":\"oh-my-omp/pm-e2e-agenda#40\"} -->",
+    "body": "本议题被人类议题 mouriya-s-lab/meerkat-e2e-agenda#40 变更，不再审议。\n\n<!-- pm:superseded {\"v\":1,\"by\":\"mouriya-s-lab/meerkat-e2e-agenda#40\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-agenda/issues/comments/6703665789/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-agenda/issues/comments/6703665789/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -47,9 +47,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-agenda/issues/comments/6703667053",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/39#issuecomment-6703667053",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-agenda/issues/39",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-agenda/issues/comments/6703667053",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/39#issuecomment-6703667053",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-agenda/issues/39",
     "id": 6703667053,
     "node_id": "IC_kwDOVloFRs8AAAABj5HXbQ",
     "user": {
@@ -79,7 +79,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-agenda/issues/comments/6703667053/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-agenda/issues/comments/6703667053/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,

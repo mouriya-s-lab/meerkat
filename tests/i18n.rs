@@ -30,7 +30,7 @@ use std::{
 };
 
 use base64::Engine as _;
-use quorum::{
+use meerkat::{
     Lang, Msg, QueueMotion,
     config::{self, ConfigError, Problem},
     dag::{self, Closed, Group},
@@ -78,25 +78,25 @@ fn every_page_in_english() -> Result<(), String> {
 fn language_follows_locale_change() -> Result<(), String> {
     let _serial = serial();
     support::set_github_token("gho_q12_i18n_token");
-    let mut quorum = Fixture::start(Lang::Zh);
+    let mut meerkat = Fixture::start(Lang::Zh);
     let data = Data::of(&support::config_dir(), &[]);
-    wait_for_overview(&mut quorum)?;
-    let before = quorum.texts();
+    wait_for_overview(&mut meerkat)?;
+    let before = meerkat.texts();
     check_page(&Union::new(Lang::Zh, &data), "概览 (zh)", &before)?;
     assert!(
-        quorum.shows(&Msg::PageOverview.in_lang(Lang::Zh).to_string()),
+        meerkat.shows(&Msg::PageOverview.in_lang(Lang::Zh).to_string()),
         "the overview's title is not in Chinese"
     );
 
     // The user's language becomes English: the platform reports a new
     // locale, the same engine stays on the same page.
-    quorum.change_language(Lang::En, "en-GB")?;
-    quorum.wait_for(&quorum.say(&Msg::PageOverview), SHOWN)?;
-    quorum.wait_for(&quorum.say(&support::bases_note()), SHOWN)?;
-    let after = quorum.texts();
+    meerkat.change_language(Lang::En, "en-GB")?;
+    meerkat.wait_for(&meerkat.say(&Msg::PageOverview), SHOWN)?;
+    meerkat.wait_for(&meerkat.say(&support::bases_note()), SHOWN)?;
+    let after = meerkat.texts();
     check_page(&Union::new(Lang::En, &data), "overview (en)", &after)?;
     assert!(
-        !quorum.shows(&Msg::PageOverview.in_lang(Lang::Zh).to_string()),
+        !meerkat.shows(&Msg::PageOverview.in_lang(Lang::Zh).to_string()),
         "the Chinese title is still on screen"
     );
     assert_ne!(before, after, "the overview's texts did not change");
@@ -104,7 +104,7 @@ fn language_follows_locale_change() -> Result<(), String> {
 }
 
 /// #4's acceptance row 6: in Chinese, then in English, the detail of G25
-/// (`oh-my-omp/pm-e2e-design#23`) and the reason of one of its veto cells,
+/// (`mouriya-s-lab/meerkat-e2e-design#23`) and the reason of one of its veto cells,
 /// 「实现」 and one implementation issue's timeline; each text on them is
 /// data (the recordings under `responses/` and `detail/`, the config) or a
 /// [`Msg`] in that language.
@@ -119,52 +119,52 @@ fn detail_pages_in_both_languages() -> Result<(), String> {
 
 /// The detail pages in `lang`, each text the union does not explain.
 fn detail_pages(lang: Lang) -> Result<Vec<String>, String> {
-    const G25: &str = "oh-my-omp/pm-e2e-design#23";
+    const G25: &str = "mouriya-s-lab/meerkat-e2e-design#23";
     /// The implementation issue whose timeline is read: asks the guardians
     /// answered and asks that became agenda issues the council answered.
-    const TIMELINE: &str = "oh-my-omp/pm-e2e-code#3";
+    const TIMELINE: &str = "mouriya-s-lab/meerkat-e2e-code#3";
     let _serial = serial();
     let sandbox = support::Sandbox::new("i18n-detail");
-    let mut quorum = support::start_detail(&sandbox, "oh-my-omp/pm-e2e-design", lang, Vec::new());
+    let mut meerkat = support::start_detail(&sandbox, "mouriya-s-lab/meerkat-e2e-design", lang, Vec::new());
     let data = Data::of(&sandbox.dir().join("config"), &[]);
     let union = Union::new(lang, &data);
     let mut pages: Vec<(String, Vec<String>)> = Vec::new();
 
     // G25's detail, from its list row and 「打开详情」, its sessions and
     // decision in.
-    quorum.open(Msg::PageIssues)?;
-    quorum.press(&format!("label:{}", quorum.say(&Msg::ViewList)))?;
+    meerkat.open(Msg::PageIssues)?;
+    meerkat.press(&format!("label:{}", meerkat.say(&Msg::ViewList)))?;
     let row = format!("label:{}", project_title(G25));
-    quorum.wait_for_view(&row, SHOWN)?;
-    quorum.press(&row)?;
-    quorum.press(&format!("label:{}", quorum.say(&Msg::OpenDetail)))?;
+    meerkat.wait_for_view(&row, SHOWN)?;
+    meerkat.press(&row)?;
+    meerkat.press(&format!("label:{}", meerkat.say(&Msg::OpenDetail)))?;
     let comments = support::recorded_comments(G25).expect("G25's comments");
     let markers = markers_in(&comments);
     let (round, version, seat, row) = veto(&markers);
-    let decided = quorum.say(&Msg::Decision);
-    quorum.wait_for(&decided, SHOWN)?;
-    quorum.wait_for(&quorum.say(&Msg::SessionSeat { kind: "vote".to_owned(), seat: Some(seat.clone()) }), SHOWN)?;
-    pages.push((format!("agenda detail ({lang:?})"), quorum.texts()));
+    let decided = meerkat.say(&Msg::Decision);
+    meerkat.wait_for(&decided, SHOWN)?;
+    meerkat.wait_for(&meerkat.say(&Msg::SessionSeat { kind: "vote".to_owned(), seat: Some(seat.clone()) }), SHOWN)?;
+    pages.push((format!("agenda detail ({lang:?})"), meerkat.texts()));
 
     // The veto's version, and the veto cell's reason.
-    quorum.press(&format!("label:{}", quorum.say(&Msg::StepDraft { round, version })))?;
-    let cell = format!("label:{}", quorum.say(&Msg::Cell { seat, row, stance: detail::Stance::Veto }));
-    quorum.wait_for_view(&cell, SHOWN)?;
-    quorum.press(&cell)?;
-    quorum.wait_for(&quorum.say(&Msg::Classification), SHOWN)?;
-    pages.push((format!("veto reason ({lang:?})"), quorum.texts()));
+    meerkat.press(&format!("label:{}", meerkat.say(&Msg::StepDraft { round, version })))?;
+    let cell = format!("label:{}", meerkat.say(&Msg::Cell { seat, row, stance: detail::Stance::Veto }));
+    meerkat.wait_for_view(&cell, SHOWN)?;
+    meerkat.press(&cell)?;
+    meerkat.wait_for(&meerkat.say(&Msg::Classification), SHOWN)?;
+    pages.push((format!("veto reason ({lang:?})"), meerkat.texts()));
 
     // 「实现」, then one issue's timeline.
-    quorum.open(Msg::PageImplementations)?;
-    quorum.wait_for(&quorum.say(&Msg::ImplGroup(detail::ImplGroup::Waiting)), SHOWN)?;
-    pages.push((format!("implementations ({lang:?})"), quorum.texts()));
+    meerkat.open(Msg::PageImplementations)?;
+    meerkat.wait_for(&meerkat.say(&Msg::ImplGroup(detail::ImplGroup::Waiting)), SHOWN)?;
+    pages.push((format!("implementations ({lang:?})"), meerkat.texts()));
     // The issue is done: 「完成」 unfolds first.
-    quorum.press(&format!("label:{}", quorum.say(&Msg::ImplGroup(detail::ImplGroup::Done))))?;
+    meerkat.press(&format!("label:{}", meerkat.say(&Msg::ImplGroup(detail::ImplGroup::Done))))?;
     let timeline = format!("label:{}", project_title(TIMELINE));
-    quorum.wait_for_view(&timeline, SHOWN)?;
-    quorum.press(&timeline)?;
-    quorum.wait_for(&quorum.say(&Msg::GuardianReply), SHOWN)?;
-    pages.push((format!("implementation timeline ({lang:?})"), quorum.texts()));
+    meerkat.wait_for_view(&timeline, SHOWN)?;
+    meerkat.press(&timeline)?;
+    meerkat.wait_for(&meerkat.say(&Msg::GuardianReply), SHOWN)?;
+    pages.push((format!("implementation timeline ({lang:?})"), meerkat.texts()));
 
     Ok(pages
         .iter()
@@ -238,55 +238,55 @@ fn every_page(lang: Lang) -> Result<(), String> {
     let _serial = serial();
     // The credential comes from `GH_TOKEN`: no `gh` runs.
     support::set_github_token("gho_q12_i18n_token");
-    let mut quorum = Fixture::start(lang);
+    let mut meerkat = Fixture::start(lang);
     let data = Data::of(&support::config_dir(), &[]);
     let union = Union::new(lang, &data);
     let mut pages: Vec<(&str, Vec<String>)> = Vec::new();
 
-    wait_for_overview(&mut quorum)?;
-    let app = quorum.say(&Msg::AppName);
-    assert_eq!(app, "Quorum");
-    assert!(quorum.shows(&app), "the sidebar does not name the app Quorum");
-    pages.push(("overview", quorum.texts()));
+    wait_for_overview(&mut meerkat)?;
+    let app = meerkat.say(&Msg::AppName);
+    assert_eq!(app, "Meerkat");
+    assert!(meerkat.shows(&app), "the sidebar does not name the app Meerkat");
+    pages.push(("overview", meerkat.texts()));
 
-    quorum.open(Msg::PageIssues)?;
-    quorum.wait_for_any(&support::project_titles(), SHOWN)?;
-    let graph = quorum.say(&Msg::ViewGraph);
-    quorum.press(&format!("label:{graph}"))?;
-    quorum.wait_for(&quorum.say(&Msg::Fit), SHOWN)?;
-    pages.push(("issues: graph", quorum.texts()));
-    let list = quorum.say(&Msg::ViewList);
-    quorum.press(&format!("label:{list}"))?;
-    quorum.wait_for(&quorum.say(&Msg::Agenda), SHOWN)?;
-    pages.push(("issues: list", quorum.texts()));
+    meerkat.open(Msg::PageIssues)?;
+    meerkat.wait_for_any(&support::project_titles(), SHOWN)?;
+    let graph = meerkat.say(&Msg::ViewGraph);
+    meerkat.press(&format!("label:{graph}"))?;
+    meerkat.wait_for(&meerkat.say(&Msg::Fit), SHOWN)?;
+    pages.push(("issues: graph", meerkat.texts()));
+    let list = meerkat.say(&Msg::ViewList);
+    meerkat.press(&format!("label:{list}"))?;
+    meerkat.wait_for(&meerkat.say(&Msg::Agenda), SHOWN)?;
+    pages.push(("issues: list", meerkat.texts()));
 
-    quorum.open(Msg::PageRuntime)?;
-    quorum.wait_for(&quorum.say(&Msg::OldestWarm), SHOWN)?;
-    quorum.wait_for(&quorum.say(&Msg::Limits), SHOWN)?;
-    pages.push(("runtime", quorum.texts()));
+    meerkat.open(Msg::PageRuntime)?;
+    meerkat.wait_for(&meerkat.say(&Msg::OldestWarm), SHOWN)?;
+    meerkat.wait_for(&meerkat.say(&Msg::Limits), SHOWN)?;
+    pages.push(("runtime", meerkat.texts()));
 
-    quorum.open(Msg::PageSessions)?;
-    quorum.wait_for(&quorum.say(&Msg::SelectSession), SHOWN)?;
-    quorum.wait_for(&quorum.say(&Msg::Kind("vote".to_owned())), SHOWN)?;
-    pages.push(("sessions", quorum.texts()));
+    meerkat.open(Msg::PageSessions)?;
+    meerkat.wait_for(&meerkat.say(&Msg::SelectSession), SHOWN)?;
+    meerkat.wait_for(&meerkat.say(&Msg::Kind("vote".to_owned())), SHOWN)?;
+    pages.push(("sessions", meerkat.texts()));
 
-    quorum.open(Msg::PageConfig)?;
-    quorum.wait_for(&quorum.say(&Msg::VersionsTitle), SHOWN)?;
-    quorum.wait_for_any(&support::readme_lines(), SHOWN)?;
-    pages.push(("config", quorum.texts()));
+    meerkat.open(Msg::PageConfig)?;
+    meerkat.wait_for(&meerkat.say(&Msg::VersionsTitle), SHOWN)?;
+    meerkat.wait_for_any(&support::readme_lines(), SHOWN)?;
+    pages.push(("config", meerkat.texts()));
 
     let failures: Vec<String> = pages
         .iter()
         .filter_map(|(page, texts)| check_page(&union, page, texts).err())
         .collect();
-    drop(quorum);
+    drop(meerkat);
 
     // A config the parser rejects: the configuration error page. Its detail
     // is the parser's words about the config, as they are.
     let invalid = support::fixtures_dir().join("config-invalid");
     let mut broken = Fixture::start_in(lang, &invalid, Vec::new());
     broken.wait_for(&broken.say(&Msg::ConfigError), SHOWN)?;
-    let error = quorum::config::load().err().ok_or("the invalid config loads")?;
+    let error = meerkat::config::load().err().ok_or("the invalid config loads")?;
     let Problem::Said(said) = error.message else {
         return Err(format!("the invalid config's problem is not the parser's: {:?}", error.message));
     };
@@ -316,15 +316,15 @@ fn without_credential(lang: Lang) -> Result<Option<String>, String> {
         .ok_or("`gh` runs though PATH has none")?
         .to_string();
     let checked = (|| {
-        let mut quorum = Fixture::start(lang);
-        let reason = quorum.say(&Msg::Failure(Failure::NoCredential(NoCredential::GhCannotRun(system.clone()))));
+        let mut meerkat = Fixture::start(lang);
+        let reason = meerkat.say(&Msg::Failure(Failure::NoCredential(NoCredential::GhCannotRun(system.clone()))));
         let data = Data::of(&support::config_dir(), std::slice::from_ref(&system));
         let union = Union::new(lang, &data);
-        quorum.wait_for_containing(&reason, SHOWN)?;
-        let overview = quorum.texts();
-        quorum.open(Msg::PageIssues)?;
-        quorum.wait_for_containing(&reason, SHOWN)?;
-        let issues = quorum.texts();
+        meerkat.wait_for_containing(&reason, SHOWN)?;
+        let overview = meerkat.texts();
+        meerkat.open(Msg::PageIssues)?;
+        meerkat.wait_for_containing(&reason, SHOWN)?;
+        let issues = meerkat.texts();
         let failures: Vec<String> = [("overview, no credential", overview), ("issues, no credential", issues)]
             .iter()
             .filter_map(|(page, texts)| check_page(&union, page, texts).err())
@@ -339,12 +339,12 @@ fn without_credential(lang: Lang) -> Result<Option<String>, String> {
 }
 
 /// Waits for the overview's council, guardians and GitHub data.
-fn wait_for_overview(quorum: &mut Fixture) -> Result<(), String> {
-    let mut texts = vec![quorum.say(&Msg::CouncilQueue), quorum.say(&support::bases_note())];
+fn wait_for_overview(meerkat: &mut Fixture) -> Result<(), String> {
+    let mut texts = vec![meerkat.say(&Msg::CouncilQueue), meerkat.say(&support::bases_note())];
     texts.extend(support::base_repos());
     texts.extend(support::health_versions());
-    quorum.wait_for_all(&texts, SHOWN)?;
-    quorum.wait_for_any(&support::project_titles(), SHOWN)
+    meerkat.wait_for_all(&texts, SHOWN)?;
+    meerkat.wait_for_any(&support::project_titles(), SHOWN)
 }
 
 /// Every text of `page` the union explains; else each one it does not.
@@ -598,7 +598,7 @@ fn template(msg: &Msg, lang: Lang) -> Vec<Part> {
     parts
 }
 
-/// What is wrong with a config file, each of Quorum's findings and others'
+/// What is wrong with a config file, each of Meerkat's findings and others'
 /// words.
 fn problems() -> Vec<Problem> {
     let mut problems = vec![
@@ -747,7 +747,7 @@ fn instances() -> Vec<Msg> {
         OpenDetail, FilterFiles, TopFiles, NoReaders, ReadersLabel, OlderMark, EditedMark,
         ModePreview, ModeYaml, ModeChanges, SameAsBranch, GateChecking, GatePass, GateBlocked,
         Discard, Saving, OpenCommit, ChecksTitle, Unchanged, CheckRunning, Passed, NoInput,
-        VersionsTitle, QuorumHere, Checkout, Pull, Pulling, PageImplementations,
+        VersionsTitle, MeerkatHere, Checkout, Pull, Pulling, PageImplementations,
         // -- agenda detail (#4)
         StepDecided, NoDraftYet, Votes, DecisionRow, SeatSessionFailed, Reached,
         HasCounterexample, HasVeto, Counterexample, Citation, Classification, OpenSession,
@@ -1038,7 +1038,7 @@ fn instances() -> Vec<Msg> {
     for kind in kinds() {
         all.extend(maybe(&[s()]).into_iter().map(|seat| SessionSeat { kind: kind.clone(), seat }));
     }
-    all.extend(quorum::DraftField::ALL.map(Msg::DraftField));
+    all.extend(meerkat::DraftField::ALL.map(Msg::DraftField));
     all.extend(agos().into_iter().map(Lasted));
     all.push(FromAgenda(s()));
     all

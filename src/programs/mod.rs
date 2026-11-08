@@ -236,7 +236,7 @@ impl ProgramClient {
 mod tests {
     use super::*;
 
-    const ROW: &str = r#"{"id":"01a1b2d6","kind":"proxy","label":"ClaudeHigh","model":"m","startedAt":"2026-11-06T21:49:17.496Z","endedAt":null,"state":"done","error":null,"ref":"oh-my-omp/pm-e2e-agenda#1""#;
+    const ROW: &str = r#"{"id":"01a1b2d6","kind":"proxy","label":"ClaudeHigh","model":"m","startedAt":"2026-11-06T21:49:17.496Z","endedAt":null,"state":"done","error":null,"ref":"mouriya-s-lab/meerkat-e2e-agenda#1""#;
 
     #[test]
     fn a_session_row_names_its_parent() {

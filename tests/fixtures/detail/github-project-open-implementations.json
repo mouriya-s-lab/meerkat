@@ -1,9 +1,9 @@
-// 补写（oh-my-omp/quorum#4 验收第 4 行）。底本是 tests/fixtures/responses/github-project.json，即 2026-11-08 用
-// src/gh/project.rs 的查询与分页录制的 Project（oh-my-omp 1 号）应答。只把 oh-my-omp/pm-e2e-code#13、#16、#20 的
+// 补写（mouriya-s-lab/meerkat#4 验收第 4 行）。底本是 tests/fixtures/responses/github-project.json，即 2026-11-08 用
+// src/gh/project.rs 的查询与分页录制的 Project（oh-my-omp 1 号）应答。只把 mouriya-s-lab/meerkat-e2e-code#13、#16、#20 的
 // content.state 从 "CLOSED" 改为 "OPEN"，其余逐字未改。
-// 原因：阶段 2、3 验收进行时这三个实现 issue 是打开的；2026-11-07T13:04Z 按 oh-my-omp/pm-config#1 结果 6 以 not planned
+// 原因：阶段 2、3 验收进行时这三个实现 issue 是打开的；2026-11-07T13:04Z 按 mouriya-s-lab/meerkat-config#1 结果 6 以 not planned
 // 清理夹具时被关闭（各自评论里有关闭说明），录制时全部实现 issue 都已关闭，「实现」页只剩「完成」一组。
-// 改回打开后：#16 的询问提为议题 oh-my-omp/pm-e2e-agenda#13 后没有了结 → 等答复（等议会）；#20 Status=In Progress、
+// 改回打开后：#16 的询问提为议题 mouriya-s-lab/meerkat-e2e-agenda#13 后没有了结 → 等答复（等议会）；#20 Status=In Progress、
 // 最后一条标记是 impl → 进行中；#13 Status=Todo、没有 impl → 待办；其余实现 issue 仍关闭 → 完成。
 // 读取时去掉以 // 开头的行。
 {
@@ -38,18 +38,18 @@
                 "__typename": "Issue",
                 "number": 3,
                 "title": "notes list --open",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/3",
-                "body": "依据议题 oh-my-omp/pm-e2e-agenda#1：实现 `notes list --open`，只列出未完成的便签（设计书 notes.md §2）。\n\n验收：`go test ./...` 通过，新增测试覆盖 `--open` 过滤。\n\n本 issue 用于意图守护群的询问测试。\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/3",
+                "body": "依据议题 mouriya-s-lab/meerkat-e2e-agenda#1：实现 `notes list --open`，只列出未完成的便签（设计书 notes.md §2）。\n\n验收：`go test ./...` 通过，新增测试覆盖 `--open` 过滤。\n\n本 issue 用于意图守护群的询问测试。\n",
                 "createdAt": "2026-11-06T21:19:47Z",
                 "updatedAt": "2026-11-07T13:04:41Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 1,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                   }
                 },
                 "blockedBy": {
@@ -98,13 +98,13 @@
                 "__typename": "Issue",
                 "number": 1,
                 "title": "notes 删除命令",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/1",
-                "body": "notes 增加删除命令（守护询问测试用议题）。\n\n依据 oh-my-omp/pm-e2e-design notes.md §2、§4：`notes rm <id>` 删除便签，编号不复用。\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/1",
+                "body": "notes 增加删除命令（守护询问测试用议题）。\n\n依据 mouriya-s-lab/meerkat-e2e-design notes.md §2、§4：`notes rm <id>` 删除便签，编号不复用。\n",
                 "createdAt": "2026-11-06T21:19:42Z",
                 "updatedAt": "2026-11-07T15:16:56Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -124,7 +124,7 @@
                 "nodes": [
                   {},
                   {
-                    "text": "pm-council#1 验收：准入编号",
+                    "text": "meerkat-council#1 验收：准入编号",
                     "field": {
                       "name": "Title"
                     }
@@ -152,14 +152,14 @@
               "content": {
                 "__typename": "Issue",
                 "number": 2,
-                "title": "pm-council#1 验收：准入编号",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/2",
-                "body": "pm-council#1 验收用议题：准入后应得到下一个议程编号并设 `Status=Todo`。\n",
+                "title": "meerkat-council#1 验收：准入编号",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/2",
+                "body": "meerkat-council#1 验收用议题：准入后应得到下一个议程编号并设 `Status=Todo`。\n",
                 "createdAt": "2026-11-06T22:07:54Z",
                 "updatedAt": "2026-11-07T13:04:36Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -208,13 +208,13 @@
                 "__typename": "Issue",
                 "number": 3,
                 "title": "C1 ev: admission",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/3",
-                "body": "C1 evidence fixture for oh-my-omp/pm-council#1. Closed after recording.\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/3",
+                "body": "C1 evidence fixture for mouriya-s-lab/meerkat-council#1. Closed after recording.\n",
                 "createdAt": "2026-11-06T22:14:25Z",
                 "updatedAt": "2026-11-06T22:23:49Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -263,13 +263,13 @@
                 "__typename": "Issue",
                 "number": 4,
                 "title": "C1 ev: human 1",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/4",
-                "body": "C1 evidence fixture for oh-my-omp/pm-council#1. Closed after recording.\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/4",
+                "body": "C1 evidence fixture for mouriya-s-lab/meerkat-council#1. Closed after recording.\n",
                 "createdAt": "2026-11-06T22:15:14Z",
                 "updatedAt": "2026-11-06T22:23:49Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -318,13 +318,13 @@
                 "__typename": "Issue",
                 "number": 5,
                 "title": "C1 ev: human 2",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/5",
-                "body": "C1 evidence fixture for oh-my-omp/pm-council#1. Closed after recording.\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/5",
+                "body": "C1 evidence fixture for mouriya-s-lab/meerkat-council#1. Closed after recording.\n",
                 "createdAt": "2026-11-06T22:15:17Z",
                 "updatedAt": "2026-11-06T22:23:49Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -332,7 +332,7 @@
                     {
                       "number": 4,
                       "repository": {
-                        "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                        "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                       }
                     }
                   ]
@@ -380,13 +380,13 @@
                 "__typename": "Issue",
                 "number": 6,
                 "title": "C1 ev: agenda 1",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/6",
-                "body": "C1 evidence fixture for oh-my-omp/pm-council#1. Closed after recording.\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/6",
+                "body": "C1 evidence fixture for mouriya-s-lab/meerkat-council#1. Closed after recording.\n",
                 "createdAt": "2026-11-06T22:15:20Z",
                 "updatedAt": "2026-11-06T22:23:49Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -435,13 +435,13 @@
                 "__typename": "Issue",
                 "number": 7,
                 "title": "C1 ev: agenda 2",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/7",
-                "body": "C1 evidence fixture for oh-my-omp/pm-council#1. Closed after recording.\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/7",
+                "body": "C1 evidence fixture for mouriya-s-lab/meerkat-council#1. Closed after recording.\n",
                 "createdAt": "2026-11-06T22:15:23Z",
                 "updatedAt": "2026-11-06T22:23:49Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -449,7 +449,7 @@
                     {
                       "number": 6,
                       "repository": {
-                        "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                        "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                       }
                     }
                   ]
@@ -497,13 +497,13 @@
                 "__typename": "Issue",
                 "number": 9,
                 "title": "C1 ev: panel markers",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/9",
-                "body": "C1 evidence fixture for oh-my-omp/pm-council#1. Closed after recording.\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/9",
+                "body": "C1 evidence fixture for mouriya-s-lab/meerkat-council#1. Closed after recording.\n",
                 "createdAt": "2026-11-06T22:31:36Z",
                 "updatedAt": "2026-11-06T22:35:17Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -547,13 +547,13 @@
                 "__typename": "Issue",
                 "number": 6,
                 "title": "notes help：补充 rm 子命令的帮助说明",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/6",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/6",
                 "body": "Update the usage text in main.go to list `rm <id>`.\n\nAcceptance: `go test ./...` passes.",
                 "createdAt": "2026-11-06T22:35:24Z",
                 "updatedAt": "2026-11-06T22:41:13Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -567,10 +567,10 @@
                   "nodes": [
                     {
                       "number": 7,
-                      "url": "https://github.com/oh-my-omp/pm-e2e-code/pull/7",
+                      "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/pull/7",
                       "state": "MERGED",
                       "repository": {
-                        "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                        "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                       }
                     }
                   ]
@@ -606,13 +606,13 @@
                 "__typename": "Issue",
                 "number": 9,
                 "title": "readme: 补充用法说明，列出全部子命令",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/9",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/9",
                 "body": "Add a usage section to README.md that lists every notes subcommand (add, list, done) with its argument, matching the usage in main.go.\n\nAcceptance: `go test ./...` passes.",
                 "createdAt": "2026-11-06T22:53:37Z",
                 "updatedAt": "2026-11-06T22:58:28Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -626,10 +626,10 @@
                   "nodes": [
                     {
                       "number": 10,
-                      "url": "https://github.com/oh-my-omp/pm-e2e-code/pull/10",
+                      "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/pull/10",
                       "state": "MERGED",
                       "repository": {
-                        "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                        "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                       }
                     }
                   ]
@@ -670,13 +670,13 @@
                 "__typename": "Issue",
                 "number": 10,
                 "title": "C2 smoke: notes count",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/10",
-                "body": "给 oh-my-omp/pm-e2e-code 的 notes CLI 增加 `notes count`：输出便签总数与未完成数。（oh-my-omp/pm-council#2 验收第 1、2 行用议题）",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/10",
+                "body": "给 mouriya-s-lab/meerkat-e2e-code 的 notes CLI 增加 `notes count`：输出便签总数与未完成数。（mouriya-s-lab/meerkat-council#2 验收第 1、2 行用议题）",
                 "createdAt": "2026-11-06T22:58:49Z",
                 "updatedAt": "2026-11-06T23:46:25Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -719,13 +719,13 @@
                 "__typename": "Issue",
                 "number": 11,
                 "title": "B1 fixture：询问提为议题",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/11",
-                "body": "B1 dashboard attention fixture for oh-my-omp/pm-dashboard#1 (escalated ask without a settlement). Closed after recording.",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/11",
+                "body": "B1 dashboard attention fixture for mouriya-s-lab/meerkat#1 (escalated ask without a settlement). Closed after recording.",
                 "createdAt": "2026-11-06T23:11:33Z",
                 "updatedAt": "2026-11-06T23:14:16Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -768,18 +768,18 @@
                 "__typename": "Issue",
                 "number": 12,
                 "title": "notes list --open 输出排序（G2 取代冒烟用）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/12",
-                "body": "依据议题 oh-my-omp/pm-e2e-agenda#1：`notes list --open` 按便签最后修改时间倒序输出未完成的便签。\n\n验收：`go test ./...` 通过。\n\n本 issue 是 oh-my-omp/pm-guardians#2 取代路径的冒烟用一次性 issue。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/12",
+                "body": "依据议题 mouriya-s-lab/meerkat-e2e-agenda#1：`notes list --open` 按便签最后修改时间倒序输出未完成的便签。\n\n验收：`go test ./...` 通过。\n\n本 issue 是 mouriya-s-lab/meerkat-guardians#2 取代路径的冒烟用一次性 issue。",
                 "createdAt": "2026-11-06T23:20:48Z",
                 "updatedAt": "2026-11-06T23:23:10Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 1,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                   }
                 },
                 "blockedBy": {
@@ -822,18 +822,18 @@
                 "__typename": "Issue",
                 "number": 13,
                 "title": "notes list --open 只列出未完成便签（取代按最后修改时间排序的实现 issue）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/13",
-                "body": "原 issue oh-my-omp/pm-e2e-code#12 要求依据 oh-my-omp/pm-e2e-agenda#1 让 `notes list --open` 按“最后修改时间倒序”输出未完成便签，但该排序要求与仓库现状及设计范围不符，因此本 issue 被取代。当前数据模型中单条便签只有 `id`、`text`、`done` 三个字段（`store.go:12-16`），磁盘文件布局只有 `last_id` 与 `notes`（`store.go:20-23`），仓库内不存在任何记录最后修改时间的字段；现有 `list` 分支也不解析任何参数，只按 `store.List()` 返回的插入顺序逐条打印（`main.go:43-50`、`store.go:68-69`）。要实现按最后修改时间排序，必须额外引入时间字段、定义修改时点的更新规则以及旧数据文件的兼容策略，这些都超出设计书 §2 对 `notes list --open` 的规定。若该排序能力仍需要，应先在设计文档中补充时间字段与迁移规范，再单独开出实现 issue，而不是在本冒烟 issue 中夹带。\n\n## 要实现什么\n\n在现有 CLI 中实现 `notes list --open`：\n\n- `notes list --open` 只列出未完成（`done` 为 `false`）的便签；输出格式沿用现有格式 `[ ] <id> <text>`，即未完成标记为空格（`main.go:43-50`）。\n- 未完成便签之间保持现有插入顺序输出，不引入按时间或其他字段的排序，也不修改磁盘数据格式。\n- `notes list`（不带参数）行为保持不变，仍列出全部便签并按插入顺序输出。\n- 对 `list` 的未知参数返回明确的用法错误，退出码沿用现有的错误路径（`main.go:26-28` 退出码 2）。\n- 不改动 ID 分配与“删除后 ID 不复用”的既有语义（`store.go:18-23,57-66,81-89`）。\n\n## 验收方式\n\n- `go test ./...` 通过。\n- 新增测试覆盖：`notes list --open` 在混合完成/未完成的数据下只输出未完成便签，且输出顺序为插入顺序；`notes list` 不加参数时仍输出全部便签；`notes list` 传入未知参数时报错。\n- 测试可使用 `t.TempDir()` 下的临时 JSON 文件，与现有测试风格一致（`store_test.go:9-79`）。\n\n[启动 dispatch](http://127.0.0.1:47591/oh-my-omp/pm-e2e-code/issues/13?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fpm-e2e%2Fpm-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n\n<!-- pm:replaces {\"v\":1,\"old\":\"oh-my-omp/pm-e2e-code#12\",\"ask\":6698338624} -->",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/13",
+                "body": "原 issue mouriya-s-lab/meerkat-e2e-code#12 要求依据 mouriya-s-lab/meerkat-e2e-agenda#1 让 `notes list --open` 按“最后修改时间倒序”输出未完成便签，但该排序要求与仓库现状及设计范围不符，因此本 issue 被取代。当前数据模型中单条便签只有 `id`、`text`、`done` 三个字段（`store.go:12-16`），磁盘文件布局只有 `last_id` 与 `notes`（`store.go:20-23`），仓库内不存在任何记录最后修改时间的字段；现有 `list` 分支也不解析任何参数，只按 `store.List()` 返回的插入顺序逐条打印（`main.go:43-50`、`store.go:68-69`）。要实现按最后修改时间排序，必须额外引入时间字段、定义修改时点的更新规则以及旧数据文件的兼容策略，这些都超出设计书 §2 对 `notes list --open` 的规定。若该排序能力仍需要，应先在设计文档中补充时间字段与迁移规范，再单独开出实现 issue，而不是在本冒烟 issue 中夹带。\n\n## 要实现什么\n\n在现有 CLI 中实现 `notes list --open`：\n\n- `notes list --open` 只列出未完成（`done` 为 `false`）的便签；输出格式沿用现有格式 `[ ] <id> <text>`，即未完成标记为空格（`main.go:43-50`）。\n- 未完成便签之间保持现有插入顺序输出，不引入按时间或其他字段的排序，也不修改磁盘数据格式。\n- `notes list`（不带参数）行为保持不变，仍列出全部便签并按插入顺序输出。\n- 对 `list` 的未知参数返回明确的用法错误，退出码沿用现有的错误路径（`main.go:26-28` 退出码 2）。\n- 不改动 ID 分配与“删除后 ID 不复用”的既有语义（`store.go:18-23,57-66,81-89`）。\n\n## 验收方式\n\n- `go test ./...` 通过。\n- 新增测试覆盖：`notes list --open` 在混合完成/未完成的数据下只输出未完成便签，且输出顺序为插入顺序；`notes list` 不加参数时仍输出全部便签；`notes list` 传入未知参数时报错。\n- 测试可使用 `t.TempDir()` 下的临时 JSON 文件，与现有测试风格一致（`store_test.go:9-79`）。\n\n[启动 dispatch](http://127.0.0.1:47591/mouriya-s-lab/meerkat-e2e-code/issues/13?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fmeerkat-e2e%2Fmeerkat-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n\n<!-- pm:replaces {\"v\":1,\"old\":\"mouriya-s-lab/meerkat-e2e-code#12\",\"ask\":6698338624} -->",
                 "createdAt": "2026-11-06T23:23:04Z",
                 "updatedAt": "2026-11-07T13:04:43Z",
                 "state": "OPEN",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 1,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                   }
                 },
                 "blockedBy": {
@@ -876,18 +876,18 @@
                 "__typename": "Issue",
                 "number": 15,
                 "title": "G2 fixture：询问取代 B2",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/15",
-                "body": "G2 评估用 fixture（oh-my-omp/pm-guardians#2 行 4）：用于 replace 场景。询问：notes rm 是否应保留编号？请依据仓库内容答复。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/15",
+                "body": "G2 评估用 fixture（mouriya-s-lab/meerkat-guardians#2 行 4）：用于 replace 场景。询问：notes rm 是否应保留编号？请依据仓库内容答复。",
                 "createdAt": "2026-11-06T23:29:26Z",
                 "updatedAt": "2026-11-06T23:37:45Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 12,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                   }
                 },
                 "blockedBy": {
@@ -930,18 +930,18 @@
                 "__typename": "Issue",
                 "number": 16,
                 "title": "G2 fixture：询问提为议题 B3",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/16",
-                "body": "G2 评估用 fixture（oh-my-omp/pm-guardians#2 行 5）：用于 escalate 场景。询问：是否应引入新的产品决策？请依据仓库内容答复。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/16",
+                "body": "G2 评估用 fixture（mouriya-s-lab/meerkat-guardians#2 行 5）：用于 escalate 场景。询问：是否应引入新的产品决策？请依据仓库内容答复。",
                 "createdAt": "2026-11-06T23:29:26Z",
                 "updatedAt": "2026-11-07T13:04:48Z",
                 "state": "OPEN",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 12,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                   }
                 },
                 "blockedBy": {
@@ -990,13 +990,13 @@
                 "__typename": "Issue",
                 "number": 12,
                 "title": "G2 fixture：询问闭环议题",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/12",
-                "body": "G2 评估用 fixture（oh-my-omp/pm-guardians#2）。Status=Done，供守护程序提为议题时挂靠；不需要议会审议。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/12",
+                "body": "G2 评估用 fixture（mouriya-s-lab/meerkat-guardians#2）。Status=Done，供守护程序提为议题时挂靠；不需要议会审议。",
                 "createdAt": "2026-11-06T23:29:23Z",
                 "updatedAt": "2026-11-07T13:04:39Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -1039,18 +1039,18 @@
                 "__typename": "Issue",
                 "number": 14,
                 "title": "G2 fixture：询问答复 B1",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/14",
-                "body": "G2 评估用 fixture（oh-my-omp/pm-guardians#2 行 1、3）：用于 reply 场景。询问：notes 的数据文件存放在哪个路径？请依据仓库内容答复。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/14",
+                "body": "G2 评估用 fixture（mouriya-s-lab/meerkat-guardians#2 行 1、3）：用于 reply 场景。询问：notes 的数据文件存放在哪个路径？请依据仓库内容答复。",
                 "createdAt": "2026-11-06T23:29:23Z",
                 "updatedAt": "2026-11-07T13:04:45Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 12,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                   }
                 },
                 "blockedBy": {
@@ -1093,18 +1093,18 @@
                 "__typename": "Issue",
                 "number": 17,
                 "title": "G2 fixture：询问取代 B4",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/17",
-                "body": "G2 评估用 fixture（oh-my-omp/pm-guardians#2 行 6）：用于取代中途杀进程后的恢复场景。询问：notes rm 是否应保留编号？请依据仓库内容答复。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/17",
+                "body": "G2 评估用 fixture（mouriya-s-lab/meerkat-guardians#2 行 6）：用于取代中途杀进程后的恢复场景。询问：notes rm 是否应保留编号？请依据仓库内容答复。",
                 "createdAt": "2026-11-06T23:34:07Z",
                 "updatedAt": "2026-11-06T23:41:53Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 12,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                   }
                 },
                 "blockedBy": {
@@ -1147,18 +1147,18 @@
                 "__typename": "Issue",
                 "number": 18,
                 "title": "notes rm 保留编号：删除后 ID 永不复用",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/18",
-                "body": "原 issue 只是一个待裁决的问题（“notes rm 是否应保留编号？”），本身不是可执行、可验收的实现要求。仓库内容已经给出明确答案：应保留编号，删除后的 ID 永不再次分配。因此用本 issue 取代原问题，把该既定行为固化为明确的实现与验收目标。\n\n## 要实现什么\n\n保证 `notes rm <id>` 删除备注后，编号空间继续前进，后续 `notes add` 不复用已删除的 ID。\n\n依据的仓库现状：\n\n- 用法文档已声明 `notes rm <id>` 的 ID “is never reused”（`main.go:1-7`、`README.md:4-11`）。\n- 磁盘结构用 `last_id` 记录“曾发放过的最大 ID”，与 `notes` 列表并列持久化，注释明确说明已删除备注的 ID 不会再次发放（`store.go:18-23`）。\n- `Store.Add` 通过 `s.data.LastID++` 取下一个 ID 后再追加备注（`store.go:57-66`）；`Store.Remove` 只从 `s.data.Notes` 中摘除元素，不回退 `LastID`（`store.go:81-89`）；`save()` 把包含 `last_id` 的整个结构写回磁盘（`store.go:100-106`）。\n- `Open` 对旧版裸 JSON 数组格式做兼容读取，并以数组中的最大 ID 恢复 `LastID`，使旧文件也不会复用编号（`store.go:31-56`）。\n\n实现任务：沿用并保持上述 `last_id` 语义；若当前代码已满足，不做无谓重构，只需补齐/确认回归覆盖，确保“删除最大 ID 后新增”的场景不会退化为按列表长度分配编号。\n\n## 验收方式\n\n1. `go test ./...` 全部通过。\n2. 存在覆盖以下场景的回归测试（仓库已有对应测试 `store_test.go:31-67`，可沿用）：依次添加三条备注，删除 ID 最大的备注，再删除 ID 1，再次删除 ID 1 应报错；随后新增备注得到的 ID 必须为 4，且列表中剩余 ID 为 2 与 4。\n3. 存储文件中的 `last_id` 在删除操作后不得减小，进程重启后继续递增（`store.go:100-106`、`store.go:34-56`）。\n4. 旧版裸 JSON 数组文件打开后，新增备注的 ID 必须大于数组中的最大 ID（`store_test.go:69-85`）。\n\n[启动 dispatch](http://127.0.0.1:47591/oh-my-omp/pm-e2e-code/issues/18?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fpm-e2e%2Fpm-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n\n<!-- pm:replaces {\"v\":1,\"old\":\"oh-my-omp/pm-e2e-code#15\",\"ask\":6698684256} -->",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/18",
+                "body": "原 issue 只是一个待裁决的问题（“notes rm 是否应保留编号？”），本身不是可执行、可验收的实现要求。仓库内容已经给出明确答案：应保留编号，删除后的 ID 永不再次分配。因此用本 issue 取代原问题，把该既定行为固化为明确的实现与验收目标。\n\n## 要实现什么\n\n保证 `notes rm <id>` 删除备注后，编号空间继续前进，后续 `notes add` 不复用已删除的 ID。\n\n依据的仓库现状：\n\n- 用法文档已声明 `notes rm <id>` 的 ID “is never reused”（`main.go:1-7`、`README.md:4-11`）。\n- 磁盘结构用 `last_id` 记录“曾发放过的最大 ID”，与 `notes` 列表并列持久化，注释明确说明已删除备注的 ID 不会再次发放（`store.go:18-23`）。\n- `Store.Add` 通过 `s.data.LastID++` 取下一个 ID 后再追加备注（`store.go:57-66`）；`Store.Remove` 只从 `s.data.Notes` 中摘除元素，不回退 `LastID`（`store.go:81-89`）；`save()` 把包含 `last_id` 的整个结构写回磁盘（`store.go:100-106`）。\n- `Open` 对旧版裸 JSON 数组格式做兼容读取，并以数组中的最大 ID 恢复 `LastID`，使旧文件也不会复用编号（`store.go:31-56`）。\n\n实现任务：沿用并保持上述 `last_id` 语义；若当前代码已满足，不做无谓重构，只需补齐/确认回归覆盖，确保“删除最大 ID 后新增”的场景不会退化为按列表长度分配编号。\n\n## 验收方式\n\n1. `go test ./...` 全部通过。\n2. 存在覆盖以下场景的回归测试（仓库已有对应测试 `store_test.go:31-67`，可沿用）：依次添加三条备注，删除 ID 最大的备注，再删除 ID 1，再次删除 ID 1 应报错；随后新增备注得到的 ID 必须为 4，且列表中剩余 ID 为 2 与 4。\n3. 存储文件中的 `last_id` 在删除操作后不得减小，进程重启后继续递增（`store.go:100-106`、`store.go:34-56`）。\n4. 旧版裸 JSON 数组文件打开后，新增备注的 ID 必须大于数组中的最大 ID（`store_test.go:69-85`）。\n\n[启动 dispatch](http://127.0.0.1:47591/mouriya-s-lab/meerkat-e2e-code/issues/18?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fmeerkat-e2e%2Fmeerkat-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n\n<!-- pm:replaces {\"v\":1,\"old\":\"mouriya-s-lab/meerkat-e2e-code#15\",\"ask\":6698684256} -->",
                 "createdAt": "2026-11-06T23:37:36Z",
                 "updatedAt": "2026-11-07T13:04:50Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 12,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                   }
                 },
                 "blockedBy": {
@@ -1201,18 +1201,18 @@
                 "__typename": "Issue",
                 "number": 19,
                 "title": "notes rm 保留编号：以 LastID 单调递增固化语义并补齐命令层回归测试",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/19",
-                "body": "原 issue #17 只以一个待决策问题“notes rm 是否应保留编号？请依据仓库内容答复”的形式存在，没有给出可实施的行为边界与验收条件。依据仓库现状，这个问题的答案已经明确：**`notes rm` 必须保留编号**，而且该语义已经写入实现、文档和测试。因此本 issue 用一条把该既有语义固化并可验收的实现任务取代原 issue，避免把已确定的需求继续悬置为“询问”。\n\n仓库依据：\n\n- 用法文档声明 `notes rm <id>  remove a note; its id is never reused`（README.md:4-11；同样写在 main.go:1-7 的包注释中）。\n- 磁盘结构显式保存 `LastID`，注释说明它是“历史上发放过的最大 id，因此被移除的 note 的 id 不会再次发出”（store.go:18-23）。\n- `Remove` 只把目标元素从 `notes` 切片中摘掉，不回退 `LastID`；`Add` 通过 `LastID++` 分配新 id（store.go:57-66、store.go:81-89）。\n- 旧版裸 JSON 数组文件在 `Open` 时按数组中的最大 id 初始化 `LastID`，保证兼容路径也不复用编号（store.go:34-56）。\n- 现有存储层测试已断言删除最大 id 后新增得到 4 而非 3（store_test.go:31-67）。\n\n## 要做什么\n\n1. 保持 `Store` 的 `LastID` 单调递增语义：`Remove` 删除条目但不得修改 `LastID`，`Add` 始终使用 `LastID+1`；不要引入按当前条目数量计算 id 的逻辑。\n2. 保持旧格式兼容：读取裸 JSON 数组文件时仍以最大既有 id 初始化 `LastID`，使旧文件在删除后同样不复用编号。\n3. 补充命令层回归测试（目前仅有存储层测试 store_test.go:9-85）：在临时 `NOTES_FILE` 下通过 `run`（main.go:32-67）或构建后的二进制执行 `notes rm <id>` 后再执行 `notes add <text>`，断言新增输出的 id 严格大于被删除的 id；同时断言重复删除同一个不存在的 id 返回错误且不改变后续新增的 id。\n4. 在 README 的 Usage 段保持并明确编号语义：删除条目后编号不被回收，后续新增继续递增（README.md:4-11）。\n\n## 验收方式\n\n- `go test ./...` 全部通过，且新增的命令层回归用例能覆盖“删除最大 id 后新增得到更大的 id”。\n- 存储层既有断言不被削弱：`TestRemoveDoesNotReuseIDs` 仍要求删除 id 3、1 后新增得到 id 4（store_test.go:57-66）；`TestOpenArrayFile` 仍要求旧数组文件中新增得到 id 6（store_test.go:69-85）。\n- README.md:4-11 与 main.go:1-7 中关于 `rm` 不复用 id 的说明与实现保持一致。\n- `notes rm` 之外的命令行为不变：`add` 拼接剩余参数并输出新 id，`list` 输出完成标记、id 与文本，`done`/`rm` 要求恰好一个数字 id（main.go:32-67）。\n\n[启动 dispatch](http://127.0.0.1:47591/oh-my-omp/pm-e2e-code/issues/19?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fpm-e2e%2Fpm-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n\n<!-- pm:replaces {\"v\":1,\"old\":\"oh-my-omp/pm-e2e-code#17\",\"ask\":6698721877} -->",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/19",
+                "body": "原 issue #17 只以一个待决策问题“notes rm 是否应保留编号？请依据仓库内容答复”的形式存在，没有给出可实施的行为边界与验收条件。依据仓库现状，这个问题的答案已经明确：**`notes rm` 必须保留编号**，而且该语义已经写入实现、文档和测试。因此本 issue 用一条把该既有语义固化并可验收的实现任务取代原 issue，避免把已确定的需求继续悬置为“询问”。\n\n仓库依据：\n\n- 用法文档声明 `notes rm <id>  remove a note; its id is never reused`（README.md:4-11；同样写在 main.go:1-7 的包注释中）。\n- 磁盘结构显式保存 `LastID`，注释说明它是“历史上发放过的最大 id，因此被移除的 note 的 id 不会再次发出”（store.go:18-23）。\n- `Remove` 只把目标元素从 `notes` 切片中摘掉，不回退 `LastID`；`Add` 通过 `LastID++` 分配新 id（store.go:57-66、store.go:81-89）。\n- 旧版裸 JSON 数组文件在 `Open` 时按数组中的最大 id 初始化 `LastID`，保证兼容路径也不复用编号（store.go:34-56）。\n- 现有存储层测试已断言删除最大 id 后新增得到 4 而非 3（store_test.go:31-67）。\n\n## 要做什么\n\n1. 保持 `Store` 的 `LastID` 单调递增语义：`Remove` 删除条目但不得修改 `LastID`，`Add` 始终使用 `LastID+1`；不要引入按当前条目数量计算 id 的逻辑。\n2. 保持旧格式兼容：读取裸 JSON 数组文件时仍以最大既有 id 初始化 `LastID`，使旧文件在删除后同样不复用编号。\n3. 补充命令层回归测试（目前仅有存储层测试 store_test.go:9-85）：在临时 `NOTES_FILE` 下通过 `run`（main.go:32-67）或构建后的二进制执行 `notes rm <id>` 后再执行 `notes add <text>`，断言新增输出的 id 严格大于被删除的 id；同时断言重复删除同一个不存在的 id 返回错误且不改变后续新增的 id。\n4. 在 README 的 Usage 段保持并明确编号语义：删除条目后编号不被回收，后续新增继续递增（README.md:4-11）。\n\n## 验收方式\n\n- `go test ./...` 全部通过，且新增的命令层回归用例能覆盖“删除最大 id 后新增得到更大的 id”。\n- 存储层既有断言不被削弱：`TestRemoveDoesNotReuseIDs` 仍要求删除 id 3、1 后新增得到 id 4（store_test.go:57-66）；`TestOpenArrayFile` 仍要求旧数组文件中新增得到 id 6（store_test.go:69-85）。\n- README.md:4-11 与 main.go:1-7 中关于 `rm` 不复用 id 的说明与实现保持一致。\n- `notes rm` 之外的命令行为不变：`add` 拼接剩余参数并输出新 id，`list` 输出完成标记、id 与文本，`done`/`rm` 要求恰好一个数字 id（main.go:32-67）。\n\n[启动 dispatch](http://127.0.0.1:47591/mouriya-s-lab/meerkat-e2e-code/issues/19?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fmeerkat-e2e%2Fmeerkat-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n\n<!-- pm:replaces {\"v\":1,\"old\":\"mouriya-s-lab/meerkat-e2e-code#17\",\"ask\":6698721877} -->",
                 "createdAt": "2026-11-06T23:39:45Z",
                 "updatedAt": "2026-11-07T13:04:52Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 12,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                   }
                 },
                 "blockedBy": {
@@ -1267,13 +1267,13 @@
                 "__typename": "Issue",
                 "number": 13,
                 "title": "是否为 G2 fixture 引入新的产品决策",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/13",
-                "body": "## 需要议会决定什么\n\n请议会决定：是否在 oh-my-omp/pm-e2e-code 中引入一个新的产品决策（即改变该 fixture 对外可见的产品行为，例如新增 CLI 子命令、改变参数形态，或改变数据存储格式/位置），还是维持当前既定的 notes 工具行为不变。\n\n## 背景\n\n- 该仓库被明确标注为端到端测试用的代码实现对象，而非面向终端用户的产品：`README.md:1-2` 写明 “Pepgent PM e2e: code repository with implementation issues (test object)”。\n- 仓库当前对外约定只有一组固定的 notes 命令：`README.md:4-11` 的 Usage 段落列出 `notes add <text>`、`notes list`、`notes done <id>`、`notes rm <id>`；代码入口处的注释 `main.go:1-7` 重复同一组约定，`run()` 的分派分支也仅有这四类（`main.go:32-67`，其中 `add` 位于 `main.go:37-42`，`list` 位于 `main.go:43-50`，`done`/`rm` 位于 `main.go:51-64`，未知命令返回错误于 `main.go:65-67`）。\n- 数据存储约定是单一 JSON 文件：路径来自环境变量 `NOTES_FILE`，未设置时使用当前目录下的 `notes.json`（`main.go:17-20`）；磁盘结构为 `last_id` 加 `notes` 列表（`store.go:20-23`），`Open` 读取文件且把文件缺失视为空存储（`store.go:34-56`），写操作统一经 `save()` 覆盖同一文件（`store.go:100-106`）。\n- 仓库没有描述产品目标、路线或待决策项的设计文档；唯一的文档是上述 `README.md`。`.omp/config.yml:1-4` 只包含 `dispatch-owner` 与 `dispatch-reviewer` 的模型覆盖配置，与产品行为无关。根目录的 `ev-touch.txt:1`、`ev-touch-2.txt:1`、`ev-touch-3.txt:1`、`ev-touch-run2b.txt:1` 各只有一行用于 guardians stale check 的触碰标记文本，不含产品意图。\n- 现有行为由三个单元测试固定：新增后完成并重新加载、`rm` 后 ID 不复用、兼容旧版裸 JSON 数组格式（`store_test.go:9-29`、`store_test.go:31-67`、`store_test.go:69-85`）。因此任何新的产品决策都会直接改变这些受测行为之一。\n\n请议会基于上述仓库事实裁定：本次评估是否需要引入新的产品决策；若需要，应明确新增决策的具体产品行为及其影响面；若不需要，则应记录“维持现状”的结论，以免在评估场景中无依据地改变 fixture 的既有产品约定。\n\n<!-- pm:escalation {\"v\":1,\"issue\":\"oh-my-omp/pm-e2e-code#16\",\"ask\":6698892101} -->",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/13",
+                "body": "## 需要议会决定什么\n\n请议会决定：是否在 mouriya-s-lab/meerkat-e2e-code 中引入一个新的产品决策（即改变该 fixture 对外可见的产品行为，例如新增 CLI 子命令、改变参数形态，或改变数据存储格式/位置），还是维持当前既定的 notes 工具行为不变。\n\n## 背景\n\n- 该仓库被明确标注为端到端测试用的代码实现对象，而非面向终端用户的产品：`README.md:1-2` 写明 “Pepgent PM e2e: code repository with implementation issues (test object)”。\n- 仓库当前对外约定只有一组固定的 notes 命令：`README.md:4-11` 的 Usage 段落列出 `notes add <text>`、`notes list`、`notes done <id>`、`notes rm <id>`；代码入口处的注释 `main.go:1-7` 重复同一组约定，`run()` 的分派分支也仅有这四类（`main.go:32-67`，其中 `add` 位于 `main.go:37-42`，`list` 位于 `main.go:43-50`，`done`/`rm` 位于 `main.go:51-64`，未知命令返回错误于 `main.go:65-67`）。\n- 数据存储约定是单一 JSON 文件：路径来自环境变量 `NOTES_FILE`，未设置时使用当前目录下的 `notes.json`（`main.go:17-20`）；磁盘结构为 `last_id` 加 `notes` 列表（`store.go:20-23`），`Open` 读取文件且把文件缺失视为空存储（`store.go:34-56`），写操作统一经 `save()` 覆盖同一文件（`store.go:100-106`）。\n- 仓库没有描述产品目标、路线或待决策项的设计文档；唯一的文档是上述 `README.md`。`.omp/config.yml:1-4` 只包含 `dispatch-owner` 与 `dispatch-reviewer` 的模型覆盖配置，与产品行为无关。根目录的 `ev-touch.txt:1`、`ev-touch-2.txt:1`、`ev-touch-3.txt:1`、`ev-touch-run2b.txt:1` 各只有一行用于 guardians stale check 的触碰标记文本，不含产品意图。\n- 现有行为由三个单元测试固定：新增后完成并重新加载、`rm` 后 ID 不复用、兼容旧版裸 JSON 数组格式（`store_test.go:9-29`、`store_test.go:31-67`、`store_test.go:69-85`）。因此任何新的产品决策都会直接改变这些受测行为之一。\n\n请议会基于上述仓库事实裁定：本次评估是否需要引入新的产品决策；若需要，应明确新增决策的具体产品行为及其影响面；若不需要，则应记录“维持现状”的结论，以免在评估场景中无依据地改变 fixture 的既有产品约定。\n\n<!-- pm:escalation {\"v\":1,\"issue\":\"mouriya-s-lab/meerkat-e2e-code#16\",\"ask\":6698892101} -->",
                 "createdAt": "2026-11-06T23:48:11Z",
                 "updatedAt": "2026-11-06T23:54:34Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -1316,18 +1316,18 @@
                 "__typename": "Issue",
                 "number": 20,
                 "title": "D2 fixture：notes export 导出格式待定（先问再做）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/20",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/20",
                 "body": "给 notes 增加 `notes export` 子命令，把全部便签导出，供其他工具读取。\n\n需求尚未定稿：导出格式（JSON、CSV 还是 Markdown）、输出到标准输出还是文件、是否包含已删除便签的编号，都没有决定。\n\n**工人须知：动手修改任何文件之前，必须先用 dispatch escalate（kind question）把导出格式这一决策项问清楚；得到答复前不要写代码、不要提交。**\n\n（oh-my-omp/omp-dispatch#205 第 4 行真实运行的 fixture。）\n",
                 "createdAt": "2026-11-06T23:53:56Z",
                 "updatedAt": "2026-11-07T13:04:55Z",
                 "state": "OPEN",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 1,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                   }
                 },
                 "blockedBy": {
@@ -1376,13 +1376,13 @@
                 "__typename": "Issue",
                 "number": 14,
                 "title": "C2 ev: notes count",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/14",
-                "body": "给 oh-my-omp/pm-e2e-code 的 notes CLI 增加 `notes count`：输出便签总数与未完成数。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/14",
+                "body": "给 mouriya-s-lab/meerkat-e2e-code 的 notes CLI 增加 `notes count`：输出便签总数与未完成数。",
                 "createdAt": "2026-11-06T23:54:34Z",
                 "updatedAt": "2026-11-07T03:25:09Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -1431,13 +1431,13 @@
                 "__typename": "Issue",
                 "number": 15,
                 "title": "C2 ev: escalation G",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/15",
-                "body": "C2 ev 询问升级议题 G：请就 notes 相关询问给出短议程。\n<!-- pm:escalation {\"v\":1,\"issue\":\"oh-my-omp/pm-e2e-code#3\",\"ask\":6698169063} -->",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/15",
+                "body": "C2 ev 询问升级议题 G：请就 notes 相关询问给出短议程。\n<!-- pm:escalation {\"v\":1,\"issue\":\"mouriya-s-lab/meerkat-e2e-code#3\",\"ask\":6698169063} -->",
                 "createdAt": "2026-11-06T23:54:37Z",
                 "updatedAt": "2026-11-07T03:25:08Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -1486,13 +1486,13 @@
                 "__typename": "Issue",
                 "number": 16,
                 "title": "C2 ev: interrupt D2",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/16",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/16",
                 "body": "C2 ev 打断测试议题 D2：为 notes 增加 `notes count` 的需求说明，用于验证被取代的议题不会再次召集。",
                 "createdAt": "2026-11-07T03:25:11Z",
                 "updatedAt": "2026-11-07T03:41:19Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -1541,13 +1541,13 @@
                 "__typename": "Issue",
                 "number": 17,
                 "title": "C2 ev: interrupt D",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/17",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/17",
                 "body": "C2 ev 打断测试议题 D：为 notes 增加 `notes count` 的需求说明，供中断恢复测试使用。",
                 "createdAt": "2026-11-07T03:25:12Z",
                 "updatedAt": "2026-11-07T03:41:19Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -1596,13 +1596,13 @@
                 "__typename": "Issue",
                 "number": 18,
                 "title": "C2 ev: human H",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/18",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/18",
                 "body": "C2 ev 人类议题 H：用户原话——notes 相关的 count 与列表需求以本议题为准，取代中断议题 D2。",
                 "createdAt": "2026-11-07T03:33:47Z",
                 "updatedAt": "2026-11-07T03:40:52Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -1651,13 +1651,13 @@
                 "__typename": "Issue",
                 "number": 19,
                 "title": "C2 ev: draft-grok B",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/19",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/19",
                 "body": "C2 ev 负例议题 B：为 notes 增加 `notes count` 的需求说明，用于验证起草开场指定未映射模型时的拒绝路径。",
                 "createdAt": "2026-11-07T03:42:40Z",
                 "updatedAt": "2026-11-07T03:44:51Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -1706,13 +1706,13 @@
                 "__typename": "Issue",
                 "number": 20,
                 "title": "C2 ev: vote-noisy C",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/20",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/20",
                 "body": "C2 ev 投票噪声议题 C：为 notes 增加 `notes count` 的需求说明，用于验证投票开场要求先只用一句话评价、不调用工具时的续跑。",
                 "createdAt": "2026-11-07T03:45:14Z",
                 "updatedAt": "2026-11-07T03:56:09Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -1761,13 +1761,13 @@
                 "__typename": "Issue",
                 "number": 21,
                 "title": "C2 ev: failure F",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/21",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/21",
                 "body": "C2 ev 失败与恢复议题 F：为 notes 增加 `notes count` 的需求说明，用于验证席位模型不可用时面板失败并在恢复后补齐投票。",
                 "createdAt": "2026-11-07T03:56:30Z",
                 "updatedAt": "2026-11-07T04:10:58Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -1816,13 +1816,13 @@
                 "__typename": "Issue",
                 "number": 22,
                 "title": "C2 ev: draft-grok B2",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/22",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/22",
                 "body": "C2 ev 负例议题 B2：为 notes 增加 `notes count` 的需求说明，用于验证起草开场指定未映射模型时的拒绝路径（重做）。",
                 "createdAt": "2026-11-07T04:12:27Z",
                 "updatedAt": "2026-11-07T04:13:19Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -1871,13 +1871,13 @@
                 "__typename": "Issue",
                 "number": 23,
                 "title": "C2 ev: vote-noisy C2",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/23",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/23",
                 "body": "C2 ev 投票噪声议题 C2：为 notes 增加 `notes count` 的需求说明，用于验证投票开场要求先只用一句话评价、不调用工具时的续跑（重做）。",
                 "createdAt": "2026-11-07T04:13:47Z",
                 "updatedAt": "2026-11-07T04:42:28Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -1926,13 +1926,13 @@
                 "__typename": "Issue",
                 "number": 24,
                 "title": "C2 ev: failure F2",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/24",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/24",
                 "body": "C2 ev 失败与恢复议题 F2：为 notes 增加 `notes count` 的需求说明，用于验证席位模型不可用时面板失败并在恢复后补齐投票（重做）。",
                 "createdAt": "2026-11-07T04:42:51Z",
                 "updatedAt": "2026-11-07T05:20:44Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -1981,13 +1981,13 @@
                 "__typename": "Issue",
                 "number": 25,
                 "title": "C2 ev: notes count A2",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/25",
-                "body": "给 oh-my-omp/pm-e2e-code 的 notes CLI 增加 `notes count`：输出便签总数与未完成数。（重做 A2）",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/25",
+                "body": "给 mouriya-s-lab/meerkat-e2e-code 的 notes CLI 增加 `notes count`：输出便签总数与未完成数。（重做 A2）",
                 "createdAt": "2026-11-07T04:51:29Z",
                 "updatedAt": "2026-11-07T05:20:32Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -2036,13 +2036,13 @@
                 "__typename": "Issue",
                 "number": 26,
                 "title": "C2 ev: escalation G2",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/26",
-                "body": "C2 ev 询问升级议题 G2：请就 notes 相关询问给出短议程。\n<!-- pm:escalation {\"v\":1,\"issue\":\"oh-my-omp/pm-e2e-code#3\",\"ask\":6698169063} -->",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/26",
+                "body": "C2 ev 询问升级议题 G2：请就 notes 相关询问给出短议程。\n<!-- pm:escalation {\"v\":1,\"issue\":\"mouriya-s-lab/meerkat-e2e-code#3\",\"ask\":6698169063} -->",
                 "createdAt": "2026-11-07T04:51:34Z",
                 "updatedAt": "2026-11-07T05:24:56Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -2091,13 +2091,13 @@
                 "__typename": "Issue",
                 "number": 27,
                 "title": "C2 ev: draft-grok B3",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/27",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/27",
                 "body": "C2 ev 负例议题 B3：为 notes 增加 `notes count` 的需求说明，用于验证起草开场指定未映射模型时的拒绝路径（第三次）。",
                 "createdAt": "2026-11-07T05:26:28Z",
                 "updatedAt": "2026-11-07T05:29:30Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -2146,13 +2146,13 @@
                 "__typename": "Issue",
                 "number": 28,
                 "title": "C3 smoke: row1 通过并建实现 issue",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/28",
-                "body": "C3 smoke 手写计票输入：一行，deliver 指向 oh-my-omp/pm-e2e-code，四票 approve。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/28",
+                "body": "C3 smoke 手写计票输入：一行，deliver 指向 mouriya-s-lab/meerkat-e2e-code，四票 approve。",
                 "createdAt": "2026-11-07T05:36:36Z",
                 "updatedAt": "2026-11-07T05:38:24Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -2201,13 +2201,13 @@
                 "__typename": "Issue",
                 "number": 29,
                 "title": "C3 smoke: row2 门槛拒绝与否决",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/29",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/29",
                 "body": "C3 smoke 手写计票输入：三行，分类都是「意图」，否决成立与不成立。",
                 "createdAt": "2026-11-07T05:36:49Z",
                 "updatedAt": "2026-11-07T05:38:16Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -2256,13 +2256,13 @@
                 "__typename": "Issue",
                 "number": 30,
                 "title": "C3 smoke: row4 反对触发修订",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/30",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/30",
                 "body": "C3 smoke 手写计票输入：一行，ClaudeHigh oppose 带反例，其余三票 approve。",
                 "createdAt": "2026-11-07T05:37:01Z",
                 "updatedAt": "2026-11-07T06:29:43Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -2311,13 +2311,13 @@
                 "__typename": "Issue",
                 "number": 31,
                 "title": "C3 smoke: row6 了结被提为议题的询问",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/31",
-                "body": "C3 smoke：由 oh-my-omp/pm-e2e-code#3 的询问提为议题（手写）。\n<!-- pm:escalation {\"v\":1,\"issue\":\"oh-my-omp/pm-e2e-code#3\",\"ask\":6702887478} -->",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/31",
+                "body": "C3 smoke：由 mouriya-s-lab/meerkat-e2e-code#3 的询问提为议题（手写）。\n<!-- pm:escalation {\"v\":1,\"issue\":\"mouriya-s-lab/meerkat-e2e-code#3\",\"ask\":6702887478} -->",
                 "createdAt": "2026-11-07T05:37:27Z",
                 "updatedAt": "2026-11-07T05:38:53Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -2366,18 +2366,18 @@
                 "__typename": "Issue",
                 "number": 24,
                 "title": "C3 smoke row1: notes count 子命令",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/24",
-                "body": "依据决策：oh-my-omp/pm-e2e-agenda#28（议程 D26，第 r1 行）\n\n## 要做什么与验收\n\n实现 notes count，输出便签总数。验收：notes count 打印一个整数。\n\n## 决策行\n\n- what：notes count 子命令输出便签总数\n- where：cmd/notes\n- how：新增 count 子命令，读取存储并打印条数\n\n## 启动\n\n[用 dispatch 启动](http://127.0.0.1:47591/oh-my-omp/pm-e2e-code/issues/24?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fpm-e2e%2Fpm-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/24",
+                "body": "依据决策：mouriya-s-lab/meerkat-e2e-agenda#28（议程 D26，第 r1 行）\n\n## 要做什么与验收\n\n实现 notes count，输出便签总数。验收：notes count 打印一个整数。\n\n## 决策行\n\n- what：notes count 子命令输出便签总数\n- where：cmd/notes\n- how：新增 count 子命令，读取存储并打印条数\n\n## 启动\n\n[用 dispatch 启动](http://127.0.0.1:47591/mouriya-s-lab/meerkat-e2e-code/issues/24?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fmeerkat-e2e%2Fmeerkat-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n",
                 "createdAt": "2026-11-07T05:38:16Z",
                 "updatedAt": "2026-11-07T06:35:30Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 28,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                   }
                 },
                 "blockedBy": {
@@ -2426,13 +2426,13 @@
                 "__typename": "Issue",
                 "number": 32,
                 "title": "C3 smoke: row7 中途被杀不重复",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/32",
-                "body": "C3 smoke 手写计票输入：与 row1 相同，一行 deliver 指向 oh-my-omp/pm-e2e-code，四票 approve；发布中途 kill -9。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/32",
+                "body": "C3 smoke 手写计票输入：与 row1 相同，一行 deliver 指向 mouriya-s-lab/meerkat-e2e-code，四票 approve；发布中途 kill -9。",
                 "createdAt": "2026-11-07T06:30:04Z",
                 "updatedAt": "2026-11-07T06:32:04Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -2481,18 +2481,18 @@
                 "__typename": "Issue",
                 "number": 25,
                 "title": "C3 smoke row7: notes count 子命令",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/25",
-                "body": "依据决策：oh-my-omp/pm-e2e-agenda#32（议程 D30，第 r1 行）\n\n## 要做什么与验收\n\n实现 notes count，输出便签总数。验收：notes count 打印一个整数。\n\n## 决策行\n\n- what：notes count 子命令输出便签总数\n- where：cmd/notes\n- how：新增 count 子命令，读取存储并打印条数\n\n## 启动\n\n[用 dispatch 启动](http://127.0.0.1:47591/oh-my-omp/pm-e2e-code/issues/25?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fpm-e2e%2Fpm-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/25",
+                "body": "依据决策：mouriya-s-lab/meerkat-e2e-agenda#32（议程 D30，第 r1 行）\n\n## 要做什么与验收\n\n实现 notes count，输出便签总数。验收：notes count 打印一个整数。\n\n## 决策行\n\n- what：notes count 子命令输出便签总数\n- where：cmd/notes\n- how：新增 count 子命令，读取存储并打印条数\n\n## 启动\n\n[用 dispatch 启动](http://127.0.0.1:47591/mouriya-s-lab/meerkat-e2e-code/issues/25?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fmeerkat-e2e%2Fmeerkat-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n",
                 "createdAt": "2026-11-07T06:30:43Z",
                 "updatedAt": "2026-11-07T06:35:30Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 32,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                   }
                 },
                 "blockedBy": {
@@ -2541,13 +2541,13 @@
                 "__typename": "Issue",
                 "number": 33,
                 "title": "C3 smoke: row7b 中途被杀不重复",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/33",
-                "body": "C3 smoke 手写计票输入：一行 deliver 指向 oh-my-omp/pm-e2e-code，四票 approve；在实现 issue 出现后、decision 出现前 kill -9。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/33",
+                "body": "C3 smoke 手写计票输入：一行 deliver 指向 mouriya-s-lab/meerkat-e2e-code，四票 approve；在实现 issue 出现后、decision 出现前 kill -9。",
                 "createdAt": "2026-11-07T06:32:21Z",
                 "updatedAt": "2026-11-07T06:35:01Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -2596,18 +2596,18 @@
                 "__typename": "Issue",
                 "number": 26,
                 "title": "C3 smoke row7b: notes count 子命令",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/26",
-                "body": "依据决策：oh-my-omp/pm-e2e-agenda#33（议程 D31，第 r1 行）\n\n## 要做什么与验收\n\n实现 notes count，输出便签总数。验收：notes count 打印一个整数。\n\n## 决策行\n\n- what：notes count 子命令输出便签总数\n- where：cmd/notes\n- how：新增 count 子命令，读取存储并打印条数\n\n## 启动\n\n[用 dispatch 启动](http://127.0.0.1:47591/oh-my-omp/pm-e2e-code/issues/26?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fpm-e2e%2Fpm-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/26",
+                "body": "依据决策：mouriya-s-lab/meerkat-e2e-agenda#33（议程 D31，第 r1 行）\n\n## 要做什么与验收\n\n实现 notes count，输出便签总数。验收：notes count 打印一个整数。\n\n## 决策行\n\n- what：notes count 子命令输出便签总数\n- where：cmd/notes\n- how：新增 count 子命令，读取存储并打印条数\n\n## 启动\n\n[用 dispatch 启动](http://127.0.0.1:47591/mouriya-s-lab/meerkat-e2e-code/issues/26?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fmeerkat-e2e%2Fmeerkat-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n",
                 "createdAt": "2026-11-07T06:34:24Z",
                 "updatedAt": "2026-11-07T06:35:30Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 33,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                   }
                 },
                 "blockedBy": {
@@ -2656,13 +2656,13 @@
                 "__typename": "Issue",
                 "number": 34,
                 "title": "C3 ev: row1 通过并建实现 issue",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/34",
-                "body": "C3 ev 手写计票输入：一行，deliver 指向 oh-my-omp/pm-e2e-code，四票 approve。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/34",
+                "body": "C3 ev 手写计票输入：一行，deliver 指向 mouriya-s-lab/meerkat-e2e-code，四票 approve。",
                 "createdAt": "2026-11-07T06:38:34Z",
                 "updatedAt": "2026-11-07T06:40:25Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -2711,13 +2711,13 @@
                 "__typename": "Issue",
                 "number": 27,
                 "title": "CF ev: notes count F (#7 row 1)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/27",
-                "body": "council fix smoke for oh-my-omp/pm-council#7 row 1. 为 notes CLI 增加 notes count：输出便签总数。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/27",
+                "body": "council fix smoke for mouriya-s-lab/meerkat-council#7 row 1. 为 notes CLI 增加 notes count：输出便签总数。",
                 "createdAt": "2026-11-07T06:38:40Z",
                 "updatedAt": "2026-11-07T06:49:48Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -2766,13 +2766,13 @@
                 "__typename": "Issue",
                 "number": 35,
                 "title": "C3 ev: row2 门槛拒绝与否决",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/35",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/35",
                 "body": "C3 ev 手写计票输入：三行，分类都是「意图」：行 1 两票 approve、Argon 引用普通议题否决、LeadMentor 否决（非否决席位）；行 2 Argon 引用人类议题否决；行 3 Argon 引用普通议题否决。",
                 "createdAt": "2026-11-07T06:38:45Z",
                 "updatedAt": "2026-11-07T06:40:20Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -2821,13 +2821,13 @@
                 "__typename": "Issue",
                 "number": 36,
                 "title": "C3 ev: row6 了结被提为议题的询问",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/36",
-                "body": "C3 ev：由 oh-my-omp/pm-e2e-code#3 的询问提为议题（手写）。\n<!-- pm:escalation {\"v\":1,\"issue\":\"oh-my-omp/pm-e2e-code#3\",\"ask\":6703467995} -->",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/36",
+                "body": "C3 ev：由 mouriya-s-lab/meerkat-e2e-code#3 的询问提为议题（手写）。\n<!-- pm:escalation {\"v\":1,\"issue\":\"mouriya-s-lab/meerkat-e2e-code#3\",\"ask\":6703467995} -->",
                 "createdAt": "2026-11-07T06:39:06Z",
                 "updatedAt": "2026-11-07T06:42:43Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -2876,13 +2876,13 @@
                 "__typename": "Issue",
                 "number": 37,
                 "title": "C3 ev: row3 分类争议交仲裁",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/37",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/37",
                 "body": "C3 ev 手写计票输入：一行分类「技术」，Argon 引用人类议题否决，其余三票 approve。",
                 "createdAt": "2026-11-07T06:39:20Z",
                 "updatedAt": "2026-11-07T06:44:01Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -2931,13 +2931,13 @@
                 "__typename": "Issue",
                 "number": 38,
                 "title": "C3 ev: row4 反对触发修订",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/38",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/38",
                 "body": "C3 ev 手写计票输入：一行，ClaudeHigh oppose 带反例，其余三票 approve。",
                 "createdAt": "2026-11-07T06:39:31Z",
                 "updatedAt": "2026-11-07T06:58:20Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -2986,18 +2986,18 @@
                 "__typename": "Issue",
                 "number": 28,
                 "title": "C3 ev row1: notes count 子命令",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/28",
-                "body": "依据决策：oh-my-omp/pm-e2e-agenda#34（议程 D32，第 r1 行）\n\n## 要做什么与验收\n\n实现 notes count，输出便签总数。验收：notes count 打印一个整数。\n\n## 决策行\n\n- what：notes count 子命令输出便签总数\n- where：cmd/notes\n- how：新增 count 子命令，读取存储并打印条数\n\n## 启动\n\n[用 dispatch 启动](http://127.0.0.1:47591/oh-my-omp/pm-e2e-code/issues/28?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fpm-e2e%2Fpm-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/28",
+                "body": "依据决策：mouriya-s-lab/meerkat-e2e-agenda#34（议程 D32，第 r1 行）\n\n## 要做什么与验收\n\n实现 notes count，输出便签总数。验收：notes count 打印一个整数。\n\n## 决策行\n\n- what：notes count 子命令输出便签总数\n- where：cmd/notes\n- how：新增 count 子命令，读取存储并打印条数\n\n## 启动\n\n[用 dispatch 启动](http://127.0.0.1:47591/mouriya-s-lab/meerkat-e2e-code/issues/28?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fmeerkat-e2e%2Fmeerkat-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n",
                 "createdAt": "2026-11-07T06:40:19Z",
                 "updatedAt": "2026-11-07T08:16:15Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 34,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                   }
                 },
                 "blockedBy": {
@@ -3046,13 +3046,13 @@
                 "__typename": "Issue",
                 "number": 29,
                 "title": "CF ev: human H (#7 row 3)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/29",
-                "body": "council fix smoke for oh-my-omp/pm-council#7 row 3：人类议题，用于打断在投票的议题。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/29",
+                "body": "council fix smoke for mouriya-s-lab/meerkat-council#7 row 3：人类议题，用于打断在投票的议题。",
                 "createdAt": "2026-11-07T06:46:25Z",
                 "updatedAt": "2026-11-07T06:47:12Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -3101,13 +3101,13 @@
                 "__typename": "Issue",
                 "number": 30,
                 "title": "CF ev: close K (#6 row 1)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/30",
-                "body": "council fix smoke for oh-my-omp/pm-council#6 row 1. 为 notes CLI 增加 notes count：输出便签总数。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/30",
+                "body": "council fix smoke for mouriya-s-lab/meerkat-council#6 row 1. 为 notes CLI 增加 notes count：输出便签总数。",
                 "createdAt": "2026-11-07T06:50:26Z",
                 "updatedAt": "2026-11-07T07:00:16Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -3156,13 +3156,13 @@
                 "__typename": "Issue",
                 "number": 31,
                 "title": "CF ev: done L (#6 row 2)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/31",
-                "body": "council fix smoke for oh-my-omp/pm-council#6 row 2. 为 notes CLI 增加 notes clear：删除全部已完成便签。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/31",
+                "body": "council fix smoke for mouriya-s-lab/meerkat-council#6 row 2. 为 notes CLI 增加 notes clear：删除全部已完成便签。",
                 "createdAt": "2026-11-07T06:50:26Z",
                 "updatedAt": "2026-11-07T07:26:40Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -3211,13 +3211,13 @@
                 "__typename": "Issue",
                 "number": 5,
                 "title": "B2 fixture: P 带实现子 issue 的议程（Done）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/5",
-                "body": "B2 evidence fixture for oh-my-omp/pm-dashboard#3. Decided agenda issue P, Status Done, with two implementation sub-issues in oh-my-omp/pm-e2e-code.",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/5",
+                "body": "B2 evidence fixture for mouriya-s-lab/meerkat#3. Decided agenda issue P, Status Done, with two implementation sub-issues in mouriya-s-lab/meerkat-e2e-code.",
                 "createdAt": "2026-11-07T06:51:19Z",
                 "updatedAt": "2026-11-07T07:08:22Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -3260,18 +3260,18 @@
                 "__typename": "Issue",
                 "number": 33,
                 "title": "B2 fixture: P 的实现子 issue 1（将关闭为完成）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/33",
-                "body": "B2 evidence fixture for oh-my-omp/pm-dashboard#3. Implementation sub-issue 1 of oh-my-omp/pm-e2e-design#5; closed as completed during the run.",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/33",
+                "body": "B2 evidence fixture for mouriya-s-lab/meerkat#3. Implementation sub-issue 1 of mouriya-s-lab/meerkat-e2e-design#5; closed as completed during the run.",
                 "createdAt": "2026-11-07T06:51:29Z",
                 "updatedAt": "2026-11-07T06:58:23Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 5,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                   }
                 },
                 "blockedBy": {
@@ -3314,18 +3314,18 @@
                 "__typename": "Issue",
                 "number": 32,
                 "title": "B2 fixture: P 的实现子 issue 2（未完成）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/32",
-                "body": "B2 evidence fixture for oh-my-omp/pm-dashboard#3. Implementation sub-issue 2 of oh-my-omp/pm-e2e-design#5; stays open.",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/32",
+                "body": "B2 evidence fixture for mouriya-s-lab/meerkat#3. Implementation sub-issue 2 of mouriya-s-lab/meerkat-e2e-design#5; stays open.",
                 "createdAt": "2026-11-07T06:51:29Z",
                 "updatedAt": "2026-11-07T07:08:21Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 5,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                   }
                 },
                 "blockedBy": {
@@ -3380,13 +3380,13 @@
                 "__typename": "Issue",
                 "number": 2,
                 "title": "B2 fixture: A2 普通议题（Blocked by A1）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/2",
-                "body": "B2 evidence fixture for oh-my-omp/pm-dashboard#3. Agenda issue A2, blocked by the agenda issue A1 (a non-human prerequisite, which the council ignores).",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/2",
+                "body": "B2 evidence fixture for mouriya-s-lab/meerkat#3. Agenda issue A2, blocked by the agenda issue A1 (a non-human prerequisite, which the council ignores).",
                 "createdAt": "2026-11-07T06:51:19Z",
                 "updatedAt": "2026-11-07T07:08:22Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -3394,7 +3394,7 @@
                     {
                       "number": 3,
                       "repository": {
-                        "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                        "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                       }
                     }
                   ]
@@ -3448,13 +3448,13 @@
                 "__typename": "Issue",
                 "number": 6,
                 "title": "B2 fixture: H1 人类议题（未定案）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/6",
-                "body": "B2 evidence fixture for oh-my-omp/pm-dashboard#3. Human issue H1: undecided on purpose, so the private council convenes it.",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/6",
+                "body": "B2 evidence fixture for mouriya-s-lab/meerkat#3. Human issue H1: undecided on purpose, so the private council convenes it.",
                 "createdAt": "2026-11-07T06:51:19Z",
                 "updatedAt": "2026-11-07T07:08:21Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -3509,13 +3509,13 @@
                 "__typename": "Issue",
                 "number": 3,
                 "title": "B2 fixture: A1 普通议题（Blocked by H2）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/3",
-                "body": "B2 evidence fixture for oh-my-omp/pm-dashboard#3. Agenda issue A1, blocked by H2 (Blocked by relation).",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/3",
+                "body": "B2 evidence fixture for mouriya-s-lab/meerkat#3. Agenda issue A1, blocked by H2 (Blocked by relation).",
                 "createdAt": "2026-11-07T06:51:19Z",
                 "updatedAt": "2026-11-07T07:08:21Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -3523,7 +3523,7 @@
                     {
                       "number": 1,
                       "repository": {
-                        "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                        "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                       }
                     }
                   ]
@@ -3577,13 +3577,13 @@
                 "__typename": "Issue",
                 "number": 4,
                 "title": "B2 fixture: 已定案议程（Done）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/4",
-                "body": "B2 evidence fixture for oh-my-omp/pm-dashboard#3. Decided agenda issue, Status Done.",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/4",
+                "body": "B2 evidence fixture for mouriya-s-lab/meerkat#3. Decided agenda issue, Status Done.",
                 "createdAt": "2026-11-07T06:51:19Z",
                 "updatedAt": "2026-11-07T07:08:22Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -3638,13 +3638,13 @@
                 "__typename": "Issue",
                 "number": 1,
                 "title": "B2 fixture: H2 人类议题（Blocked by H1）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/1",
-                "body": "B2 evidence fixture for oh-my-omp/pm-dashboard#3. Human issue H2, blocked by H1 (Blocked by relation).",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/1",
+                "body": "B2 evidence fixture for mouriya-s-lab/meerkat#3. Human issue H2, blocked by H1 (Blocked by relation).",
                 "createdAt": "2026-11-07T06:51:19Z",
                 "updatedAt": "2026-11-07T07:08:22Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -3652,7 +3652,7 @@
                     {
                       "number": 6,
                       "repository": {
-                        "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                        "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                       }
                     }
                   ]
@@ -3700,13 +3700,13 @@
                 "__typename": "Issue",
                 "number": 34,
                 "title": "CF ev: interrupt M (#6 row 3)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/34",
-                "body": "council fix smoke for oh-my-omp/pm-council#6 row 3. 为 notes CLI 增加 notes undone <id>：把已完成便签改回未完成。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/34",
+                "body": "council fix smoke for mouriya-s-lab/meerkat-council#6 row 3. 为 notes CLI 增加 notes undone <id>：把已完成便签改回未完成。",
                 "createdAt": "2026-11-07T06:55:37Z",
                 "updatedAt": "2026-11-07T07:26:33Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -3755,18 +3755,18 @@
                 "__typename": "Issue",
                 "number": 35,
                 "title": "为 notes list 增加 --limit 并定义 N<=0 边界语义",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/35",
-                "body": "依据决策：oh-my-omp/pm-e2e-agenda#38（议程 D36，第 r1 行）\n\n## 要做什么与验收\n\n实现 `notes list --limit N`，并明确边界语义：\n\n1. `--limit` 只接受非负十进制整数；参数缺失时保持现有行为，列出全部 notes。\n2. `N == 0` 时正常返回成功并输出空列表，不回退为“输出全部”。\n3. `N < 0`、非整数或无法解析为整数时，向 stderr 输出明确错误，并以参数错误退出码 2 退出；不得静默按 0 或全部处理。\n4. `N > 0` 时只输出存储顺序中的前 N 条。\n\n实现建议：在 `main.go` 的 `list` 分支解析并校验参数，在 `store.go` 提供受上限约束的列举方法或等价切片逻辑；新增测试覆盖缺省、1、0、负数、非整数及条目数少于 N 的情形。\n\n反例回应：ClaudeHigh 指出 `--limit 0` 语义未定义。核实结果显示，当前实现 main.go:43 与 store.go:69 只支持全量列出，设计 notes.md:2-5 也未规定该边界；本版通过上述规则消除了歧义。\n\n## 决策行\n\n- what：notes list 支持 --limit 限制输出条数，并明确 N<=0 的边界语义\n- where：main.go:43（notes list 命令入口）；store.go:69（notes 存储与列举）；store_test.go（--limit 边界测试）\n- how：在 list 命令入口增加 `--limit N` 参数；参数缺失时保持现有全量输出。明确规定 `N == 0` 成功退出并输出空列表，`N < 0` 为参数错误：向 stderr 报错并以退出码 2 退出；`N > 0` 按存储顺序仅输出前 N 条。实现中将参数解析与合法性校验放在命令层，并在存储层增加受限列举方法或等价切片逻辑，避免把无效值当作“全部”。\n\n## 启动\n\n[用 dispatch 启动](http://127.0.0.1:47591/oh-my-omp/pm-e2e-code/issues/35?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fpm-e2e%2Fpm-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/35",
+                "body": "依据决策：mouriya-s-lab/meerkat-e2e-agenda#38（议程 D36，第 r1 行）\n\n## 要做什么与验收\n\n实现 `notes list --limit N`，并明确边界语义：\n\n1. `--limit` 只接受非负十进制整数；参数缺失时保持现有行为，列出全部 notes。\n2. `N == 0` 时正常返回成功并输出空列表，不回退为“输出全部”。\n3. `N < 0`、非整数或无法解析为整数时，向 stderr 输出明确错误，并以参数错误退出码 2 退出；不得静默按 0 或全部处理。\n4. `N > 0` 时只输出存储顺序中的前 N 条。\n\n实现建议：在 `main.go` 的 `list` 分支解析并校验参数，在 `store.go` 提供受上限约束的列举方法或等价切片逻辑；新增测试覆盖缺省、1、0、负数、非整数及条目数少于 N 的情形。\n\n反例回应：ClaudeHigh 指出 `--limit 0` 语义未定义。核实结果显示，当前实现 main.go:43 与 store.go:69 只支持全量列出，设计 notes.md:2-5 也未规定该边界；本版通过上述规则消除了歧义。\n\n## 决策行\n\n- what：notes list 支持 --limit 限制输出条数，并明确 N<=0 的边界语义\n- where：main.go:43（notes list 命令入口）；store.go:69（notes 存储与列举）；store_test.go（--limit 边界测试）\n- how：在 list 命令入口增加 `--limit N` 参数；参数缺失时保持现有全量输出。明确规定 `N == 0` 成功退出并输出空列表，`N < 0` 为参数错误：向 stderr 报错并以退出码 2 退出；`N > 0` 按存储顺序仅输出前 N 条。实现中将参数解析与合法性校验放在命令层，并在存储层增加受限列举方法或等价切片逻辑，避免把无效值当作“全部”。\n\n## 启动\n\n[用 dispatch 启动](http://127.0.0.1:47591/mouriya-s-lab/meerkat-e2e-code/issues/35?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fmeerkat-e2e%2Fmeerkat-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n",
                 "createdAt": "2026-11-07T06:58:14Z",
                 "updatedAt": "2026-11-07T07:13:15Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 38,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                   }
                 },
                 "blockedBy": {
@@ -3815,13 +3815,13 @@
                 "__typename": "Issue",
                 "number": 40,
                 "title": "C3 ev: row5 人类议题 H（变更 O）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/40",
-                "body": "C3 ev 手写：人类议题 H，草案 supersedes [oh-my-omp/pm-e2e-agenda#39]，四票 approve。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/40",
+                "body": "C3 ev 手写：人类议题 H，草案 supersedes [mouriya-s-lab/meerkat-e2e-agenda#39]，四票 approve。",
                 "createdAt": "2026-11-07T06:58:43Z",
                 "updatedAt": "2026-11-07T07:00:50Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -3870,13 +3870,13 @@
                 "__typename": "Issue",
                 "number": 39,
                 "title": "C3 ev: row5 旧议题 O（将被人类议题变更）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/39",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/39",
                 "body": "C3 ev 手写：普通议题 O，将被人类议题 H 的草案 supersedes 变更。",
                 "createdAt": "2026-11-07T06:58:42Z",
                 "updatedAt": "2026-11-07T07:00:54Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -3925,13 +3925,13 @@
                 "__typename": "Issue",
                 "number": 36,
                 "title": "CF ev: interrupt M2 (#6 row 4)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/36",
-                "body": "council fix smoke for oh-my-omp/pm-council#6 row 4. 为 notes CLI 增加 notes stats：输出已完成与未完成的便签数。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/36",
+                "body": "council fix smoke for mouriya-s-lab/meerkat-council#6 row 4. 为 notes CLI 增加 notes stats：输出已完成与未完成的便签数。",
                 "createdAt": "2026-11-07T07:04:04Z",
                 "updatedAt": "2026-11-07T07:26:33Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -3980,13 +3980,13 @@
                 "__typename": "Issue",
                 "number": 41,
                 "title": "C3 ev2: row2 门槛拒绝、否决成立与不成立",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/41",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/41",
                 "body": "C3 ev2（96f353d 重录）：手写计票输入，三行。",
                 "createdAt": "2026-11-07T07:05:43Z",
                 "updatedAt": "2026-11-07T07:08:00Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -4035,13 +4035,13 @@
                 "__typename": "Issue",
                 "number": 42,
                 "title": "C3 ev2: row1 通过并建实现 issue",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/42",
-                "body": "C3 ev2（96f353d 重录）：手写计票输入，一行 deliver 到 pm-e2e-code。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/42",
+                "body": "C3 ev2（96f353d 重录）：手写计票输入，一行 deliver 到 meerkat-e2e-code。",
                 "createdAt": "2026-11-07T07:05:56Z",
                 "updatedAt": "2026-11-07T07:08:07Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -4090,13 +4090,13 @@
                 "__typename": "Issue",
                 "number": 43,
                 "title": "C3 ev2: row6 了结被提为议题的询问",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/43",
-                "body": "C3 ev2：由 oh-my-omp/pm-e2e-code#3 的询问提为议题（手写，96f353d 重录）。\n<!-- pm:escalation {\"v\":1,\"issue\":\"oh-my-omp/pm-e2e-code#3\",\"ask\":6703719036} -->",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/43",
+                "body": "C3 ev2：由 mouriya-s-lab/meerkat-e2e-code#3 的询问提为议题（手写，96f353d 重录）。\n<!-- pm:escalation {\"v\":1,\"issue\":\"mouriya-s-lab/meerkat-e2e-code#3\",\"ask\":6703719036} -->",
                 "createdAt": "2026-11-07T07:06:16Z",
                 "updatedAt": "2026-11-07T07:09:54Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -4145,13 +4145,13 @@
                 "__typename": "Issue",
                 "number": 44,
                 "title": "C3 ev2: row3 分类争议交仲裁",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/44",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/44",
                 "body": "C3 ev2（96f353d 重录）：一行分类技术，Argon 否决引用人类议题。",
                 "createdAt": "2026-11-07T07:06:28Z",
                 "updatedAt": "2026-11-07T07:10:36Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -4200,13 +4200,13 @@
                 "__typename": "Issue",
                 "number": 45,
                 "title": "C3 ev2: row4 反对触发修订",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/45",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/45",
                 "body": "C3 ev2（96f353d 重录）：一行，ClaudeHigh 附反例反对。",
                 "createdAt": "2026-11-07T07:06:39Z",
                 "updatedAt": "2026-11-07T07:56:59Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -4255,18 +4255,18 @@
                 "__typename": "Issue",
                 "number": 37,
                 "title": "C3 ev row1: notes count 子命令",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/37",
-                "body": "依据决策：oh-my-omp/pm-e2e-agenda#42（议程 D40，第 r1 行）\n\n## 要做什么与验收\n\n实现 notes count，输出便签总数。验收：notes count 打印一个整数。\n\n## 决策行\n\n- what：notes count 子命令输出便签总数\n- where：cmd/notes\n- how：新增 count 子命令，读取存储并打印条数\n\n## 启动\n\n[用 dispatch 启动](http://127.0.0.1:47591/oh-my-omp/pm-e2e-code/issues/37?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fpm-e2e%2Fpm-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/37",
+                "body": "依据决策：mouriya-s-lab/meerkat-e2e-agenda#42（议程 D40，第 r1 行）\n\n## 要做什么与验收\n\n实现 notes count，输出便签总数。验收：notes count 打印一个整数。\n\n## 决策行\n\n- what：notes count 子命令输出便签总数\n- where：cmd/notes\n- how：新增 count 子命令，读取存储并打印条数\n\n## 启动\n\n[用 dispatch 启动](http://127.0.0.1:47591/mouriya-s-lab/meerkat-e2e-code/issues/37?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fmeerkat-e2e%2Fmeerkat-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n",
                 "createdAt": "2026-11-07T07:08:00Z",
                 "updatedAt": "2026-11-07T08:12:58Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 42,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                   }
                 },
                 "blockedBy": {
@@ -4315,13 +4315,13 @@
                 "__typename": "Issue",
                 "number": 38,
                 "title": "CF ev: human N (#6 row 3)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/38",
-                "body": "council fix smoke for oh-my-omp/pm-council#6 row 3：人类议题，打断在审议的议题后设 Done 并关闭。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/38",
+                "body": "council fix smoke for mouriya-s-lab/meerkat-council#6 row 3：人类议题，打断在审议的议题后设 Done 并关闭。",
                 "createdAt": "2026-11-07T07:24:15Z",
                 "updatedAt": "2026-11-07T07:25:04Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -4370,13 +4370,13 @@
                 "__typename": "Issue",
                 "number": 47,
                 "title": "C3 ev3: row5 人类议题 H（变更 O）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/47",
-                "body": "C3 ev3（96f353d 重录）：人类议题 H，草案 supersedes [oh-my-omp/pm-e2e-agenda#46]，四票 approve。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/47",
+                "body": "C3 ev3（96f353d 重录）：人类议题 H，草案 supersedes [mouriya-s-lab/meerkat-e2e-agenda#46]，四票 approve。",
                 "createdAt": "2026-11-07T07:46:20Z",
                 "updatedAt": "2026-11-07T08:00:35Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -4425,13 +4425,13 @@
                 "__typename": "Issue",
                 "number": 46,
                 "title": "C3 ev3: row5 旧议题 O（将被人类议题变更）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/46",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/46",
                 "body": "C3 ev3（96f353d 重录）：普通议题 O，将被人类议题 H 的草案 supersedes 变更。",
                 "createdAt": "2026-11-07T07:46:12Z",
                 "updatedAt": "2026-11-07T08:00:34Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -4480,13 +4480,13 @@
                 "__typename": "Issue",
                 "number": 48,
                 "title": "C3 ev3: row7 发布中途被杀不重复",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/48",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/48",
                 "body": "C3 ev3（96f353d 重录）：与第 1 行相同的手写计票输入；建实现 issue 后、decision 前 kill -9 daemon。",
                 "createdAt": "2026-11-07T07:47:06Z",
                 "updatedAt": "2026-11-07T08:07:11Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -4535,18 +4535,18 @@
                 "__typename": "Issue",
                 "number": 39,
                 "title": "C3 ev row7: notes count 子命令",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/39",
-                "body": "依据决策：oh-my-omp/pm-e2e-agenda#48（议程 D46，第 r1 行）\n\n## 要做什么与验收\n\n实现 notes count，输出便签总数。验收：notes count 打印一个整数。\n\n## 决策行\n\n- what：notes count 子命令输出便签总数\n- where：cmd/notes\n- how：新增 count 子命令，读取存储并打印条数\n\n## 启动\n\n[用 dispatch 启动](http://127.0.0.1:47591/oh-my-omp/pm-e2e-code/issues/39?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fpm-e2e%2Fpm-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/39",
+                "body": "依据决策：mouriya-s-lab/meerkat-e2e-agenda#48（议程 D46，第 r1 行）\n\n## 要做什么与验收\n\n实现 notes count，输出便签总数。验收：notes count 打印一个整数。\n\n## 决策行\n\n- what：notes count 子命令输出便签总数\n- where：cmd/notes\n- how：新增 count 子命令，读取存储并打印条数\n\n## 启动\n\n[用 dispatch 启动](http://127.0.0.1:47591/mouriya-s-lab/meerkat-e2e-code/issues/39?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fmeerkat-e2e%2Fmeerkat-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n",
                 "createdAt": "2026-11-07T08:06:28Z",
                 "updatedAt": "2026-11-07T08:12:59Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 48,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                   }
                 },
                 "blockedBy": {
@@ -4595,13 +4595,13 @@
                 "__typename": "Issue",
                 "number": 49,
                 "title": "C3 ev3: row8 归档",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/49",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/49",
                 "body": "C3 ev3（96f353d 重录）：配置 archive 后，与第 1 行相同的手写计票输入。",
                 "createdAt": "2026-11-07T07:47:49Z",
                 "updatedAt": "2026-11-07T08:11:42Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -4650,18 +4650,18 @@
                 "__typename": "Issue",
                 "number": 40,
                 "title": "C3 ev row8: notes count 子命令",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/40",
-                "body": "依据决策：oh-my-omp/pm-e2e-agenda#49（议程 D47，第 r1 行）\n\n## 要做什么与验收\n\n实现 notes count，输出便签总数。验收：notes count 打印一个整数。\n\n## 决策行\n\n- what：notes count 子命令输出便签总数\n- where：cmd/notes\n- how：新增 count 子命令，读取存储并打印条数\n\n## 启动\n\n[用 dispatch 启动](http://127.0.0.1:47591/oh-my-omp/pm-e2e-code/issues/40?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fpm-e2e%2Fpm-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/40",
+                "body": "依据决策：mouriya-s-lab/meerkat-e2e-agenda#49（议程 D47，第 r1 行）\n\n## 要做什么与验收\n\n实现 notes count，输出便签总数。验收：notes count 打印一个整数。\n\n## 决策行\n\n- what：notes count 子命令输出便签总数\n- where：cmd/notes\n- how：新增 count 子命令，读取存储并打印条数\n\n## 启动\n\n[用 dispatch 启动](http://127.0.0.1:47591/mouriya-s-lab/meerkat-e2e-code/issues/40?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fmeerkat-e2e%2Fmeerkat-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n",
                 "createdAt": "2026-11-07T08:11:32Z",
                 "updatedAt": "2026-11-07T08:13:02Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 49,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                   }
                 },
                 "blockedBy": {
@@ -4710,13 +4710,13 @@
                 "__typename": "Issue",
                 "number": 50,
                 "title": "C3 ev3: row10 起草方撤回",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/50",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/50",
                 "body": "C3 ev3（96f353d 重录）：revise 开场消息变体要求撤回；与第 4 行相同的手写计票输入。",
                 "createdAt": "2026-11-07T07:47:58Z",
                 "updatedAt": "2026-11-07T08:15:00Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -4765,13 +4765,13 @@
                 "__typename": "Issue",
                 "number": 41,
                 "title": "CF ev: notes count F (#7 evidence)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/41",
-                "body": "council fix evidence for oh-my-omp/pm-council#7. 为 notes CLI 增加 notes count：输出便签总数。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/41",
+                "body": "council fix evidence for mouriya-s-lab/meerkat-council#7. 为 notes CLI 增加 notes count：输出便签总数。",
                 "createdAt": "2026-11-07T08:23:35Z",
                 "updatedAt": "2026-11-07T08:52:43Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -4820,13 +4820,13 @@
                 "__typename": "Issue",
                 "number": 42,
                 "title": "CF ev: human H (#7 evidence row 3)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/42",
-                "body": "council fix evidence for oh-my-omp/pm-council#7 row 3：人类议题，在 F 投票中到达以打断小组，随后设 Done 并关闭。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/42",
+                "body": "council fix evidence for mouriya-s-lab/meerkat-council#7 row 3：人类议题，在 F 投票中到达以打断小组，随后设 Done 并关闭。",
                 "createdAt": "2026-11-07T08:43:34Z",
                 "updatedAt": "2026-11-07T09:07:47Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -4875,13 +4875,13 @@
                 "__typename": "Issue",
                 "number": 43,
                 "title": "CF ev: interrupt D (#7 evidence row 3)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/43",
-                "body": "council fix evidence for oh-my-omp/pm-council#7 row 3. 为 notes CLI 增加 notes clear：删除全部已完成便签。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/43",
+                "body": "council fix evidence for mouriya-s-lab/meerkat-council#7 row 3. 为 notes CLI 增加 notes clear：删除全部已完成便签。",
                 "createdAt": "2026-11-07T08:52:20Z",
                 "updatedAt": "2026-11-07T09:08:36Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -4930,18 +4930,18 @@
                 "__typename": "Issue",
                 "number": 44,
                 "title": "feat: add notes count command",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/44",
-                "body": "依据决策：oh-my-omp/pm-e2e-code#41（议程 F8，第 F8-01 行）\n\n## 要做什么与验收\n\n为 notes CLI 增加只读命令 `count`。\n\n必须实现的契约：\n1. `notes count` 不接受任何参数；成功时向 stdout 打印一行十进制整数，例如 `3`。\n2. 统计口径为“当前存储中仍存在的便签数量”：包含已完成便签，不包含已经 `rm` 的便签。空存储输出 `0`。\n3. `count` 不修改 notes JSON，不触发写盘，不改变 `last_id` 或便签编号分配。\n4. `notes count extra` 等带参数调用应返回 usage 错误，并沿用现有命令参数错误的退出码 2。\n\n设计缺口：设计仓库 `oh-my-omp/pm-e2e-design/notes.md:7-15` 的命令表未定义 count，输出格式、统计口径和参数规则均需在代码仓库的 `main.go` 命令注释与 `README.md` 中明确。\n\n实现提示：CLI 分发位于 `main.go:32-65`；便签存储与 `List()` 位于 `store.go:57-89`；文档 Usage 位于 `README.md:5-11`。\n\n验收标准：\n- 空文件、单条便签、多条便签分别输出 `0`、对应数量。\n- 标记 done 后数量不变，rm 后数量减少。\n- 运行 `go test ./...` 全部通过。\n\n## 决策行\n\n- what：定义 `notes count` 的用户可见契约：命令只读，统计当前存储中仍存在的便签总数，包含已完成便签、排除已删除便签；成功时向 stdout 打印一行十进制整数，命令不接受参数。\n- where：`oh-my-omp/pm-e2e-code/main.go:3-6`（命令说明注释）、`oh-my-omp/pm-e2e-code/main.go:32-35`（usage 文本）、`oh-my-omp/pm-e2e-code/README.md:5-11`（Usage 文档）；设计缺口位于 `oh-my-omp/pm-e2e-design/notes.md:7-15`（命令表未含 count）\n- how：在代码仓库中先固化契约：把“总数”明确为当前存储中仍存在的便签数，已完成便签计入、已删除便签不计入；规定成功输出为 stdout 上单独一行十进制整数（例如 `3`），`count` 不接受参数，带多余参数时沿用现有命令参数错误路径并以退出码 2 结束。同步更新 `main.go` 文件头命令注释、`main.go` 无参数 usage 文本和 `README.md` Usage，使代码、帮助文本与文档一致。设计书 `oh-my-omp/pm-e2e-design/notes.md:7-15` 未定义 count 的输出、统计口径与参数行为，因此本行为以代码仓库内文档和测试为准，并将该缺口标记为待设计补齐；不得擅自把口径扩大为历史累计数或仅未完成数。\n\n## 启动\n\n（冒烟环境：不带启动链接）\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/44",
+                "body": "依据决策：mouriya-s-lab/meerkat-e2e-code#41（议程 F8，第 F8-01 行）\n\n## 要做什么与验收\n\n为 notes CLI 增加只读命令 `count`。\n\n必须实现的契约：\n1. `notes count` 不接受任何参数；成功时向 stdout 打印一行十进制整数，例如 `3`。\n2. 统计口径为“当前存储中仍存在的便签数量”：包含已完成便签，不包含已经 `rm` 的便签。空存储输出 `0`。\n3. `count` 不修改 notes JSON，不触发写盘，不改变 `last_id` 或便签编号分配。\n4. `notes count extra` 等带参数调用应返回 usage 错误，并沿用现有命令参数错误的退出码 2。\n\n设计缺口：设计仓库 `mouriya-s-lab/meerkat-e2e-design/notes.md:7-15` 的命令表未定义 count，输出格式、统计口径和参数规则均需在代码仓库的 `main.go` 命令注释与 `README.md` 中明确。\n\n实现提示：CLI 分发位于 `main.go:32-65`；便签存储与 `List()` 位于 `store.go:57-89`；文档 Usage 位于 `README.md:5-11`。\n\n验收标准：\n- 空文件、单条便签、多条便签分别输出 `0`、对应数量。\n- 标记 done 后数量不变，rm 后数量减少。\n- 运行 `go test ./...` 全部通过。\n\n## 决策行\n\n- what：定义 `notes count` 的用户可见契约：命令只读，统计当前存储中仍存在的便签总数，包含已完成便签、排除已删除便签；成功时向 stdout 打印一行十进制整数，命令不接受参数。\n- where：`mouriya-s-lab/meerkat-e2e-code/main.go:3-6`（命令说明注释）、`mouriya-s-lab/meerkat-e2e-code/main.go:32-35`（usage 文本）、`mouriya-s-lab/meerkat-e2e-code/README.md:5-11`（Usage 文档）；设计缺口位于 `mouriya-s-lab/meerkat-e2e-design/notes.md:7-15`（命令表未含 count）\n- how：在代码仓库中先固化契约：把“总数”明确为当前存储中仍存在的便签数，已完成便签计入、已删除便签不计入；规定成功输出为 stdout 上单独一行十进制整数（例如 `3`），`count` 不接受参数，带多余参数时沿用现有命令参数错误路径并以退出码 2 结束。同步更新 `main.go` 文件头命令注释、`main.go` 无参数 usage 文本和 `README.md` Usage，使代码、帮助文本与文档一致。设计书 `mouriya-s-lab/meerkat-e2e-design/notes.md:7-15` 未定义 count 的输出、统计口径与参数行为，因此本行为以代码仓库内文档和测试为准，并将该缺口标记为待设计补齐；不得擅自把口径扩大为历史累计数或仅未完成数。\n\n## 启动\n\n（冒烟环境：不带启动链接）\n",
                 "createdAt": "2026-11-07T08:52:27Z",
                 "updatedAt": "2026-11-07T08:54:31Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 41,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                   }
                 },
                 "blockedBy": {
@@ -4990,18 +4990,18 @@
                 "__typename": "Issue",
                 "number": 45,
                 "title": "feat: implement notes count command and Store.Count",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/45",
-                "body": "依据决策：oh-my-omp/pm-e2e-code#41（议程 F8，第 F8-02 行）\n\n## 要做什么与验收\n\n在 `main.go` 的 `run` 分发中增加 `count` 命令，并提供只读的存储计数 API。\n\n实现要求：\n1. 在 `store.go` 的 `List()` 附近新增 `func (s *Store) Count() int`，返回 `len(s.data.Notes)`；不得持久化额外计数字段，不得改变 JSON schema，不得调用 `save()`。\n2. 在 `main.go` 的 `run` switch 中增加 `case \"count\"`：`count` 后有额外参数时返回 usage 错误；否则向 stdout 写入 `store.Count()` 和换行。\n3. 为便于可靠测试，将 `run` 的输出改为显式 `io.Writer` 参数，并由 `main` 传入 `os.Stdout`；add/list/count 的用户输出统一写向该 writer，错误路径行为不变。\n4. 更新 `main.go:3-6` 命令注释、`main.go:32-35` usage 文本和 `README.md:5-11`，公开 `notes count` 及其“当前存量、含已完成、不含已删除”的语义。\n\n验收标准：\n- `NOTES_FILE` 指向不存在文件时输出 `0`。\n- 含 done 便签时输出包含该便签的数量。\n- rm 后输出减少，count 前后 JSON 文件内容不变。\n- 带额外参数时退出码为 2。\n\n## 决策行\n\n- what：实现只读的便签计数能力与 `notes count` CLI 分支，输出当前便签存量数。\n- where：`oh-my-omp/pm-e2e-code/store.go:57-69`（`Store` 查询 API；新增 `Count()` 紧邻 `List()`）、`oh-my-omp/pm-e2e-code/main.go:16-30`（`main` 创建输出目标并调用 `run`）、`oh-my-omp/pm-e2e-code/main.go:32-65`（命令 switch；新增 `case \"count\"`）\n- how：在 `Store.List()` 旁新增 `Count() int`，直接返回 `len(s.data.Notes)`；该方法只读现有内存数据，不增加缓存字段、不修改磁盘格式、不调用 `save()`。在 `run` 的命令 switch 中新增 `count` 分支：参数数量必须恰为 1（仅命令名），否则返回沿用现有 usage/参数错误路径并由 `main` 维持退出码 2；合法时打印 `store.Count()` 的十进制结果。为使 CLI 输出可稳定单测，将 `run` 改为接收 `io.Writer`（`main` 传入 `os.Stdout`），所有命令输出统一写入该 writer；`count` 分支只写一行整数，不写说明文字。\n\n## 启动\n\n（冒烟环境：不带启动链接）\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/45",
+                "body": "依据决策：mouriya-s-lab/meerkat-e2e-code#41（议程 F8，第 F8-02 行）\n\n## 要做什么与验收\n\n在 `main.go` 的 `run` 分发中增加 `count` 命令，并提供只读的存储计数 API。\n\n实现要求：\n1. 在 `store.go` 的 `List()` 附近新增 `func (s *Store) Count() int`，返回 `len(s.data.Notes)`；不得持久化额外计数字段，不得改变 JSON schema，不得调用 `save()`。\n2. 在 `main.go` 的 `run` switch 中增加 `case \"count\"`：`count` 后有额外参数时返回 usage 错误；否则向 stdout 写入 `store.Count()` 和换行。\n3. 为便于可靠测试，将 `run` 的输出改为显式 `io.Writer` 参数，并由 `main` 传入 `os.Stdout`；add/list/count 的用户输出统一写向该 writer，错误路径行为不变。\n4. 更新 `main.go:3-6` 命令注释、`main.go:32-35` usage 文本和 `README.md:5-11`，公开 `notes count` 及其“当前存量、含已完成、不含已删除”的语义。\n\n验收标准：\n- `NOTES_FILE` 指向不存在文件时输出 `0`。\n- 含 done 便签时输出包含该便签的数量。\n- rm 后输出减少，count 前后 JSON 文件内容不变。\n- 带额外参数时退出码为 2。\n\n## 决策行\n\n- what：实现只读的便签计数能力与 `notes count` CLI 分支，输出当前便签存量数。\n- where：`mouriya-s-lab/meerkat-e2e-code/store.go:57-69`（`Store` 查询 API；新增 `Count()` 紧邻 `List()`）、`mouriya-s-lab/meerkat-e2e-code/main.go:16-30`（`main` 创建输出目标并调用 `run`）、`mouriya-s-lab/meerkat-e2e-code/main.go:32-65`（命令 switch；新增 `case \"count\"`）\n- how：在 `Store.List()` 旁新增 `Count() int`，直接返回 `len(s.data.Notes)`；该方法只读现有内存数据，不增加缓存字段、不修改磁盘格式、不调用 `save()`。在 `run` 的命令 switch 中新增 `count` 分支：参数数量必须恰为 1（仅命令名），否则返回沿用现有 usage/参数错误路径并由 `main` 维持退出码 2；合法时打印 `store.Count()` 的十进制结果。为使 CLI 输出可稳定单测，将 `run` 改为接收 `io.Writer`（`main` 传入 `os.Stdout`），所有命令输出统一写入该 writer；`count` 分支只写一行整数，不写说明文字。\n\n## 启动\n\n（冒烟环境：不带启动链接）\n",
                 "createdAt": "2026-11-07T08:52:32Z",
                 "updatedAt": "2026-11-07T08:54:31Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 41,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                   }
                 },
                 "blockedBy": {
@@ -5050,18 +5050,18 @@
                 "__typename": "Issue",
                 "number": 46,
                 "title": "test: cover notes count storage and CLI behavior",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/46",
-                "body": "依据决策：oh-my-omp/pm-e2e-code#41（议程 F8，第 F8-03 行）\n\n## 要做什么与验收\n\n补充 notes count 的存储层与 CLI 层回归测试。\n\n测试要求：\n1. 在 `store_test.go` 中为 `Store.Count()` 覆盖：空存储为 0；Add 后增加；Done 后不变；Remove 后减少；旧裸数组 JSON 格式打开后计数正确。\n2. 新增 `main_test.go`，使用注入的 `io.Writer` 调用 `run`，覆盖：`count` 无参数输出单个十进制整数和换行；空存储输出 `0`；带额外参数返回错误。\n3. 不修改或放宽现有 `store_test.go` 的既有断言。\n\n验收标准：\n- `go test ./...` 全部通过。\n- 新增用例能单独运行，例如 `go test -run 'Test.*Count' ./...`。\n- 测试明确断言计数包含 done 便签、排除 rm 便签，防止统计口径漂移。\n\n## 决策行\n\n- what：用自动化测试锁定 count 的统计口径、输出内容和参数错误行为，保证实现可回归验证。\n- where：`oh-my-omp/pm-e2e-code/store_test.go:9-86`（现有存储测试；新增 Count 用例）、`oh-my-omp/pm-e2e-code/main_test.go`（当前不存在，新增 CLI 分发与输出测试）、`oh-my-omp/pm-e2e-code/main.go:32-65`（被测 `run` 分支）\n- how：在 `store_test.go` 增加 `Store.Count()` 的行为测试：空存储为 0、Add 后增加、Done 后不变、Remove 后减少、旧裸数组格式打开后计数正确。新增 `main_test.go`，通过注入的 `io.Writer` 调用 `run`，断言 `count` 在空存储和含便签场景分别输出 `0` 与准确整数及换行，并断言带额外参数返回错误。保留现有 `store_test.go` 用例不变。执行 `go test ./...`，并至少单独执行新增 count 相关用例确认覆盖生效。\n\n## 启动\n\n（冒烟环境：不带启动链接）\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/46",
+                "body": "依据决策：mouriya-s-lab/meerkat-e2e-code#41（议程 F8，第 F8-03 行）\n\n## 要做什么与验收\n\n补充 notes count 的存储层与 CLI 层回归测试。\n\n测试要求：\n1. 在 `store_test.go` 中为 `Store.Count()` 覆盖：空存储为 0；Add 后增加；Done 后不变；Remove 后减少；旧裸数组 JSON 格式打开后计数正确。\n2. 新增 `main_test.go`，使用注入的 `io.Writer` 调用 `run`，覆盖：`count` 无参数输出单个十进制整数和换行；空存储输出 `0`；带额外参数返回错误。\n3. 不修改或放宽现有 `store_test.go` 的既有断言。\n\n验收标准：\n- `go test ./...` 全部通过。\n- 新增用例能单独运行，例如 `go test -run 'Test.*Count' ./...`。\n- 测试明确断言计数包含 done 便签、排除 rm 便签，防止统计口径漂移。\n\n## 决策行\n\n- what：用自动化测试锁定 count 的统计口径、输出内容和参数错误行为，保证实现可回归验证。\n- where：`mouriya-s-lab/meerkat-e2e-code/store_test.go:9-86`（现有存储测试；新增 Count 用例）、`mouriya-s-lab/meerkat-e2e-code/main_test.go`（当前不存在，新增 CLI 分发与输出测试）、`mouriya-s-lab/meerkat-e2e-code/main.go:32-65`（被测 `run` 分支）\n- how：在 `store_test.go` 增加 `Store.Count()` 的行为测试：空存储为 0、Add 后增加、Done 后不变、Remove 后减少、旧裸数组格式打开后计数正确。新增 `main_test.go`，通过注入的 `io.Writer` 调用 `run`，断言 `count` 在空存储和含便签场景分别输出 `0` 与准确整数及换行，并断言带额外参数返回错误。保留现有 `store_test.go` 用例不变。执行 `go test ./...`，并至少单独执行新增 count 相关用例确认覆盖生效。\n\n## 启动\n\n（冒烟环境：不带启动链接）\n",
                 "createdAt": "2026-11-07T08:52:38Z",
                 "updatedAt": "2026-11-07T08:54:32Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 41,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                   }
                 },
                 "blockedBy": {
@@ -5081,7 +5081,7 @@
                 "nodes": [
                   {},
                   {
-                    "text": "CF ev: admit-status X (pm-council#5 row 2)",
+                    "text": "CF ev: admit-status X (meerkat-council#5 row 2)",
                     "field": {
                       "name": "Title"
                     }
@@ -5109,14 +5109,14 @@
               "content": {
                 "__typename": "Issue",
                 "number": 51,
-                "title": "CF ev: admit-status X (pm-council#5 row 2)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/51",
-                "body": "council fix evidence for oh-my-omp/pm-council#5 row 2：准入前已是 Status=Done、没有 Agenda 编号的议题。",
+                "title": "CF ev: admit-status X (meerkat-council#5 row 2)",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/51",
+                "body": "council fix evidence for mouriya-s-lab/meerkat-council#5 row 2：准入前已是 Status=Done、没有 Agenda 编号的议题。",
                 "createdAt": "2026-11-07T09:14:55Z",
                 "updatedAt": "2026-11-07T09:17:09Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -5165,13 +5165,13 @@
                 "__typename": "Issue",
                 "number": 7,
                 "title": "CF9 ev: notes count A (#9 evidence)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/7",
-                "body": "council fix evidence for oh-my-omp/pm-council#9. 为 notes CLI 增加 notes count：输出便签总数。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/7",
+                "body": "council fix evidence for mouriya-s-lab/meerkat-council#9. 为 notes CLI 增加 notes count：输出便签总数。",
                 "createdAt": "2026-11-07T09:15:30Z",
                 "updatedAt": "2026-11-07T09:40:15Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -5220,13 +5220,13 @@
                 "__typename": "Issue",
                 "number": 8,
                 "title": "CF9 ev: human H (#9 evidence)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/8",
-                "body": "council fix evidence for oh-my-omp/pm-council#9：人类议题，打断 A 的小组以产生被议会杀掉的会话。为 notes 设计书补一节：notes CLI 的退出码约定。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/8",
+                "body": "council fix evidence for mouriya-s-lab/meerkat-council#9：人类议题，打断 A 的小组以产生被议会杀掉的会话。为 notes 设计书补一节：notes CLI 的退出码约定。",
                 "createdAt": "2026-11-07T09:16:14Z",
                 "updatedAt": "2026-11-07T09:40:15Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -5275,13 +5275,13 @@
                 "__typename": "Issue",
                 "number": 47,
                 "title": "CF ev: done L (#6 evidence row 2)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/47",
-                "body": "council fix evidence for oh-my-omp/pm-council#6 row 2. 为 notes CLI 增加 notes clear：删除全部已完成便签。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/47",
+                "body": "council fix evidence for mouriya-s-lab/meerkat-council#6 row 2. 为 notes CLI 增加 notes clear：删除全部已完成便签。",
                 "createdAt": "2026-11-07T09:20:41Z",
                 "updatedAt": "2026-11-07T09:51:56Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -5330,13 +5330,13 @@
                 "__typename": "Issue",
                 "number": 48,
                 "title": "CF ev: close K (#6 evidence row 1)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/48",
-                "body": "council fix evidence for oh-my-omp/pm-council#6 row 1. 为 notes CLI 增加 notes count：输出便签总数。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/48",
+                "body": "council fix evidence for mouriya-s-lab/meerkat-council#6 row 1. 为 notes CLI 增加 notes count：输出便签总数。",
                 "createdAt": "2026-11-07T09:20:41Z",
                 "updatedAt": "2026-11-07T09:51:44Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -5385,13 +5385,13 @@
                 "__typename": "Issue",
                 "number": 49,
                 "title": "CF ev: interrupt M (#6 evidence row 3)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/49",
-                "body": "council fix evidence for oh-my-omp/pm-council#6 row 3. 为 notes CLI 增加 notes undone <id>：把已完成便签改回未完成。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/49",
+                "body": "council fix evidence for mouriya-s-lab/meerkat-council#6 row 3. 为 notes CLI 增加 notes undone <id>：把已完成便签改回未完成。",
                 "createdAt": "2026-11-07T09:22:53Z",
                 "updatedAt": "2026-11-07T09:46:16Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -5440,13 +5440,13 @@
                 "__typename": "Issue",
                 "number": 50,
                 "title": "CF ev: interrupt M2 (#6 evidence row 4)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/50",
-                "body": "council fix evidence for oh-my-omp/pm-council#6 row 4. 为 notes CLI 增加 notes pin <id>：把便签置顶显示在列表最前。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/50",
+                "body": "council fix evidence for mouriya-s-lab/meerkat-council#6 row 4. 为 notes CLI 增加 notes pin <id>：把便签置顶显示在列表最前。",
                 "createdAt": "2026-11-07T09:33:16Z",
                 "updatedAt": "2026-11-07T10:42:40Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -5495,13 +5495,13 @@
                 "__typename": "Issue",
                 "number": 9,
                 "title": "Q9 env: Hf 人类议题（失败）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/9",
-                "body": "quorum#9 GUI 验收公共环境：没有前置的人类议题，小组以失败结束。notes 设计书是否需要一节说明数据文件损坏时的处理？只需设计结论，不需要实现。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/9",
+                "body": "meerkat#9 GUI 验收公共环境：没有前置的人类议题，小组以失败结束。notes 设计书是否需要一节说明数据文件损坏时的处理？只需设计结论，不需要实现。",
                 "createdAt": "2026-11-07T09:45:54Z",
                 "updatedAt": "2026-11-07T11:17:33Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -5550,13 +5550,13 @@
                 "__typename": "Issue",
                 "number": 13,
                 "title": "Q9 env: A2 普通议题（Blocked by A1，议会不计入）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/13",
-                "body": "quorum#9 GUI 验收公共环境：普通议题 A2，Blocked by A1；A1 不是人类议题，议会不计入这条前置。为 notes 设计书补「编号示例」一节。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/13",
+                "body": "meerkat#9 GUI 验收公共环境：普通议题 A2，Blocked by A1；A1 不是人类议题，议会不计入这条前置。为 notes 设计书补「编号示例」一节。",
                 "createdAt": "2026-11-07T09:46:35Z",
                 "updatedAt": "2026-11-07T11:17:36Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -5564,7 +5564,7 @@
                     {
                       "number": 11,
                       "repository": {
-                        "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                        "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                       }
                     }
                   ]
@@ -5612,13 +5612,13 @@
                 "__typename": "Issue",
                 "number": 10,
                 "title": "Q9 env: H2 人类议题（Blocked by H1）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/10",
-                "body": "quorum#9 GUI 验收公共环境：人类议题 H2，Blocked by H1。编号规则定下后，设计书的示例是否需要改写？只需设计结论，不需要实现。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/10",
+                "body": "meerkat#9 GUI 验收公共环境：人类议题 H2，Blocked by H1。编号规则定下后，设计书的示例是否需要改写？只需设计结论，不需要实现。",
                 "createdAt": "2026-11-07T09:46:34Z",
                 "updatedAt": "2026-11-07T11:17:34Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -5626,7 +5626,7 @@
                     {
                       "number": 14,
                       "repository": {
-                        "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                        "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                       }
                     }
                   ]
@@ -5674,13 +5674,13 @@
                 "__typename": "Issue",
                 "number": 11,
                 "title": "Q9 env: A1 普通议题（Blocked by H2）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/11",
-                "body": "quorum#9 GUI 验收公共环境：普通议题 A1，Blocked by H2。为 notes 设计书补「编号」一节。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/11",
+                "body": "meerkat#9 GUI 验收公共环境：普通议题 A1，Blocked by H2。为 notes 设计书补「编号」一节。",
                 "createdAt": "2026-11-07T09:46:34Z",
                 "updatedAt": "2026-11-07T11:17:35Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -5688,7 +5688,7 @@
                     {
                       "number": 10,
                       "repository": {
-                        "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                        "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                       }
                     }
                   ]
@@ -5736,13 +5736,13 @@
                 "__typename": "Issue",
                 "number": 12,
                 "title": "Q9 env: Hd 人类议题（在审）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/12",
-                "body": "quorum#9 GUI 验收公共环境：没有前置的人类议题，小组在审。notes 设计书的「命令一览」是否应按读写分组？只需设计结论，不需要实现。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/12",
+                "body": "meerkat#9 GUI 验收公共环境：没有前置的人类议题，小组在审。notes 设计书的「命令一览」是否应按读写分组？只需设计结论，不需要实现。",
                 "createdAt": "2026-11-07T09:46:34Z",
                 "updatedAt": "2026-11-07T10:47:52Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -5791,13 +5791,13 @@
                 "__typename": "Issue",
                 "number": 14,
                 "title": "Q9 env: H1 人类议题",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/14",
-                "body": "quorum#9 GUI 验收公共环境：人类议题 H1，H2 的前置。notes 的便签编号是否允许复用？只需设计结论，不需要实现。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/14",
+                "body": "meerkat#9 GUI 验收公共环境：人类议题 H1，H2 的前置。notes 的便签编号是否允许复用？只需设计结论，不需要实现。",
                 "createdAt": "2026-11-07T09:46:36Z",
                 "updatedAt": "2026-11-07T11:26:55Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -5846,13 +5846,13 @@
                 "__typename": "Issue",
                 "number": 17,
                 "title": "Q9 env: D3 已定案议题",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/17",
-                "body": "quorum#9 GUI 验收公共环境：没有前置、已定案（Status Done）的普通议题。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/17",
+                "body": "meerkat#9 GUI 验收公共环境：没有前置、已定案（Status Done）的普通议题。",
                 "createdAt": "2026-11-07T09:46:52Z",
                 "updatedAt": "2026-11-07T09:46:52Z",
                 "state": "OPEN",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -5901,13 +5901,13 @@
                 "__typename": "Issue",
                 "number": 15,
                 "title": "Q9 env: D1 已定案议题",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/15",
-                "body": "quorum#9 GUI 验收公共环境：没有前置、已定案（Status Done）的普通议题。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/15",
+                "body": "meerkat#9 GUI 验收公共环境：没有前置、已定案（Status Done）的普通议题。",
                 "createdAt": "2026-11-07T09:46:45Z",
                 "updatedAt": "2026-11-07T09:46:45Z",
                 "state": "OPEN",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -5956,13 +5956,13 @@
                 "__typename": "Issue",
                 "number": 16,
                 "title": "Q9 env: D2 已定案议题",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/16",
-                "body": "quorum#9 GUI 验收公共环境：没有前置、已定案（Status Done）的普通议题。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/16",
+                "body": "meerkat#9 GUI 验收公共环境：没有前置、已定案（Status Done）的普通议题。",
                 "createdAt": "2026-11-07T09:46:49Z",
                 "updatedAt": "2026-11-07T09:46:49Z",
                 "state": "OPEN",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -6011,13 +6011,13 @@
                 "__typename": "Issue",
                 "number": 18,
                 "title": "Q9 env: D4 已定案议题",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/18",
-                "body": "quorum#9 GUI 验收公共环境：没有前置、已定案（Status Done）的普通议题。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/18",
+                "body": "meerkat#9 GUI 验收公共环境：没有前置、已定案（Status Done）的普通议题。",
                 "createdAt": "2026-11-07T09:46:55Z",
                 "updatedAt": "2026-11-07T09:46:55Z",
                 "state": "OPEN",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -6066,13 +6066,13 @@
                 "__typename": "Issue",
                 "number": 51,
                 "title": "CF ev: human N (#6 evidence row 3)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/51",
-                "body": "council fix evidence for oh-my-omp/pm-council#6 row 3. 人类议题：notes CLI 的便签存储是否改为按日期分目录。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/51",
+                "body": "council fix evidence for mouriya-s-lab/meerkat-council#6 row 3. 人类议题：notes CLI 的便签存储是否改为按日期分目录。",
                 "createdAt": "2026-11-07T09:50:31Z",
                 "updatedAt": "2026-11-07T09:50:59Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -6092,7 +6092,7 @@
                 "nodes": [
                   {},
                   {
-                    "text": "C16 fixture: notes stat 议程（pm-council#16 验收）",
+                    "text": "C16 fixture: notes stat 议程（meerkat-council#16 验收）",
                     "field": {
                       "name": "Title"
                     }
@@ -6120,14 +6120,14 @@
               "content": {
                 "__typename": "Issue",
                 "number": 52,
-                "title": "C16 fixture: notes stat 议程（pm-council#16 验收）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/52",
-                "body": "议程草案：为 notes 增加只读命令 notes stat，输出便签总数与未完成数。仅供 pm-council#16 运行验收使用，验收后关闭。",
+                "title": "C16 fixture: notes stat 议程（meerkat-council#16 验收）",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/52",
+                "body": "议程草案：为 notes 增加只读命令 notes stat，输出便签总数与未完成数。仅供 meerkat-council#16 运行验收使用，验收后关闭。",
                 "createdAt": "2026-11-07T09:54:10Z",
                 "updatedAt": "2026-11-07T10:02:10Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -6147,7 +6147,7 @@
                 "nodes": [
                   {},
                   {
-                    "text": "C16 fixture row3: notes stat 议程（pm-council#16 第3行）",
+                    "text": "C16 fixture row3: notes stat 议程（meerkat-council#16 第3行）",
                     "field": {
                       "name": "Title"
                     }
@@ -6175,14 +6175,14 @@
               "content": {
                 "__typename": "Issue",
                 "number": 53,
-                "title": "C16 fixture row3: notes stat 议程（pm-council#16 第3行）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/53",
-                "body": "议程草案：为 notes 增加只读命令 notes stat，输出便签总数与未完成数。仅供 pm-council#16 运行验收使用，验收后关闭。\n",
+                "title": "C16 fixture row3: notes stat 议程（meerkat-council#16 第3行）",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/53",
+                "body": "议程草案：为 notes 增加只读命令 notes stat，输出便签总数与未完成数。仅供 meerkat-council#16 运行验收使用，验收后关闭。\n",
                 "createdAt": "2026-11-07T10:06:42Z",
                 "updatedAt": "2026-11-07T10:11:09Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -6202,7 +6202,7 @@
                 "nodes": [
                   {},
                   {
-                    "text": "C16 fixture row4: notes stat 议程（pm-council#16 第4行）",
+                    "text": "C16 fixture row4: notes stat 议程（meerkat-council#16 第4行）",
                     "field": {
                       "name": "Title"
                     }
@@ -6230,14 +6230,14 @@
               "content": {
                 "__typename": "Issue",
                 "number": 54,
-                "title": "C16 fixture row4: notes stat 议程（pm-council#16 第4行）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/54",
-                "body": "议程草案：为 notes 增加只读命令 notes stat，输出便签总数与未完成数。仅供 pm-council#16 运行验收使用，验收后关闭。\n",
+                "title": "C16 fixture row4: notes stat 议程（meerkat-council#16 第4行）",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/54",
+                "body": "议程草案：为 notes 增加只读命令 notes stat，输出便签总数与未完成数。仅供 meerkat-council#16 运行验收使用，验收后关闭。\n",
                 "createdAt": "2026-11-07T10:09:02Z",
                 "updatedAt": "2026-11-07T10:11:09Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -6257,7 +6257,7 @@
                 "nodes": [
                   {},
                   {
-                    "text": "C16 fixture row4: 人类议题（pm-council#16 第4行）",
+                    "text": "C16 fixture row4: 人类议题（meerkat-council#16 第4行）",
                     "field": {
                       "name": "Title"
                     }
@@ -6285,14 +6285,14 @@
               "content": {
                 "__typename": "Issue",
                 "number": 55,
-                "title": "C16 fixture row4: 人类议题（pm-council#16 第4行）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/55",
-                "body": "人类议题：用于 pm-council#16 第4行的打断验收，验收后关闭。\n",
+                "title": "C16 fixture row4: 人类议题（meerkat-council#16 第4行）",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/55",
+                "body": "人类议题：用于 meerkat-council#16 第4行的打断验收，验收后关闭。\n",
                 "createdAt": "2026-11-07T10:09:20Z",
                 "updatedAt": "2026-11-07T10:11:09Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -6341,13 +6341,13 @@
                 "__typename": "Issue",
                 "number": 56,
                 "title": "find13 c17 fixture: find 工具可用性议程探针",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/56",
-                "body": "e2e 夹具（pm-council#17 第 1 行）：请起草一个决策表，验证席位工具列表不含 find 时面板可正常启动。完成后由 Main 关闭为 not planned。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/56",
+                "body": "e2e 夹具（meerkat-council#17 第 1 行）：请起草一个决策表，验证席位工具列表不含 find 时面板可正常启动。完成后由 Main 关闭为 not planned。",
                 "createdAt": "2026-11-07T10:12:28Z",
                 "updatedAt": "2026-11-07T10:14:10Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -6396,13 +6396,13 @@
                 "__typename": "Issue",
                 "number": 52,
                 "title": "CF ev2: done L (#6 evidence row 2)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/52",
-                "body": "council fix evidence for oh-my-omp/pm-council#6 row 2 (HEAD fa889fd). 为 notes CLI 增加 notes archive <id>：把便签移到归档列表。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/52",
+                "body": "council fix evidence for mouriya-s-lab/meerkat-council#6 row 2 (HEAD fa889fd). 为 notes CLI 增加 notes archive <id>：把便签移到归档列表。",
                 "createdAt": "2026-11-07T10:16:03Z",
                 "updatedAt": "2026-11-07T10:18:02Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -6451,13 +6451,13 @@
                 "__typename": "Issue",
                 "number": 54,
                 "title": "CF ev2: close K (#6 evidence row 1)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/54",
-                "body": "council fix evidence for oh-my-omp/pm-council#6 row 1 (HEAD fa889fd). 为 notes CLI 增加 notes rename <id> <title>：修改便签标题。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/54",
+                "body": "council fix evidence for mouriya-s-lab/meerkat-council#6 row 1 (HEAD fa889fd). 为 notes CLI 增加 notes rename <id> <title>：修改便签标题。",
                 "createdAt": "2026-11-07T10:16:03Z",
                 "updatedAt": "2026-11-07T10:23:54Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -6506,13 +6506,13 @@
                 "__typename": "Issue",
                 "number": 53,
                 "title": "CF ev2: interrupt M (#6 evidence row 3)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/53",
-                "body": "council fix evidence for oh-my-omp/pm-council#6 row 3 (HEAD fa889fd). 为 notes CLI 增加 notes tag <id> <tag>：给便签加标签。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/53",
+                "body": "council fix evidence for mouriya-s-lab/meerkat-council#6 row 3 (HEAD fa889fd). 为 notes CLI 增加 notes tag <id> <tag>：给便签加标签。",
                 "createdAt": "2026-11-07T10:16:03Z",
                 "updatedAt": "2026-11-07T10:38:16Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -6561,13 +6561,13 @@
                 "__typename": "Issue",
                 "number": 55,
                 "title": "CF ev3: human N (#6 evidence row 3)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/55",
-                "body": "council fix evidence for oh-my-omp/pm-council#6 row 3 (HEAD fa889fd). 人类议题：notes CLI 的便签存储是否改为按日期分目录。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/55",
+                "body": "council fix evidence for mouriya-s-lab/meerkat-council#6 row 3 (HEAD fa889fd). 人类议题：notes CLI 的便签存储是否改为按日期分目录。",
                 "createdAt": "2026-11-07T10:26:14Z",
                 "updatedAt": "2026-11-07T10:29:11Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -6616,13 +6616,13 @@
                 "__typename": "Issue",
                 "number": 56,
                 "title": "CF ev4: human N (#6 evidence row 3)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/56",
-                "body": "Evidence fixture for oh-my-omp/pm-council#6 row 3 (human interrupt). Closed after the panel is convened.",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/56",
+                "body": "Evidence fixture for mouriya-s-lab/meerkat-council#6 row 3 (human interrupt). Closed after the panel is convened.",
                 "createdAt": "2026-11-07T10:38:23Z",
                 "updatedAt": "2026-11-07T10:38:54Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -6671,13 +6671,13 @@
                 "__typename": "Issue",
                 "number": 57,
                 "title": "CF ev4: human N2 (#6 evidence row 4)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/57",
-                "body": "Evidence fixture for oh-my-omp/pm-council#6 row 4: a human issue that blocks P, closed while still In progress.",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/57",
+                "body": "Evidence fixture for mouriya-s-lab/meerkat-council#6 row 4: a human issue that blocks P, closed while still In progress.",
                 "createdAt": "2026-11-07T10:39:40Z",
                 "updatedAt": "2026-11-07T10:40:14Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -6726,13 +6726,13 @@
                 "__typename": "Issue",
                 "number": 58,
                 "title": "CF ev4: agenda P (#6 evidence row 4)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/58",
-                "body": "Evidence fixture for oh-my-omp/pm-council#6 row 4: an agenda issue blocked by N2.",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/58",
+                "body": "Evidence fixture for mouriya-s-lab/meerkat-council#6 row 4: an agenda issue blocked by N2.",
                 "createdAt": "2026-11-07T10:39:40Z",
                 "updatedAt": "2026-11-07T10:42:40Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -6740,7 +6740,7 @@
                     {
                       "number": 57,
                       "repository": {
-                        "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                        "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                       }
                     }
                   ]
@@ -6788,18 +6788,18 @@
                 "__typename": "Issue",
                 "number": 59,
                 "title": "设计结论：不创建实现 issue",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/59",
-                "body": "依据决策：oh-my-omp/pm-e2e-design#12（议程 G11，第 G11-01 行）\n\n## 要做什么与验收\n\n本议题只需要设计结论，不创建实现 issue。\n\n## 决策行\n\n- what：将 notes 设计书的「命令一览」按持久化状态的读写性质明确分组，并将其作为 Q9 GUI 验收公共环境识别安全操作的操作边界。\n- where：`notes.md` §2「命令」\n- how：将现有单张命令表拆成“只读命令”和“写命令”两个连续小节：只读命令为 `notes list`、`notes list --open`；写命令为 `notes add <text>`、`notes done <id>`、`notes rm <id>`。保留现有行为、参数和编号语义，不改命令语法；在命令表前增加边界说明，使公共环境验收方可区分观察操作与状态变更操作。\n\n## 启动\n\n（冒烟环境：不带启动链接）\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/59",
+                "body": "依据决策：mouriya-s-lab/meerkat-e2e-design#12（议程 G11，第 G11-01 行）\n\n## 要做什么与验收\n\n本议题只需要设计结论，不创建实现 issue。\n\n## 决策行\n\n- what：将 notes 设计书的「命令一览」按持久化状态的读写性质明确分组，并将其作为 Q9 GUI 验收公共环境识别安全操作的操作边界。\n- where：`notes.md` §2「命令」\n- how：将现有单张命令表拆成“只读命令”和“写命令”两个连续小节：只读命令为 `notes list`、`notes list --open`；写命令为 `notes add <text>`、`notes done <id>`、`notes rm <id>`。保留现有行为、参数和编号语义，不改命令语法；在命令表前增加边界说明，使公共环境验收方可区分观察操作与状态变更操作。\n\n## 启动\n\n（冒烟环境：不带启动链接）\n",
                 "createdAt": "2026-11-07T10:47:42Z",
                 "updatedAt": "2026-11-07T13:04:57Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 12,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                   }
                 },
                 "blockedBy": {
@@ -6848,18 +6848,18 @@
                 "__typename": "Issue",
                 "number": 60,
                 "title": "设计结论：不创建实现 issue",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/60",
-                "body": "依据决策：oh-my-omp/pm-e2e-design#12（议程 G11，第 G11-02 行）\n\n## 要做什么与验收\n\n本议题只需要设计结论，不创建实现 issue。\n\n## 决策行\n\n- what：以是否改变持久化便签状态为唯一分类准则，明确只读组与写组对 `NOTES_FILE` 数据文件的副作用差异。\n- where：`notes.md` §2「命令」与 §3「存储」\n- how：在 §2 写明判定标准：改变 `NOTES_FILE` 所指便签 JSON（新增、完成、删除或递增 `last_id`）即为写命令；只加载并查询既有便签、不落盘即为只读命令，stdout 输出不构成写命令。同步复核 §3 对 `NOTES_FILE` 与默认 `notes.json` 的说明。保持 `notes list --open` 的只读身份和现有参数形式，不扩展实现。\n\n## 启动\n\n（冒烟环境：不带启动链接）\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/60",
+                "body": "依据决策：mouriya-s-lab/meerkat-e2e-design#12（议程 G11，第 G11-02 行）\n\n## 要做什么与验收\n\n本议题只需要设计结论，不创建实现 issue。\n\n## 决策行\n\n- what：以是否改变持久化便签状态为唯一分类准则，明确只读组与写组对 `NOTES_FILE` 数据文件的副作用差异。\n- where：`notes.md` §2「命令」与 §3「存储」\n- how：在 §2 写明判定标准：改变 `NOTES_FILE` 所指便签 JSON（新增、完成、删除或递增 `last_id`）即为写命令；只加载并查询既有便签、不落盘即为只读命令，stdout 输出不构成写命令。同步复核 §3 对 `NOTES_FILE` 与默认 `notes.json` 的说明。保持 `notes list --open` 的只读身份和现有参数形式，不扩展实现。\n\n## 启动\n\n（冒烟环境：不带启动链接）\n",
                 "createdAt": "2026-11-07T10:47:47Z",
                 "updatedAt": "2026-11-07T13:05:00Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 12,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                   }
                 },
                 "blockedBy": {
@@ -6908,13 +6908,13 @@
                 "__typename": "Issue",
                 "number": 57,
                 "title": "C21 ev: vote-kill fixture",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/57",
-                "body": "Fixture for oh-my-omp/pm-council#21: Agenda issue closed during vote to kill vote sessions before .jsonl write.",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/57",
+                "body": "Fixture for mouriya-s-lab/meerkat-council#21: Agenda issue closed during vote to kill vote sessions before .jsonl write.",
                 "createdAt": "2026-11-07T10:53:49Z",
                 "updatedAt": "2026-11-07T11:32:21Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -6963,13 +6963,13 @@
                 "__typename": "Issue",
                 "number": 61,
                 "title": "C20 fixture R1: missing fork file resumes fresh",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/61",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/61",
                 "body": "C20 row 1 fixture. Agenda issue for resume-with-missing-fork test.",
                 "createdAt": "2026-11-07T10:55:21Z",
                 "updatedAt": "2026-11-07T11:11:39Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -7018,13 +7018,13 @@
                 "__typename": "Issue",
                 "number": 62,
                 "title": "C20 fixture R2: existing file resumes with fork",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/62",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/62",
                 "body": "C20 row 2 fixture. Agenda issue for resume-with-existing-file test.",
                 "createdAt": "2026-11-07T11:04:31Z",
                 "updatedAt": "2026-11-07T11:15:46Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -7073,13 +7073,13 @@
                 "__typename": "Issue",
                 "number": 19,
                 "title": "Q4 ev: notes 的退出码、删除后编号与 list --open",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/19",
-                "body": "quorum#4 GUI 验收用的议程议题。只需设计结论（改 `notes.md`），不需要实现：每行 deliver 为 null，supersedes 为 []。\n\n提议人对 notes 的三处设计给出了方案，决策表请按下面三行起草，what / where / how 与分类照抄方案，不要自行修正：\n\n1. **错误退出码**：现有实现已经符合 `notes.md`「5. 错误」：文件读写失败（包括 `notes add` 保存失败）退出码 1，参数错误退出码 2。结论是 §5 保持原样，代码与设计书都不用改。where：`notes.md` §5、`main.go`。分类：技术。\n2. **编号压缩**：`notes rm` 之后把剩下的便签按添加顺序重新编号为 1..n，`notes.md`「4. 编号」改为「删除后重新编号，编号始终连续」，`notes rm` 一行删去「不复用」的说法。这是存储层的压缩，只影响 JSON 文件里的 `id` 字段，分类：技术。\n3. **只看未完成**：`notes.md`「2. 命令」保留 `notes list --open`，并注明输出格式与 `notes list` 相同、只是去掉已完成的行。分类：技术。\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/19",
+                "body": "meerkat#4 GUI 验收用的议程议题。只需设计结论（改 `notes.md`），不需要实现：每行 deliver 为 null，supersedes 为 []。\n\n提议人对 notes 的三处设计给出了方案，决策表请按下面三行起草，what / where / how 与分类照抄方案，不要自行修正：\n\n1. **错误退出码**：现有实现已经符合 `notes.md`「5. 错误」：文件读写失败（包括 `notes add` 保存失败）退出码 1，参数错误退出码 2。结论是 §5 保持原样，代码与设计书都不用改。where：`notes.md` §5、`main.go`。分类：技术。\n2. **编号压缩**：`notes rm` 之后把剩下的便签按添加顺序重新编号为 1..n，`notes.md`「4. 编号」改为「删除后重新编号，编号始终连续」，`notes rm` 一行删去「不复用」的说法。这是存储层的压缩，只影响 JSON 文件里的 `id` 字段，分类：技术。\n3. **只看未完成**：`notes.md`「2. 命令」保留 `notes list --open`，并注明输出格式与 `notes list` 相同、只是去掉已完成的行。分类：技术。\n",
                 "createdAt": "2026-11-07T11:11:45Z",
                 "updatedAt": "2026-11-07T12:28:17Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -7128,13 +7128,13 @@
                 "__typename": "Issue",
                 "number": 58,
                 "title": "C21 ev: quick vote fixture",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/58",
-                "body": "Fixture for pm-council#21: a tiny question, no repo reads needed. Should the answer be yes or no? Vote now.",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/58",
+                "body": "Fixture for meerkat-council#21: a tiny question, no repo reads needed. Should the answer be yes or no? Vote now.",
                 "createdAt": "2026-11-07T11:18:41Z",
                 "updatedAt": "2026-11-07T11:32:03Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -7183,18 +7183,18 @@
                 "__typename": "Issue",
                 "number": 63,
                 "title": "C21 ev: quick vote fixture — yes",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/63",
-                "body": "依据决策：oh-my-omp/pm-e2e-agenda#58（议程 D56，第 D56-01 行）\n\n## 要做什么与验收\n\n在 oh-my-omp/pm-e2e-code 中记录 pm-council#21 快速投票 fixture 的结果为 yes；不新增投票命令或存储结构。\n\n## 决策行\n\n- what：将本议题的 yes/no 答案确定为 yes。\n- where：PM 仓库 council/decisions/D56.md\n- how：在最终决策记录中明确记为 yes，结束本次 yes/no 投票；不因该 fixture 新增入口、持久化结构或测试文件。\n\n## 启动\n\n[用 dispatch 启动](http://127.0.0.1:47591/oh-my-omp/pm-e2e-code/issues/63?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fpm-e2e%2Fpm-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/63",
+                "body": "依据决策：mouriya-s-lab/meerkat-e2e-agenda#58（议程 D56，第 D56-01 行）\n\n## 要做什么与验收\n\n在 mouriya-s-lab/meerkat-e2e-code 中记录 meerkat-council#21 快速投票 fixture 的结果为 yes；不新增投票命令或存储结构。\n\n## 决策行\n\n- what：将本议题的 yes/no 答案确定为 yes。\n- where：PM 仓库 council/decisions/D56.md\n- how：在最终决策记录中明确记为 yes，结束本次 yes/no 投票；不因该 fixture 新增入口、持久化结构或测试文件。\n\n## 启动\n\n[用 dispatch 启动](http://127.0.0.1:47591/mouriya-s-lab/meerkat-e2e-code/issues/63?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fmeerkat-e2e%2Fmeerkat-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n",
                 "createdAt": "2026-11-07T11:31:57Z",
                 "updatedAt": "2026-11-07T13:01:54Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 58,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                   }
                 },
                 "blockedBy": {
@@ -7243,13 +7243,13 @@
                 "__typename": "Issue",
                 "number": 59,
                 "title": "C21 ev: yes-no vote fixture",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/59",
-                "body": "Fixture for pm-council#21 row 1. A tiny question, no repo reads needed: Should this fixture record the answer as yes? Vote now.",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/59",
+                "body": "Fixture for meerkat-council#21 row 1. A tiny question, no repo reads needed: Should this fixture record the answer as yes? Vote now.",
                 "createdAt": "2026-11-07T11:33:46Z",
                 "updatedAt": "2026-11-07T11:39:45Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -7298,13 +7298,13 @@
                 "__typename": "Issue",
                 "number": 60,
                 "title": "C21 ev: one-row vote fixture",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/60",
-                "body": "Fixture for pm-council#21 row 1. No repo reads needed. The panel must produce exactly one decision row and deliver it as an implementation issue in oh-my-omp/pm-e2e-code titled 'C21 ev: README one-line note' with body 'Add one line to the end of README.md saying the repo is a PM e2e test object for pm-council#21. Acceptance: go test ./... passes.'",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/60",
+                "body": "Fixture for meerkat-council#21 row 1. No repo reads needed. The panel must produce exactly one decision row and deliver it as an implementation issue in mouriya-s-lab/meerkat-e2e-code titled 'C21 ev: README one-line note' with body 'Add one line to the end of README.md saying the repo is a PM e2e test object for meerkat-council#21. Acceptance: go test ./... passes.'",
                 "createdAt": "2026-11-07T11:39:58Z",
                 "updatedAt": "2026-11-07T11:49:41Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -7353,18 +7353,18 @@
                 "__typename": "Issue",
                 "number": 64,
                 "title": "C21 ev: README one-line note",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/64",
-                "body": "依据决策：oh-my-omp/pm-e2e-agenda#60（议程 D58，第 D58-01 行）\n\n## 要做什么与验收\n\nAdd one line to the end of README.md saying the repo is a PM e2e test object for pm-council#21. Acceptance: go test ./... passes.\n\n## 决策行\n\n- what：为 pm-council#21 的代码测试对象仓库补充一行 README 说明，使仓库用途在文档末尾得到明确标注；不改写已有 README 内容。\n- where：oh-my-omp/pm-e2e-code/README.md（仓库根目录，追加到当前第 11 行闭合代码围栏之后）\n- how：在代码仓库根目录 README.md 的现有代码围栏之后、文件末尾追加一行纯文本说明，明确写出该仓库是 pm-council#21 的 PM e2e 测试对象；不修改现有用法说明、Go 源码或存储逻辑。完成后在仓库根目录运行 `go test ./...`，以全部测试通过作为验收结果。\n\n## 启动\n\n[用 dispatch 启动](http://127.0.0.1:47591/oh-my-omp/pm-e2e-code/issues/64?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fpm-e2e%2Fpm-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/64",
+                "body": "依据决策：mouriya-s-lab/meerkat-e2e-agenda#60（议程 D58，第 D58-01 行）\n\n## 要做什么与验收\n\nAdd one line to the end of README.md saying the repo is a PM e2e test object for meerkat-council#21. Acceptance: go test ./... passes.\n\n## 决策行\n\n- what：为 meerkat-council#21 的代码测试对象仓库补充一行 README 说明，使仓库用途在文档末尾得到明确标注；不改写已有 README 内容。\n- where：mouriya-s-lab/meerkat-e2e-code/README.md（仓库根目录，追加到当前第 11 行闭合代码围栏之后）\n- how：在代码仓库根目录 README.md 的现有代码围栏之后、文件末尾追加一行纯文本说明，明确写出该仓库是 meerkat-council#21 的 PM e2e 测试对象；不修改现有用法说明、Go 源码或存储逻辑。完成后在仓库根目录运行 `go test ./...`，以全部测试通过作为验收结果。\n\n## 启动\n\n[用 dispatch 启动](http://127.0.0.1:47591/mouriya-s-lab/meerkat-e2e-code/issues/64?spec=%7B%22cwd%22%3A%22%2FUsers%2Fmouriya%2FExt%2Fwork%2Fmeerkat-e2e%2Fmeerkat-e2e-code%22%2C%22frontend%22%3A%7B%22kind%22%3A%22tern%22%7D%7D)\n",
                 "createdAt": "2026-11-07T11:49:35Z",
                 "updatedAt": "2026-11-07T13:01:54Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": {
                   "number": 60,
                   "repository": {
-                    "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                    "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                   }
                 },
                 "blockedBy": {
@@ -7413,13 +7413,13 @@
                 "__typename": "Issue",
                 "number": 61,
                 "title": "C21 ev: kill-before-write fixture",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/61",
-                "body": "Fixture for pm-council#21 row 1 (kill vote sessions before their .jsonl is written). No repo reads needed. The panel must produce exactly one decision row and deliver it as an implementation issue in oh-my-omp/pm-e2e-code titled 'C21 ev: README one-line note 61' with body 'Add one line to the end of README.md saying the repo is a PM e2e test object for pm-council#21 (61). Acceptance: go test ./... passes.'",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/61",
+                "body": "Fixture for meerkat-council#21 row 1 (kill vote sessions before their .jsonl is written). No repo reads needed. The panel must produce exactly one decision row and deliver it as an implementation issue in mouriya-s-lab/meerkat-e2e-code titled 'C21 ev: README one-line note 61' with body 'Add one line to the end of README.md saying the repo is a PM e2e test object for meerkat-council#21 (61). Acceptance: go test ./... passes.'",
                 "createdAt": "2026-11-07T11:50:12Z",
                 "updatedAt": "2026-11-07T12:00:12Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -7468,13 +7468,13 @@
                 "__typename": "Issue",
                 "number": 66,
                 "title": "C30 fixture: 设计结论议题（不建实现 issue）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/66",
-                "body": "依据 pm-council 议题 30 验收环境：会议室起草只需设计结论的议题，所有行 deliver 省略（pm:draft 里为 \"deliver\":null），settle.kind=reply。本 issue 即待定案的 fixture。\n\n背景：notes 设计书的 §2 命令分组已定，本议题的结论将作为一处设计书措辞确认的依据（不涉及代码改动）。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/66",
+                "body": "依据 meerkat-council 议题 30 验收环境：会议室起草只需设计结论的议题，所有行 deliver 省略（pm:draft 里为 \"deliver\":null），settle.kind=reply。本 issue 即待定案的 fixture。\n\n背景：notes 设计书的 §2 命令分组已定，本议题的结论将作为一处设计书措辞确认的依据（不涉及代码改动）。",
                 "createdAt": "2026-11-07T12:03:27Z",
                 "updatedAt": "2026-11-07T12:27:18Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -7523,13 +7523,13 @@
                 "__typename": "Issue",
                 "number": 62,
                 "title": "C21 ev: kill-before-write fixture 2",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/62",
-                "body": "Fixture for pm-council#21 row 1. No repo reads needed. The panel must produce exactly one decision row and deliver it as an implementation issue in oh-my-omp/pm-e2e-code titled 'C21 ev: README one-line note fixture 2' with body 'Add one line to the end of README.md saying the repo is a PM e2e test object for pm-council#21. Acceptance: go test ./... passes.'\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/62",
+                "body": "Fixture for meerkat-council#21 row 1. No repo reads needed. The panel must produce exactly one decision row and deliver it as an implementation issue in mouriya-s-lab/meerkat-e2e-code titled 'C21 ev: README one-line note fixture 2' with body 'Add one line to the end of README.md saying the repo is a PM e2e test object for meerkat-council#21. Acceptance: go test ./... passes.'\n",
                 "createdAt": "2026-11-07T12:04:38Z",
                 "updatedAt": "2026-11-07T12:12:27Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -7549,7 +7549,7 @@
                 "nodes": [
                   {},
                   {
-                    "text": "Q19 A：在审议题（quorum#19 议会不可达时退回 Status）",
+                    "text": "Q19 A：在审议题（meerkat#19 议会不可达时退回 Status）",
                     "field": {
                       "name": "Title"
                     }
@@ -7577,14 +7577,14 @@
               "content": {
                 "__typename": "Issue",
                 "number": 20,
-                "title": "Q19 A：在审议题（quorum#19 议会不可达时退回 Status）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/20",
-                "body": "quorum#19 验收夹具：队列中的在审议题。验收结束时关闭（not planned），Project Status 设为 Done。",
+                "title": "Q19 A：在审议题（meerkat#19 议会不可达时退回 Status）",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/20",
+                "body": "meerkat#19 验收夹具：队列中的在审议题。验收结束时关闭（not planned），Project Status 设为 Done。",
                 "createdAt": "2026-11-07T12:07:04Z",
                 "updatedAt": "2026-11-07T12:30:56Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -7604,7 +7604,7 @@
                 "nodes": [
                   {},
                   {
-                    "text": "Q19 B：议会队列未列出的议题（quorum#19 第 4 行 before）",
+                    "text": "Q19 B：议会队列未列出的议题（meerkat#19 第 4 行 before）",
                     "field": {
                       "name": "Title"
                     }
@@ -7632,14 +7632,14 @@
               "content": {
                 "__typename": "Issue",
                 "number": 22,
-                "title": "Q19 B：议会队列未列出的议题（quorum#19 第 4 行 before）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/22",
-                "body": "quorum#19 验收夹具：刚加入 Project、议会尚未重建队列时，队列未列出它。验收结束时关闭（not planned），Project Status 设为 Done。",
+                "title": "Q19 B：议会队列未列出的议题（meerkat#19 第 4 行 before）",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/22",
+                "body": "meerkat#19 验收夹具：刚加入 Project、议会尚未重建队列时，队列未列出它。验收结束时关闭（not planned），Project Status 设为 Done。",
                 "createdAt": "2026-11-07T12:12:54Z",
                 "updatedAt": "2026-11-07T12:30:56Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -7688,13 +7688,13 @@
                 "__typename": "Issue",
                 "number": 63,
                 "title": "C21 ev: kill-before-write fixture 3",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/63",
-                "body": "Fixture for pm-council#21 row 1. No repo reads needed. The panel must produce exactly one decision row and deliver it as an implementation issue in oh-my-omp/pm-e2e-code titled 'C21 ev: README one-line note fixture 3' with body 'Add one line to the end of README.md saying the repo is a PM e2e test object for pm-council#21. Acceptance: go test ./... passes.'\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/63",
+                "body": "Fixture for meerkat-council#21 row 1. No repo reads needed. The panel must produce exactly one decision row and deliver it as an implementation issue in mouriya-s-lab/meerkat-e2e-code titled 'C21 ev: README one-line note fixture 3' with body 'Add one line to the end of README.md saying the repo is a PM e2e test object for meerkat-council#21. Acceptance: go test ./... passes.'\n",
                 "createdAt": "2026-11-07T12:16:17Z",
                 "updatedAt": "2026-11-07T12:20:54Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -7714,7 +7714,7 @@
                 "nodes": [
                   {},
                   {
-                    "text": "Q19 C：议会队列未列出的议题（quorum#19 第 4 行 after）",
+                    "text": "Q19 C：议会队列未列出的议题（meerkat#19 第 4 行 after）",
                     "field": {
                       "name": "Title"
                     }
@@ -7742,14 +7742,14 @@
               "content": {
                 "__typename": "Issue",
                 "number": 21,
-                "title": "Q19 C：议会队列未列出的议题（quorum#19 第 4 行 after）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/21",
-                "body": "quorum#19 验收夹具：刚加入 Project、议会尚未重建队列时，队列未列出它。验收结束时关闭（not planned），Project Status 设为 Done。",
+                "title": "Q19 C：议会队列未列出的议题（meerkat#19 第 4 行 after）",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/21",
+                "body": "meerkat#19 验收夹具：刚加入 Project、议会尚未重建队列时，队列未列出它。验收结束时关闭（not planned），Project Status 设为 Done。",
                 "createdAt": "2026-11-07T12:12:54Z",
                 "updatedAt": "2026-11-07T12:30:57Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -7798,13 +7798,13 @@
                 "__typename": "Issue",
                 "number": 64,
                 "title": "C21 ev: kill-before-write fixture 4",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/64",
-                "body": "Fixture for pm-council#21 row 1. No repo reads needed. The panel must produce exactly one decision row and deliver it as an implementation issue in oh-my-omp/pm-e2e-code titled 'C21 ev: README one-line note fixture 4' with body 'Add one line to the end of README.md saying the repo is a PM e2e test object for pm-council#21. Acceptance: go test ./... passes.'\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/64",
+                "body": "Fixture for meerkat-council#21 row 1. No repo reads needed. The panel must produce exactly one decision row and deliver it as an implementation issue in mouriya-s-lab/meerkat-e2e-code titled 'C21 ev: README one-line note fixture 4' with body 'Add one line to the end of README.md saying the repo is a PM e2e test object for meerkat-council#21. Acceptance: go test ./... passes.'\n",
                 "createdAt": "2026-11-07T12:23:14Z",
                 "updatedAt": "2026-11-07T12:30:43Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -7853,13 +7853,13 @@
                 "__typename": "Issue",
                 "number": 65,
                 "title": "C21 ev: kill-before-write fixture 62",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/65",
-                "body": "Fixture for pm-council#21 row 1 (kill vote sessions before their .jsonl is written). No repo reads needed. The panel must produce exactly one decision row and deliver it as an implementation issue in oh-my-omp/pm-e2e-code titled 'C21 ev: README one-line note 62' with body 'Add one line to the end of README.md saying the repo is a PM e2e test object for pm-council#21 (62). Acceptance: go test ./... passes.'",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/65",
+                "body": "Fixture for meerkat-council#21 row 1 (kill vote sessions before their .jsonl is written). No repo reads needed. The panel must produce exactly one decision row and deliver it as an implementation issue in mouriya-s-lab/meerkat-e2e-code titled 'C21 ev: README one-line note 62' with body 'Add one line to the end of README.md saying the repo is a PM e2e test object for meerkat-council#21 (62). Acceptance: go test ./... passes.'",
                 "createdAt": "2026-11-07T12:24:06Z",
                 "updatedAt": "2026-11-07T12:30:41Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -7908,13 +7908,13 @@
                 "__typename": "Issue",
                 "number": 66,
                 "title": "C21 ev: vote-kill fixture",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/66",
-                "body": "Fixture for oh-my-omp/pm-council#21: Agenda issue closed during vote to kill vote sessions before .jsonl write. Test object, will be closed after evidence.",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/66",
+                "body": "Fixture for mouriya-s-lab/meerkat-council#21: Agenda issue closed during vote to kill vote sessions before .jsonl write. Test object, will be closed after evidence.",
                 "createdAt": "2026-11-07T12:26:11Z",
                 "updatedAt": "2026-11-07T13:23:27Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -7963,13 +7963,13 @@
                 "__typename": "Issue",
                 "number": 70,
                 "title": "C31 row2: session-timeout fixture (needs repo read)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/70",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/70",
                 "body": "C31 row2: session-timeout fixture (needs repo read)\n\nShould the council keep deliberation strictly on the decision table, ignoring hallway rumors?\n\nContext for the drafter: read the file docs/charter.md in the PM repository checkout and quote its first line in the draft's evidence column.\n",
                 "createdAt": "2026-11-07T12:36:58Z",
                 "updatedAt": "2026-11-07T12:48:21Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -8018,13 +8018,13 @@
                 "__typename": "Issue",
                 "number": 71,
                 "title": "C21 ev: vote-kill fixture 5",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/71",
-                "body": "Fixture for pm-council#21 row 1. No repo reads needed. The panel must produce exactly one decision row and deliver it as an implementation issue in oh-my-omp/pm-e2e-code titled 'C21 ev: README one-line note fixture 4' with body 'Add one line to the end of README.md saying the repo is a PM e2e test object for pm-council#21. Acceptance: go test ./... passes.'\n",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/71",
+                "body": "Fixture for meerkat-council#21 row 1. No repo reads needed. The panel must produce exactly one decision row and deliver it as an implementation issue in mouriya-s-lab/meerkat-e2e-code titled 'C21 ev: README one-line note fixture 4' with body 'Add one line to the end of README.md saying the repo is a PM e2e test object for meerkat-council#21. Acceptance: go test ./... passes.'\n",
                 "createdAt": "2026-11-07T12:44:32Z",
                 "updatedAt": "2026-11-07T12:49:55Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -8073,13 +8073,13 @@
                 "__typename": "Issue",
                 "number": 105,
                 "title": "C31 row2: session timeout fixture v2 (needs repo read)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/105",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/105",
                 "body": "C31 row2: session-timeout fixture (needs repo read)\n\nShould the council keep deliberation strictly on the decision table, ignoring hallway rumors?\n\nContext for the drafter: read the file docs/charter.md in the PM repository checkout and quote its first line in the draft's evidence column.\n",
                 "createdAt": "2026-11-07T12:51:17Z",
                 "updatedAt": "2026-11-07T12:57:57Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -8128,13 +8128,13 @@
                 "__typename": "Issue",
                 "number": 106,
                 "title": "C31 row3: quick yes-no fixture v2 (no repo read)",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/106",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/106",
                 "body": "C31 row3: quick yes-no fixture (no repo read)\n\nShould the council record \"yes\" as the answer to this yes-no question?\n",
                 "createdAt": "2026-11-07T12:51:18Z",
                 "updatedAt": "2026-11-07T12:57:57Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -8154,7 +8154,7 @@
                 "nodes": [
                   {},
                   {
-                    "text": "Q4 fixture: 经过修订与仲裁的议题（quorum#4 行 1）",
+                    "text": "Q4 fixture: 经过修订与仲裁的议题（meerkat#4 行 1）",
                     "field": {
                       "name": "Title"
                     }
@@ -8182,14 +8182,14 @@
               "content": {
                 "__typename": "Issue",
                 "number": 23,
-                "title": "Q4 fixture: 经过修订与仲裁的议题（quorum#4 行 1）",
-                "url": "https://github.com/oh-my-omp/pm-e2e-design/issues/23",
-                "body": "Q4 fixture（oh-my-omp/quorum#4 结果 2 用）：本议题只提供一份经过修订轮与仲裁的审议记录，不召集议会、不实现。\n\n- G25-01：议题详情的轮次轨道默认选中最新一版草案；选中轨道任一步时，选票矩阵与逐行结果只显示该步对应版本的草案行。\n- G25-02：有 `pm:ruling` 的行在逐行结果旁标注裁决分类；单元格字形只用 oh-my-omp/quorum#9 的「状态词表」。\n\n发完即关闭并设 Status=Done，标记评论由夹具直接写入。\n",
+                "title": "Q4 fixture: 经过修订与仲裁的议题（meerkat#4 行 1）",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/23",
+                "body": "Q4 fixture（mouriya-s-lab/meerkat#4 结果 2 用）：本议题只提供一份经过修订轮与仲裁的审议记录，不召集议会、不实现。\n\n- G25-01：议题详情的轮次轨道默认选中最新一版草案；选中轨道任一步时，选票矩阵与逐行结果只显示该步对应版本的草案行。\n- G25-02：有 `pm:ruling` 的行在逐行结果旁标注裁决分类；单元格字形只用 mouriya-s-lab/meerkat#9 的「状态词表」。\n\n发完即关闭并设 Status=Done，标记评论由夹具直接写入。\n",
                 "createdAt": "2026-11-07T13:19:05Z",
                 "updatedAt": "2026-11-07T13:22:58Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-design"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-design"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -8238,13 +8238,13 @@
                 "__typename": "Issue",
                 "number": 175,
                 "title": "C31 行2 起草超时夹具",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/175",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/175",
                 "body": "## 提案\n\n给 `docs/` 下的服务清单补一个小字段：每个服务条目增加 `owner`，值为负责人的 GitHub 登录名。\n\n- 修改 `internal/catalog/entries.go`：`Entry` 结构增加 `Owner string` 字段。\n- 修改 `internal/catalog/entries_test.go`：补一条解析测试。\n- 无新增依赖，无迁移。",
                 "createdAt": "2026-11-07T13:35:28Z",
                 "updatedAt": "2026-11-07T13:43:08Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -8293,13 +8293,13 @@
                 "__typename": "Issue",
                 "number": 176,
                 "title": "C31 行3 上限内完成夹具",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/176",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/176",
                 "body": "## 提案\n\n服务清单的 `docs/services.md` 增加一列 `port`，记录每个服务监听的端口号。\n\n- 修改 `internal/catalog/entries.go`：`Entry` 结构增加 `Port int` 字段。\n- 修改 `internal/catalog/entries_test.go`：补一条解析测试。\n- 无新增依赖，无迁移。",
                 "createdAt": "2026-11-07T13:37:49Z",
                 "updatedAt": "2026-11-07T13:43:13Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -8348,13 +8348,13 @@
                 "__typename": "Issue",
                 "number": 177,
                 "title": "C31 row2 fixture: small draftable proposal",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/177",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/177",
                 "body": "A tiny proposal for the timeout test: adopt a one-line lint rule for new files.",
                 "createdAt": "2026-11-07T14:17:17Z",
                 "updatedAt": "2026-11-07T14:22:29Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -8403,13 +8403,13 @@
                 "__typename": "Issue",
                 "number": 178,
                 "title": "C31 row3 fixture: quick proposal within limit",
-                "url": "https://github.com/oh-my-omp/pm-e2e-code/issues/178",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/178",
                 "body": "A tiny proposal for the in-limit test: add a one-line note to the meeting template.",
                 "createdAt": "2026-11-07T14:19:47Z",
                 "updatedAt": "2026-11-07T14:22:31Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-code"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-code"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -8458,13 +8458,13 @@
                 "__typename": "Issue",
                 "number": 85,
                 "title": "closed 状态夹具",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/85",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/85",
                 "body": "验收夹具",
                 "createdAt": "2026-11-07T15:45:15Z",
                 "updatedAt": "2026-11-07T15:46:37Z",
                 "state": "CLOSED",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {
@@ -8513,13 +8513,13 @@
                 "__typename": "Issue",
                 "number": 86,
                 "title": "notes export：导出全部笔记",
-                "url": "https://github.com/oh-my-omp/pm-e2e-agenda/issues/86",
-                "body": "在 oh-my-omp/pm-e2e-code 增加 notes export 命令，导出全部笔记。导出格式尚未决定，实现者开始前必须先就格式提问，得到答复后再实现。",
+                "url": "https://github.com/mouriya-s-lab/meerkat-e2e-agenda/issues/86",
+                "body": "在 mouriya-s-lab/meerkat-e2e-code 增加 notes export 命令，导出全部笔记。导出格式尚未决定，实现者开始前必须先就格式提问，得到答复后再实现。",
                 "createdAt": "2026-11-07T15:57:26Z",
                 "updatedAt": "2026-11-07T16:09:23Z",
                 "state": "OPEN",
                 "repository": {
-                  "nameWithOwner": "oh-my-omp/pm-e2e-agenda"
+                  "nameWithOwner": "mouriya-s-lab/meerkat-e2e-agenda"
                 },
                 "parent": null,
                 "blockedBy": {

@@ -1,4 +1,4 @@
-//! 「配置」(quorum#15, decision §H, #9 4.9): the PM config repository's
+//! 「配置」(meerkat#15, decision §H, #9 4.9): the PM config repository's
 //! branch file by file, grouped by directory with each file's readers; a
 //! file's preview cut by its top-level keys, its whole text to edit, and its
 //! lines against the branch with the readers' errors on them; every reader's
@@ -1087,7 +1087,7 @@ fn checks_section(doc: &Doc) -> AnyElement {
 }
 
 /// What each program runs against the branch: the council and the
-/// guardians by `GET /v1/config`, this Quorum by what it loaded, and on
+/// guardians by `GET /v1/config`, this Meerkat by what it loaded, and on
 /// macOS the local checkout.
 fn versions_section(doc: Doc) -> View {
     let sources = doc.sources;
@@ -1118,7 +1118,7 @@ fn versions_section(doc: Doc) -> View {
                     (Msg::Program(program.program).into(), state)
                 })
                 .chain(std::iter::once((
-                    Msg::QuorumHere.into(),
+                    Msg::MeerkatHere.into(),
                     Result::Ok(listing.as_ref().map(|listing| {
                         compare(doc.loaded.iter().map(|f| (f.file.as_str(), f.sha.as_str())), listing)
                     })),

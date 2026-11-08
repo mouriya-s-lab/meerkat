@@ -1,12 +1,12 @@
 config:
-  repo: oh-my-omp/pm-e2e-agenda
+  repo: mouriya-s-lab/meerkat-e2e-agenda
   branch: main
   readers:
     council/: [council]
     guardians/: [guardians]
-    quorum/: [quorum]
+    meerkat/: [meerkat]
     dispatch/: [dispatch]
-    shared/: [council, guardians, quorum, dispatch]
+    shared/: [council, guardians, meerkat, dispatch]
 targets:
   macos:
     githubApi: http://github.test

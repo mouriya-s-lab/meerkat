@@ -1,4 +1,4 @@
-//! Quorum's screens, its design tokens, status vocabulary, words and its
+//! Meerkat's screens, its design tokens, status vocabulary, words and its
 //! own component library.
 
 mod agenda;

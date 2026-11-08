@@ -1,8 +1,8 @@
 [
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6703436190",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/26#issuecomment-6703436190",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/26",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6703436190",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/26#issuecomment-6703436190",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/26",
     "id": 6703436190,
     "node_id": "IC_kwDOVloFec8AAAABj45Rng",
     "user": {
@@ -28,11 +28,11 @@
     },
     "created_at": "2026-11-07T06:35:30Z",
     "updated_at": "2026-11-07T06:35:30Z",
-    "body": "C3 smoke fixture (oh-my-omp/pm-council#3); not planned.",
+    "body": "C3 smoke fixture (mouriya-s-lab/meerkat-council#3); not planned.",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6703436190/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6703436190/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,

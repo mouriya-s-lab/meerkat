@@ -1,8 +1,8 @@
 [
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707488271",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-design/issues/23#issuecomment-6707488271",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/23",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707488271",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/23#issuecomment-6707488271",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/23",
     "id": 6707488271,
     "node_id": "IC_kwDOVloFs88AAAABj8wmDw",
     "user": {
@@ -32,7 +32,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707488271/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707488271/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -47,9 +47,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707488935",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-design/issues/23#issuecomment-6707488935",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/23",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707488935",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/23#issuecomment-6707488935",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/23",
     "id": 6707488935,
     "node_id": "IC_kwDOVloFs88AAAABj8wopw",
     "user": {
@@ -75,11 +75,11 @@
     },
     "created_at": "2026-11-07T13:22:14Z",
     "updated_at": "2026-11-07T13:22:14Z",
-    "body": "决策表第 1 版。两行都只给设计结论，不新建设计或实现交付。\n\n| id | what | where | how | 取舍 | 分类 | 缺失设计 | 落到 |\n|---|---|---|---|---|---|---|---|\n| G25-01 | 议题详情的轮次轨道默认选中最新一版草案；选中轨道任一步时，选票矩阵与逐行结果只显示该步对应版本的草案行。 | oh-my-omp/quorum#9 正文「详情与实现页的版式」；quorum 议题详情视图（分支 issue-4-detail）。 | 轮次轨道把每个 pm:panel 与每版 pm:draft 作为一步；未选择时选中版本号最大的草案。选中某一步后，以该版 draft 的行 id 作为矩阵行，按该版 pm:vote 填充单元格，并只显示该版的逐行结果。 | 放弃始终显示最新版的简单实现；收益是切到较早的步骤时，该版草案正文不会与另一版的票面并排出现。 | 意图 | false |  |\n| G25-02 | 有 pm:ruling 的行在逐行结果旁标注裁决分类；单元格字形只用 oh-my-omp/quorum#9 的「状态词表」。 | oh-my-omp/quorum#9「状态词表」与「详情与实现页的版式」。 | 读该版最新的 pm:ruling，把 ruling.rows 中与草案行 id 相同的行的 category 显示在该行的逐行结果旁；矩阵单元格字形取自 #9 的状态词表，不新增字形或颜色。 | 放弃按票数改变字形粗细；收益是字形与 #9 决策表一致，读数不受票数影响。 | 技术 | false |  |\n\n<!-- pm:draft {\"v\":1,\"version\":1,\"rows\":[{\"id\":\"G25-01\",\"what\":\"议题详情的轮次轨道默认选中最新一版草案；选中轨道任一步时，选票矩阵与逐行结果只显示该步对应版本的草案行。\",\"where\":\"oh-my-omp/quorum#9 正文「详情与实现页的版式」；quorum 议题详情视图（分支 issue-4-detail）。\",\"how\":\"轮次轨道把每个 pm:panel 与每版 pm:draft 作为一步；未选择时选中版本号最大的草案。选中某一步后，以该版 draft 的行 id 作为矩阵行，按该版 pm:vote 填充单元格，并只显示该版的逐行结果。\",\"tradeoff\":\"放弃始终显示最新版的简单实现；收益是切到较早的步骤时，该版草案正文不会与另一版的票面并排出现。\",\"category\":\"意图\",\"missingDesign\":false,\"deliver\":null},{\"id\":\"G25-02\",\"what\":\"有 pm:ruling 的行在逐行结果旁标注裁决分类；单元格字形只用 oh-my-omp/quorum#9 的「状态词表」。\",\"where\":\"oh-my-omp/quorum#9「状态词表」与「详情与实现页的版式」。\",\"how\":\"读该版最新的 pm:ruling，把 ruling.rows 中与草案行 id 相同的行的 category 显示在该行的逐行结果旁；矩阵单元格字形取自 #9 的状态词表，不新增字形或颜色。\",\"tradeoff\":\"放弃按票数改变字形粗细；收益是字形与 #9 决策表一致，读数不受票数影响。\",\"category\":\"技术\",\"missingDesign\":false,\"deliver\":null}],\"supersedes\":[],\"settle\":null,\"withdrawn\":null} -->\n",
+    "body": "决策表第 1 版。两行都只给设计结论，不新建设计或实现交付。\n\n| id | what | where | how | 取舍 | 分类 | 缺失设计 | 落到 |\n|---|---|---|---|---|---|---|---|\n| G25-01 | 议题详情的轮次轨道默认选中最新一版草案；选中轨道任一步时，选票矩阵与逐行结果只显示该步对应版本的草案行。 | mouriya-s-lab/meerkat#9 正文「详情与实现页的版式」；meerkat 议题详情视图（分支 issue-4-detail）。 | 轮次轨道把每个 pm:panel 与每版 pm:draft 作为一步；未选择时选中版本号最大的草案。选中某一步后，以该版 draft 的行 id 作为矩阵行，按该版 pm:vote 填充单元格，并只显示该版的逐行结果。 | 放弃始终显示最新版的简单实现；收益是切到较早的步骤时，该版草案正文不会与另一版的票面并排出现。 | 意图 | false |  |\n| G25-02 | 有 pm:ruling 的行在逐行结果旁标注裁决分类；单元格字形只用 mouriya-s-lab/meerkat#9 的「状态词表」。 | mouriya-s-lab/meerkat#9「状态词表」与「详情与实现页的版式」。 | 读该版最新的 pm:ruling，把 ruling.rows 中与草案行 id 相同的行的 category 显示在该行的逐行结果旁；矩阵单元格字形取自 #9 的状态词表，不新增字形或颜色。 | 放弃按票数改变字形粗细；收益是字形与 #9 决策表一致，读数不受票数影响。 | 技术 | false |  |\n\n<!-- pm:draft {\"v\":1,\"version\":1,\"rows\":[{\"id\":\"G25-01\",\"what\":\"议题详情的轮次轨道默认选中最新一版草案；选中轨道任一步时，选票矩阵与逐行结果只显示该步对应版本的草案行。\",\"where\":\"mouriya-s-lab/meerkat#9 正文「详情与实现页的版式」；meerkat 议题详情视图（分支 issue-4-detail）。\",\"how\":\"轮次轨道把每个 pm:panel 与每版 pm:draft 作为一步；未选择时选中版本号最大的草案。选中某一步后，以该版 draft 的行 id 作为矩阵行，按该版 pm:vote 填充单元格，并只显示该版的逐行结果。\",\"tradeoff\":\"放弃始终显示最新版的简单实现；收益是切到较早的步骤时，该版草案正文不会与另一版的票面并排出现。\",\"category\":\"意图\",\"missingDesign\":false,\"deliver\":null},{\"id\":\"G25-02\",\"what\":\"有 pm:ruling 的行在逐行结果旁标注裁决分类；单元格字形只用 mouriya-s-lab/meerkat#9 的「状态词表」。\",\"where\":\"mouriya-s-lab/meerkat#9「状态词表」与「详情与实现页的版式」。\",\"how\":\"读该版最新的 pm:ruling，把 ruling.rows 中与草案行 id 相同的行的 category 显示在该行的逐行结果旁；矩阵单元格字形取自 #9 的状态词表，不新增字形或颜色。\",\"tradeoff\":\"放弃按票数改变字形粗细；收益是字形与 #9 决策表一致，读数不受票数影响。\",\"category\":\"技术\",\"missingDesign\":false,\"deliver\":null}],\"supersedes\":[],\"settle\":null,\"withdrawn\":null} -->\n",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707488935/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707488935/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -94,9 +94,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707489556",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-design/issues/23#issuecomment-6707489556",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/23",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707489556",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/23#issuecomment-6707489556",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/23",
     "id": 6707489556,
     "node_id": "IC_kwDOVloFs88AAAABj8wrFA",
     "user": {
@@ -126,7 +126,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707489556/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707489556/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -141,9 +141,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707490188",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-design/issues/23#issuecomment-6707490188",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/23",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707490188",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/23#issuecomment-6707490188",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/23",
     "id": 6707490188,
     "node_id": "IC_kwDOVloFs88AAAABj8wtjA",
     "user": {
@@ -173,7 +173,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707490188/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707490188/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -188,9 +188,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707490822",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-design/issues/23#issuecomment-6707490822",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/23",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707490822",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/23#issuecomment-6707490822",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/23",
     "id": 6707490822,
     "node_id": "IC_kwDOVloFs88AAAABj8wwBg",
     "user": {
@@ -216,11 +216,11 @@
     },
     "created_at": "2026-11-07T13:22:25Z",
     "updated_at": "2026-11-07T13:22:25Z",
-    "body": "席位 Argon 对决策表第 1 版的投票。否决理由：G25-01 的实质是「人先看到哪一版草案」，这是产品意图，不是渲染管线的内部约束；把它写成技术行，等于让默认值的取舍脱离人类议题的约束。引用人类议题 oh-my-omp/pm-e2e-design#8：轨道默认选中哪一版应由人类议题提出并按意图记录，实现细节只负责达成该意图。\n\n| 行 | 票 | 反例 | 引用 | 分类意见 |\n|---|---|---|---|---|\n| G25-01 | veto |  | oh-my-omp/pm-e2e-design#8 | 意图 |\n| G25-02 | approve |  |  | 技术 |\n\n<!-- pm:vote {\"v\":1,\"seat\":\"Argon\",\"version\":1,\"rows\":[{\"row\":\"G25-01\",\"choice\":\"veto\",\"counterexample\":null,\"citation\":\"oh-my-omp/pm-e2e-design#8\",\"classification\":\"意图\"},{\"row\":\"G25-02\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":\"技术\"}]} -->\n",
+    "body": "席位 Argon 对决策表第 1 版的投票。否决理由：G25-01 的实质是「人先看到哪一版草案」，这是产品意图，不是渲染管线的内部约束；把它写成技术行，等于让默认值的取舍脱离人类议题的约束。引用人类议题 mouriya-s-lab/meerkat-e2e-design#8：轨道默认选中哪一版应由人类议题提出并按意图记录，实现细节只负责达成该意图。\n\n| 行 | 票 | 反例 | 引用 | 分类意见 |\n|---|---|---|---|---|\n| G25-01 | veto |  | mouriya-s-lab/meerkat-e2e-design#8 | 意图 |\n| G25-02 | approve |  |  | 技术 |\n\n<!-- pm:vote {\"v\":1,\"seat\":\"Argon\",\"version\":1,\"rows\":[{\"row\":\"G25-01\",\"choice\":\"veto\",\"counterexample\":null,\"citation\":\"mouriya-s-lab/meerkat-e2e-design#8\",\"classification\":\"意图\"},{\"row\":\"G25-02\",\"choice\":\"approve\",\"counterexample\":null,\"citation\":null,\"classification\":\"技术\"}]} -->\n",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707490822/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707490822/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -235,9 +235,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707491503",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-design/issues/23#issuecomment-6707491503",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/23",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707491503",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/23#issuecomment-6707491503",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/23",
     "id": 6707491503,
     "node_id": "IC_kwDOVloFs88AAAABj8wyrw",
     "user": {
@@ -267,7 +267,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707491503/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707491503/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -282,9 +282,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707492221",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-design/issues/23#issuecomment-6707492221",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/23",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707492221",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/23#issuecomment-6707492221",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/23",
     "id": 6707492221,
     "node_id": "IC_kwDOVloFs88AAAABj8w1fQ",
     "user": {
@@ -314,7 +314,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707492221/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707492221/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -329,9 +329,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707492788",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-design/issues/23#issuecomment-6707492788",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/23",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707492788",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/23#issuecomment-6707492788",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/23",
     "id": 6707492788,
     "node_id": "IC_kwDOVloFs88AAAABj8w3tA",
     "user": {
@@ -357,11 +357,11 @@
     },
     "created_at": "2026-11-07T13:22:37Z",
     "updated_at": "2026-11-07T13:22:37Z",
-    "body": "决策表第 2 版。修订理由：ClaudeHigh 的反例成立——第 1 版只规定矩阵取当前选中版本的票面，没有规定草案正文与逐行结果也来自同一步，回看旧版本时会把两版内容并排显示。本版把轨道选中状态确定为单一来源，同一步同时驱动正文、矩阵、逐行结果与 ruling，并明确行 id 以选中版本的 draft 为准。G25-02 不变。\n\n| id | what | where | how | 取舍 | 分类 | 缺失设计 | 落到 |\n|---|---|---|---|---|---|---|---|\n| G25-01 | 议题详情的轮次轨道默认选中最新一版草案；选中轨道任一步时，草案正文、选票矩阵与逐行结果都只显示该步对应版本，不得混用两版内容。 | oh-my-omp/quorum#9 正文「详情与实现页的版式」；quorum 议题详情视图（分支 issue-4-detail）。 | 轨道选中状态是单一来源：未选择时选中版本号最大的草案；选中某一步后，同一步同时驱动正文、矩阵、逐行结果与 ruling。矩阵行与逐行结果的行 id 取自该版 pm:draft；旧版有而该版没有的行不出现，该版新增的行以 · 起算。 | 放弃为正文与矩阵分别保存选中版本的做法；收益是回看任一步时三处显示同一版内容，不会出现跨版错配。 | 意图 | false |  |\n| G25-02 | 有 pm:ruling 的行在逐行结果旁标注裁决分类；单元格字形只用 oh-my-omp/quorum#9 的「状态词表」。 | oh-my-omp/quorum#9「状态词表」与「详情与实现页的版式」。 | 读该版最新的 pm:ruling，把 ruling.rows 中与草案行 id 相同的行的 category 显示在该行的逐行结果旁；矩阵单元格字形取自 #9 的状态词表，不新增字形或颜色。 | 放弃按票数改变字形粗细；收益是字形与 #9 决策表一致，读数不受票数影响。 | 技术 | false |  |\n\n<!-- pm:draft {\"v\":1,\"version\":2,\"rows\":[{\"id\":\"G25-01\",\"what\":\"议题详情的轮次轨道默认选中最新一版草案；选中轨道任一步时，草案正文、选票矩阵与逐行结果都只显示该步对应版本，不得混用两版内容。\",\"where\":\"oh-my-omp/quorum#9 正文「详情与实现页的版式」；quorum 议题详情视图（分支 issue-4-detail）。\",\"how\":\"轨道选中状态是单一来源：未选择时选中版本号最大的草案；选中某一步后，同一步同时驱动正文、矩阵、逐行结果与 ruling。矩阵行与逐行结果的行 id 取自该版 pm:draft；旧版有而该版没有的行不出现，该版新增的行以 · 起算。\",\"tradeoff\":\"放弃为正文与矩阵分别保存选中版本的做法；收益是回看任一步时三处显示同一版内容，不会出现跨版错配。\",\"category\":\"意图\",\"missingDesign\":false,\"deliver\":null},{\"id\":\"G25-02\",\"what\":\"有 pm:ruling 的行在逐行结果旁标注裁决分类；单元格字形只用 oh-my-omp/quorum#9 的「状态词表」。\",\"where\":\"oh-my-omp/quorum#9「状态词表」与「详情与实现页的版式」。\",\"how\":\"读该版最新的 pm:ruling，把 ruling.rows 中与草案行 id 相同的行的 category 显示在该行的逐行结果旁；矩阵单元格字形取自 #9 的状态词表，不新增字形或颜色。\",\"tradeoff\":\"放弃按票数改变字形粗细；收益是字形与 #9 决策表一致，读数不受票数影响。\",\"category\":\"技术\",\"missingDesign\":false,\"deliver\":null}],\"supersedes\":[],\"settle\":null,\"withdrawn\":null} -->\n",
+    "body": "决策表第 2 版。修订理由：ClaudeHigh 的反例成立——第 1 版只规定矩阵取当前选中版本的票面，没有规定草案正文与逐行结果也来自同一步，回看旧版本时会把两版内容并排显示。本版把轨道选中状态确定为单一来源，同一步同时驱动正文、矩阵、逐行结果与 ruling，并明确行 id 以选中版本的 draft 为准。G25-02 不变。\n\n| id | what | where | how | 取舍 | 分类 | 缺失设计 | 落到 |\n|---|---|---|---|---|---|---|---|\n| G25-01 | 议题详情的轮次轨道默认选中最新一版草案；选中轨道任一步时，草案正文、选票矩阵与逐行结果都只显示该步对应版本，不得混用两版内容。 | mouriya-s-lab/meerkat#9 正文「详情与实现页的版式」；meerkat 议题详情视图（分支 issue-4-detail）。 | 轨道选中状态是单一来源：未选择时选中版本号最大的草案；选中某一步后，同一步同时驱动正文、矩阵、逐行结果与 ruling。矩阵行与逐行结果的行 id 取自该版 pm:draft；旧版有而该版没有的行不出现，该版新增的行以 · 起算。 | 放弃为正文与矩阵分别保存选中版本的做法；收益是回看任一步时三处显示同一版内容，不会出现跨版错配。 | 意图 | false |  |\n| G25-02 | 有 pm:ruling 的行在逐行结果旁标注裁决分类；单元格字形只用 mouriya-s-lab/meerkat#9 的「状态词表」。 | mouriya-s-lab/meerkat#9「状态词表」与「详情与实现页的版式」。 | 读该版最新的 pm:ruling，把 ruling.rows 中与草案行 id 相同的行的 category 显示在该行的逐行结果旁；矩阵单元格字形取自 #9 的状态词表，不新增字形或颜色。 | 放弃按票数改变字形粗细；收益是字形与 #9 决策表一致，读数不受票数影响。 | 技术 | false |  |\n\n<!-- pm:draft {\"v\":1,\"version\":2,\"rows\":[{\"id\":\"G25-01\",\"what\":\"议题详情的轮次轨道默认选中最新一版草案；选中轨道任一步时，草案正文、选票矩阵与逐行结果都只显示该步对应版本，不得混用两版内容。\",\"where\":\"mouriya-s-lab/meerkat#9 正文「详情与实现页的版式」；meerkat 议题详情视图（分支 issue-4-detail）。\",\"how\":\"轨道选中状态是单一来源：未选择时选中版本号最大的草案；选中某一步后，同一步同时驱动正文、矩阵、逐行结果与 ruling。矩阵行与逐行结果的行 id 取自该版 pm:draft；旧版有而该版没有的行不出现，该版新增的行以 · 起算。\",\"tradeoff\":\"放弃为正文与矩阵分别保存选中版本的做法；收益是回看任一步时三处显示同一版内容，不会出现跨版错配。\",\"category\":\"意图\",\"missingDesign\":false,\"deliver\":null},{\"id\":\"G25-02\",\"what\":\"有 pm:ruling 的行在逐行结果旁标注裁决分类；单元格字形只用 mouriya-s-lab/meerkat#9 的「状态词表」。\",\"where\":\"mouriya-s-lab/meerkat#9「状态词表」与「详情与实现页的版式」。\",\"how\":\"读该版最新的 pm:ruling，把 ruling.rows 中与草案行 id 相同的行的 category 显示在该行的逐行结果旁；矩阵单元格字形取自 #9 的状态词表，不新增字形或颜色。\",\"tradeoff\":\"放弃按票数改变字形粗细；收益是字形与 #9 决策表一致，读数不受票数影响。\",\"category\":\"技术\",\"missingDesign\":false,\"deliver\":null}],\"supersedes\":[],\"settle\":null,\"withdrawn\":null} -->\n",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707492788/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707492788/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -376,9 +376,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707493495",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-design/issues/23#issuecomment-6707493495",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/23",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707493495",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/23#issuecomment-6707493495",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/23",
     "id": 6707493495,
     "node_id": "IC_kwDOVloFs88AAAABj8w6dw",
     "user": {
@@ -408,7 +408,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707493495/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707493495/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -423,9 +423,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707494227",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-design/issues/23#issuecomment-6707494227",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/23",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707494227",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/23#issuecomment-6707494227",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/23",
     "id": 6707494227,
     "node_id": "IC_kwDOVloFs88AAAABj8w9Uw",
     "user": {
@@ -455,7 +455,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707494227/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707494227/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -470,9 +470,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707494751",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-design/issues/23#issuecomment-6707494751",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/23",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707494751",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/23#issuecomment-6707494751",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/23",
     "id": 6707494751,
     "node_id": "IC_kwDOVloFs88AAAABj8w_Xw",
     "user": {
@@ -502,7 +502,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707494751/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707494751/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -517,9 +517,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707495327",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-design/issues/23#issuecomment-6707495327",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/23",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707495327",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/23#issuecomment-6707495327",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/23",
     "id": 6707495327,
     "node_id": "IC_kwDOVloFs88AAAABj8xBnw",
     "user": {
@@ -549,7 +549,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707495327/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707495327/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -564,9 +564,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707495868",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-design/issues/23#issuecomment-6707495868",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/23",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707495868",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/23#issuecomment-6707495868",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/23",
     "id": 6707495868,
     "node_id": "IC_kwDOVloFs88AAAABj8xDvA",
     "user": {
@@ -596,7 +596,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707495868/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707495868/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -611,9 +611,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707496426",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-design/issues/23#issuecomment-6707496426",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/23",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707496426",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-design/issues/23#issuecomment-6707496426",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/23",
     "id": 6707496426,
     "node_id": "IC_kwDOVloFs88AAAABj8xF6g",
     "user": {
@@ -639,11 +639,11 @@
     },
     "created_at": "2026-11-07T13:22:58Z",
     "updated_at": "2026-11-07T13:22:58Z",
-    "body": "决策表第 2 版的逐行结果。\n\n| 行 | 结果 | 赞成 | 门槛 | 理由 |\n|---|---|---|---|---|\n| G25-01 | passed | 4 | 3 | 第 2 版采纳 ClaudeHigh 的反例后四席赞成，达到 3/4 门槛；分类争议经 LeadMentor 裁决为「意图」。 |\n| G25-02 | passed | 4 | 3 | 字形沿用 oh-my-omp/quorum#9 的状态词表，四席无异议，达到 3/4 门槛。 |\n\n实现 issue：oh-my-omp/pm-e2e-code#13（引用既有 issue，本议题不新建）。被变更的旧议题：无。\n\n<!-- pm:decision {\"v\":1,\"version\":2,\"rows\":[{\"row\":\"G25-01\",\"outcome\":\"passed\",\"approve\":4,\"threshold\":3,\"reason\":\"第 2 版采纳 ClaudeHigh 的反例后四席赞成，达到 3/4 门槛；分类争议经 LeadMentor 裁决为「意图」。\"},{\"row\":\"G25-02\",\"outcome\":\"passed\",\"approve\":4,\"threshold\":3,\"reason\":\"字形沿用 oh-my-omp/quorum#9 的状态词表，四席无异议，达到 3/4 门槛。\"}],\"impl\":[\"oh-my-omp/pm-e2e-code#13\"],\"superseded\":[]} -->\n",
+    "body": "决策表第 2 版的逐行结果。\n\n| 行 | 结果 | 赞成 | 门槛 | 理由 |\n|---|---|---|---|---|\n| G25-01 | passed | 4 | 3 | 第 2 版采纳 ClaudeHigh 的反例后四席赞成，达到 3/4 门槛；分类争议经 LeadMentor 裁决为「意图」。 |\n| G25-02 | passed | 4 | 3 | 字形沿用 mouriya-s-lab/meerkat#9 的状态词表，四席无异议，达到 3/4 门槛。 |\n\n实现 issue：mouriya-s-lab/meerkat-e2e-code#13（引用既有 issue，本议题不新建）。被变更的旧议题：无。\n\n<!-- pm:decision {\"v\":1,\"version\":2,\"rows\":[{\"row\":\"G25-01\",\"outcome\":\"passed\",\"approve\":4,\"threshold\":3,\"reason\":\"第 2 版采纳 ClaudeHigh 的反例后四席赞成，达到 3/4 门槛；分类争议经 LeadMentor 裁决为「意图」。\"},{\"row\":\"G25-02\",\"outcome\":\"passed\",\"approve\":4,\"threshold\":3,\"reason\":\"字形沿用 mouriya-s-lab/meerkat#9 的状态词表，四席无异议，达到 3/4 门槛。\"}],\"impl\":[\"mouriya-s-lab/meerkat-e2e-code#13\"],\"superseded\":[]} -->\n",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-design/issues/comments/6707496426/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-design/issues/comments/6707496426/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,

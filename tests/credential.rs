@@ -3,7 +3,7 @@
 //! into a temporary directory and puts on `PATH`, and the council, guardians
 //! and GitHub answers are the recorded ones. The app speaks Chinese
 //! (`OMOMP_LANG=zh`): `gh_missing` reads the credential's reason, which
-//! Quorum writes in Chinese.
+//! Meerkat writes in Chinese.
 //!
 //! Each test rewrites this process's `PATH`, `GH_TOKEN` and `OMOMP_LANG`,
 //! which no two tests may do at once: they take [`serial`]'s lock, so
@@ -16,10 +16,10 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
 
 use nsh_testing::{StubHandler, StubRoute};
-use quorum::{Lang, Msg};
+use meerkat::{Lang, Msg};
 use support::{Fixture, GITHUB, Sandbox};
 
-/// The language the credential tests run Quorum in.
+/// The language the credential tests run Meerkat in.
 const LANG: Lang = Lang::Zh;
 
 /// How long the window may take to show what a recorded answer holds.
@@ -66,11 +66,11 @@ fn gh_hangs() -> Result<(), String> {
     support::path_with(sandbox.dir());
     support::clear_github_token();
 
-    let mut quorum = Fixture::start(LANG);
-    quorum.wait_for_all(&programs_and_bases(), SHOWN)?;
+    let mut meerkat = Fixture::start(LANG);
+    meerkat.wait_for_all(&programs_and_bases(), SHOWN)?;
     // The GitHub panels say the credential is being fetched, while the
     // recorded council and guardians data above stays on screen.
-    quorum.wait_for(&quorum.say(&Msg::FetchingCredential), SHOWN)?;
+    meerkat.wait_for(&meerkat.say(&Msg::FetchingCredential), SHOWN)?;
     Ok(())
 }
 
@@ -96,17 +96,17 @@ fn gh_answers() -> Result<(), String> {
             support::answer(401, r#"{"message":"Bad credentials"}"#)
         });
     });
-    let mut quorum = Fixture::start_with(
+    let mut meerkat = Fixture::start_with(
         LANG,
         vec![(format!("POST {}", project_url()), StubRoute::Handler(github))],
     );
 
-    quorum.open(Msg::PageIssues)?;
-    quorum.wait_for_any(&support::project_titles(), SHOWN)?;
+    meerkat.open(Msg::PageIssues)?;
+    meerkat.wait_for_any(&support::project_titles(), SHOWN)?;
     // A refresh interval on (1 s): the Project is read again.
-    quorum.wait_for_requests("POST", &project_url(), 2, REFRESH)?;
+    meerkat.wait_for_requests("POST", &project_url(), 2, REFRESH)?;
     assert!(
-        quorum.requests("POST", &project_url()) >= 2,
+        meerkat.requests("POST", &project_url()) >= 2,
         "the Project was not read again after a refresh interval"
     );
     Ok(())
@@ -120,14 +120,14 @@ fn gh_missing() -> Result<(), String> {
     support::path_without_gh(sandbox.dir());
     support::clear_github_token();
 
-    let mut quorum = Fixture::start(LANG);
+    let mut meerkat = Fixture::start(LANG);
     // `Credential::Missing`'s reason, as the GitHub panels write it.
-    quorum.wait_for_matching("无法执行 `gh auth token`", SHOWN)?;
+    meerkat.wait_for_matching("无法执行 `gh auth token`", SHOWN)?;
     // The council and guardians are unaffected: their recorded data is on
     // screen with the missing credential.
     let shown = programs_and_bases();
     assert!(
-        shown.iter().all(|text| quorum.shows(text)),
+        shown.iter().all(|text| meerkat.shows(text)),
         "the recorded council and guardians data is not on screen with the missing credential"
     );
     Ok(())
@@ -146,9 +146,9 @@ fn gh_token_env() -> Result<(), String> {
     support::path_with(sandbox.dir());
     support::set_github_token("gho_q23_env_token");
 
-    let mut quorum = Fixture::start(LANG);
-    quorum.open(Msg::PageIssues)?;
-    quorum.wait_for_any(&support::project_titles(), SHOWN)?;
+    let mut meerkat = Fixture::start(LANG);
+    meerkat.open(Msg::PageIssues)?;
+    meerkat.wait_for_any(&support::project_titles(), SHOWN)?;
     assert!(
         !marker.exists(),
         "`gh` ran ({}) though GH_TOKEN was set",

@@ -1,4 +1,4 @@
-//! Quorum (`nsh.json` `"root"` names [`App`]): one Rust
+//! Meerkat (`nsh.json` `"root"` names [`App`]): one Rust
 //! app for macOS (`cargo run`) and the web (`nsh package --target web`).
 //! It owns no PM state: it reads GitHub and the council and guardians
 //! programs, and shows what it read.
@@ -23,7 +23,7 @@ use nsh_base::theme;
 use nsh_core::prelude::*;
 
 /// The app's UI set (`nsh.json` `"rust"`).
-#[native_module("quorum/native")]
+#[native_module("meerkat/native")]
 fn native(registry: &mut Registry) {
     registry.register::<App>();
 }

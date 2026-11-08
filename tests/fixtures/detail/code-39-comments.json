@@ -1,8 +1,8 @@
 [
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6704345092",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/39#issuecomment-6704345092",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/39",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6704345092",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/39#issuecomment-6704345092",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/39",
     "id": 6704345092,
     "node_id": "IC_kwDOVloFec8AAAABj5wwBA",
     "user": {
@@ -32,7 +32,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6704345092/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6704345092/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,

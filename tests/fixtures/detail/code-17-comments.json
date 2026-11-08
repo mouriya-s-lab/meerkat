@@ -1,8 +1,8 @@
 [
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6698721877",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/17#issuecomment-6698721877",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/17",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6698721877",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/17#issuecomment-6698721877",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/17",
     "id": 6698721877,
     "node_id": "IC_kwDOVloFec8AAAABj0ZiVQ",
     "user": {
@@ -32,7 +32,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6698721877/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6698721877/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -47,9 +47,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6698807874",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/17#issuecomment-6698807874",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/17",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6698807874",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/17#issuecomment-6698807874",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/17",
     "id": 6698807874,
     "node_id": "IC_kwDOVloFec8AAAABj0eyQg",
     "user": {
@@ -75,11 +75,11 @@
     },
     "created_at": "2026-11-06T23:41:51Z",
     "updated_at": "2026-11-06T23:41:51Z",
-    "body": "原 issue #17 只要求工人就 “notes rm 是否应保留编号” 发起询问，但仓库内容已经明确回答了该问题：`notes rm <id>` 的用法说明写明 “remove a note; its id is never reused”（main.go:6、README.md:10），磁盘结构通过 `last_id` 保存已发放的最大 ID（store.go:18-23），`Store.Remove` 仅从 `notes` 切片中删除条目而不回退 `LastID`（store.go:81-89），现有测试也断言删除 ID 3、1 后新增条目得到 ID 4（store_test.go:31-67）。因此该询问没有剩余的实现决策空间，原 issue 以“待询问”状态保留无法推进，故以本 issue 取代：把“rm 保留编号”这一已确定语义固化为可执行的回归覆盖与文档契约。\n\n<!-- pm:replaced {\"v\":1,\"ask\":6698721877,\"by\":\"oh-my-omp/pm-e2e-code#19\"} -->",
+    "body": "原 issue #17 只要求工人就 “notes rm 是否应保留编号” 发起询问，但仓库内容已经明确回答了该问题：`notes rm <id>` 的用法说明写明 “remove a note; its id is never reused”（main.go:6、README.md:10），磁盘结构通过 `last_id` 保存已发放的最大 ID（store.go:18-23），`Store.Remove` 仅从 `notes` 切片中删除条目而不回退 `LastID`（store.go:81-89），现有测试也断言删除 ID 3、1 后新增条目得到 ID 4（store_test.go:31-67）。因此该询问没有剩余的实现决策空间，原 issue 以“待询问”状态保留无法推进，故以本 issue 取代：把“rm 保留编号”这一已确定语义固化为可执行的回归覆盖与文档契约。\n\n<!-- pm:replaced {\"v\":1,\"ask\":6698721877,\"by\":\"mouriya-s-lab/meerkat-e2e-code#19\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6698807874/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6698807874/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,

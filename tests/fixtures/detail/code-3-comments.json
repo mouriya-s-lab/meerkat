@@ -1,8 +1,8 @@
 [
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6698169063",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/3#issuecomment-6698169063",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/3",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6698169063",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/3#issuecomment-6698169063",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/3",
     "id": 6698169063,
     "node_id": "IC_kwDOVloFec8AAAABjz3y5w",
     "user": {
@@ -32,7 +32,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6698169063/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6698169063/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -47,9 +47,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6698241261",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/3#issuecomment-6698241261",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/3",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6698241261",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/3#issuecomment-6698241261",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/3",
     "id": 6698241261,
     "node_id": "IC_kwDOVloFec8AAAABjz8M7Q",
     "user": {
@@ -75,11 +75,11 @@
     },
     "created_at": "2026-11-06T23:17:16Z",
     "updated_at": "2026-11-06T23:17:16Z",
-    "body": "应沿用便签在全部便签中的原编号，不在过滤结果里从 1 重新编号。\n\n依据：\n\n- 设计书 §2 规定 `notes list --open` 的行为只是“只列出未完成的便签”（`../pm-e2e-design/notes.md:15`），并未引入任何重新编号语义；同表中的 `notes list` 是“按添加顺序列出全部便签，已完成的带 `x`”（`../pm-e2e-design/notes.md:12`），因此 `--open` 是对同一列表的过滤，而非生成新的序号。\n- 设计书 §4 规定“编号从 1 开始递增，删除之后也不复用”（`../pm-e2e-design/notes.md:21-23`），编号是便签自身的标识，而不是输出行号。\n- 现有实现中编号在 `Add` 时一次性分配：`s.data.LastID++` 后写入 `Note{ID: s.data.LastID, ...}`（`store.go:62-64`），删除后仍不复用（`store.go:82-88`；测试断言删除 3、1 后新增编号为 4，`store_test.go:60-64`）。\n- `list` 分支直接遍历 `store.List()` 并打印每条便签自身的 `n.ID`（`main.go:43-49`），`Store.List` 也只是返回按插入顺序保存的原始 `[]Note`（`store.go:68-69`）。过滤实现应只跳过 `n.Done` 为真的条目，保留其余条目的 `n.ID` 原值。\n\n结论：`notes list --open` 的输出编号必须使用便签原始编号；若重新从 1 编号，输出编号将无法用于 `notes done <id>` / `notes rm <id>`，也违背设计书 §4。\n\n<!-- pm:reply {\"v\":1,\"ask\":6698169063,\"decision\":null} -->",
+    "body": "应沿用便签在全部便签中的原编号，不在过滤结果里从 1 重新编号。\n\n依据：\n\n- 设计书 §2 规定 `notes list --open` 的行为只是“只列出未完成的便签”（`../meerkat-e2e-design/notes.md:15`），并未引入任何重新编号语义；同表中的 `notes list` 是“按添加顺序列出全部便签，已完成的带 `x`”（`../meerkat-e2e-design/notes.md:12`），因此 `--open` 是对同一列表的过滤，而非生成新的序号。\n- 设计书 §4 规定“编号从 1 开始递增，删除之后也不复用”（`../meerkat-e2e-design/notes.md:21-23`），编号是便签自身的标识，而不是输出行号。\n- 现有实现中编号在 `Add` 时一次性分配：`s.data.LastID++` 后写入 `Note{ID: s.data.LastID, ...}`（`store.go:62-64`），删除后仍不复用（`store.go:82-88`；测试断言删除 3、1 后新增编号为 4，`store_test.go:60-64`）。\n- `list` 分支直接遍历 `store.List()` 并打印每条便签自身的 `n.ID`（`main.go:43-49`），`Store.List` 也只是返回按插入顺序保存的原始 `[]Note`（`store.go:68-69`）。过滤实现应只跳过 `n.Done` 为真的条目，保留其余条目的 `n.ID` 原值。\n\n结论：`notes list --open` 的输出编号必须使用便签原始编号；若重新从 1 编号，输出编号将无法用于 `notes done <id>` / `notes rm <id>`，也违背设计书 §4。\n\n<!-- pm:reply {\"v\":1,\"ask\":6698169063,\"decision\":null} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6698241261/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6698241261/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -94,9 +94,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6698259941",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/3#issuecomment-6698259941",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/3",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6698259941",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/3#issuecomment-6698259941",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/3",
     "id": 6698259941,
     "node_id": "IC_kwDOVloFec8AAAABjz9V5Q",
     "user": {
@@ -126,7 +126,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6698259941/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6698259941/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -141,9 +141,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6698275421",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/3#issuecomment-6698275421",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/3",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6698275421",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/3#issuecomment-6698275421",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/3",
     "id": 6698275421,
     "node_id": "IC_kwDOVloFec8AAAABjz-SXQ",
     "user": {
@@ -173,7 +173,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6698275421/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6698275421/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -188,9 +188,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6702887478",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/3#issuecomment-6702887478",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/3",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6702887478",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/3#issuecomment-6702887478",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/3",
     "id": 6702887478,
     "node_id": "IC_kwDOVloFec8AAAABj4XyNg",
     "user": {
@@ -220,7 +220,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6702887478/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6702887478/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -235,9 +235,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6702898492",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/3#issuecomment-6702898492",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/3",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6702898492",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/3#issuecomment-6702898492",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/3",
     "id": 6702898492,
     "node_id": "IC_kwDOVloFec8AAAABj4YdPA",
     "user": {
@@ -263,11 +263,11 @@
     },
     "created_at": "2026-11-07T05:37:39Z",
     "updated_at": "2026-11-07T05:37:39Z",
-    "body": "询问已提为议题（C3 smoke 手写）。\n<!-- pm:escalated {\"v\":1,\"ask\":6702887478,\"agenda\":\"oh-my-omp/pm-e2e-agenda#31\"} -->",
+    "body": "询问已提为议题（C3 smoke 手写）。\n<!-- pm:escalated {\"v\":1,\"ask\":6702887478,\"agenda\":\"mouriya-s-lab/meerkat-e2e-agenda#31\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6702898492/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6702898492/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -282,9 +282,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6702908899",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/3#issuecomment-6702908899",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/3",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6702908899",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/3#issuecomment-6702908899",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/3",
     "id": 6702908899,
     "node_id": "IC_kwDOVloFec8AAAABj4ZF4w",
     "user": {
@@ -310,11 +310,11 @@
     },
     "created_at": "2026-11-07T05:38:52Z",
     "updated_at": "2026-11-07T05:38:52Z",
-    "body": "议题 oh-my-omp/pm-e2e-agenda#31（议程 D29）已定案。\n\n--open 只列未完成且未归档的便签；归档便签不在其中。\n\n| 行 | 结果 | 赞成 | 门槛 | 理由 |\n|---|---|---|---|---|\n| r1 | passed | 4 | 3 | approve 4 meets threshold 3 |\n\n<!-- pm:reply {\"v\":1,\"ask\":6702887478,\"decision\":\"oh-my-omp/pm-e2e-agenda#31\"} -->",
+    "body": "议题 mouriya-s-lab/meerkat-e2e-agenda#31（议程 D29）已定案。\n\n--open 只列未完成且未归档的便签；归档便签不在其中。\n\n| 行 | 结果 | 赞成 | 门槛 | 理由 |\n|---|---|---|---|---|\n| r1 | passed | 4 | 3 | approve 4 meets threshold 3 |\n\n<!-- pm:reply {\"v\":1,\"ask\":6702887478,\"decision\":\"mouriya-s-lab/meerkat-e2e-agenda#31\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6702908899/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6702908899/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -329,9 +329,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6703467995",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/3#issuecomment-6703467995",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/3",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6703467995",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/3#issuecomment-6703467995",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/3",
     "id": 6703467995,
     "node_id": "IC_kwDOVloFec8AAAABj47N2w",
     "user": {
@@ -361,7 +361,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6703467995/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6703467995/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -376,9 +376,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6703469968",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/3#issuecomment-6703469968",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/3",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6703469968",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/3#issuecomment-6703469968",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/3",
     "id": 6703469968,
     "node_id": "IC_kwDOVloFec8AAAABj47VkA",
     "user": {
@@ -404,11 +404,11 @@
     },
     "created_at": "2026-11-07T06:39:18Z",
     "updated_at": "2026-11-07T06:39:18Z",
-    "body": "询问已提为议题（C3 ev 手写）。\n<!-- pm:escalated {\"v\":1,\"ask\":6703467995,\"agenda\":\"oh-my-omp/pm-e2e-agenda#36\"} -->",
+    "body": "询问已提为议题（C3 ev 手写）。\n<!-- pm:escalated {\"v\":1,\"ask\":6703467995,\"agenda\":\"mouriya-s-lab/meerkat-e2e-agenda#36\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6703469968/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6703469968/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -423,9 +423,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6703500153",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/3#issuecomment-6703500153",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/3",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6703500153",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/3#issuecomment-6703500153",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/3",
     "id": 6703500153,
     "node_id": "IC_kwDOVloFec8AAAABj49LeQ",
     "user": {
@@ -451,11 +451,11 @@
     },
     "created_at": "2026-11-07T06:42:43Z",
     "updated_at": "2026-11-07T06:42:43Z",
-    "body": "议题 oh-my-omp/pm-e2e-agenda#36（议程 D34）已定案。\n\n--open 只列未完成且未归档的便签；归档便签不在其中。\n\n| 行 | 结果 | 赞成 | 门槛 | 理由 |\n|---|---|---|---|---|\n| r1 | passed | 4 | 3 | approve 4 meets threshold 3 |\n\n<!-- pm:reply {\"v\":1,\"ask\":6703467995,\"decision\":\"oh-my-omp/pm-e2e-agenda#36\"} -->",
+    "body": "议题 mouriya-s-lab/meerkat-e2e-agenda#36（议程 D34）已定案。\n\n--open 只列未完成且未归档的便签；归档便签不在其中。\n\n| 行 | 结果 | 赞成 | 门槛 | 理由 |\n|---|---|---|---|---|\n| r1 | passed | 4 | 3 | approve 4 meets threshold 3 |\n\n<!-- pm:reply {\"v\":1,\"ask\":6703467995,\"decision\":\"mouriya-s-lab/meerkat-e2e-agenda#36\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6703500153/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6703500153/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -470,9 +470,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6703719036",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/3#issuecomment-6703719036",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/3",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6703719036",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/3#issuecomment-6703719036",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/3",
     "id": 6703719036,
     "node_id": "IC_kwDOVloFec8AAAABj5KifA",
     "user": {
@@ -502,7 +502,7 @@
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6703719036/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6703719036/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -517,9 +517,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6703719371",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/3#issuecomment-6703719371",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/3",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6703719371",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/3#issuecomment-6703719371",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/3",
     "id": 6703719371,
     "node_id": "IC_kwDOVloFec8AAAABj5Kjyw",
     "user": {
@@ -545,11 +545,11 @@
     },
     "created_at": "2026-11-07T07:06:16Z",
     "updated_at": "2026-11-07T07:06:16Z",
-    "body": "询问已提为议题（C3 ev2 手写）。\n<!-- pm:escalated {\"v\":1,\"ask\":6703719036,\"agenda\":\"oh-my-omp/pm-e2e-agenda#43\"} -->",
+    "body": "询问已提为议题（C3 ev2 手写）。\n<!-- pm:escalated {\"v\":1,\"ask\":6703719036,\"agenda\":\"mouriya-s-lab/meerkat-e2e-agenda#43\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6703719371/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6703719371/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -564,9 +564,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6703751855",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/3#issuecomment-6703751855",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/3",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6703751855",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/3#issuecomment-6703751855",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/3",
     "id": 6703751855,
     "node_id": "IC_kwDOVloFec8AAAABj5Mirw",
     "user": {
@@ -592,11 +592,11 @@
     },
     "created_at": "2026-11-07T07:09:53Z",
     "updated_at": "2026-11-07T07:09:53Z",
-    "body": "议题 oh-my-omp/pm-e2e-agenda#43（议程 D41）已定案。\n\n--open 只列未完成且未归档的便签；归档便签不在其中。\n\n| 行 | 结果 | 赞成 | 门槛 | 理由 |\n|---|---|---|---|---|\n| r1 | passed | 4 | 3 | approve 4 meets threshold 3 |\n\n<!-- pm:reply {\"v\":1,\"ask\":6703719036,\"decision\":\"oh-my-omp/pm-e2e-agenda#43\"} -->",
+    "body": "议题 mouriya-s-lab/meerkat-e2e-agenda#43（议程 D41）已定案。\n\n--open 只列未完成且未归档的便签；归档便签不在其中。\n\n| 行 | 结果 | 赞成 | 门槛 | 理由 |\n|---|---|---|---|---|\n| r1 | passed | 4 | 3 | approve 4 meets threshold 3 |\n\n<!-- pm:reply {\"v\":1,\"ask\":6703719036,\"decision\":\"mouriya-s-lab/meerkat-e2e-agenda#43\"} -->",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6703751855/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6703751855/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
@@ -611,9 +611,9 @@
     "minimized": null
   },
   {
-    "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6707309157",
-    "html_url": "https://github.com/oh-my-omp/pm-e2e-code/issues/3#issuecomment-6707309157",
-    "issue_url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/3",
+    "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6707309157",
+    "html_url": "https://github.com/mouriya-s-lab/meerkat-e2e-code/issues/3#issuecomment-6707309157",
+    "issue_url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/3",
     "id": 6707309157,
     "node_id": "IC_kwDOVloFec8AAAABj8lqZQ",
     "user": {
@@ -639,11 +639,11 @@
     },
     "created_at": "2026-11-07T13:04:40Z",
     "updated_at": "2026-11-07T13:04:40Z",
-    "body": "前几阶段遗留的夹具，按 oh-my-omp/pm-config#1 结果 6 以 not planned 关闭。",
+    "body": "前几阶段遗留的夹具，按 mouriya-s-lab/meerkat-config#1 结果 6 以 not planned 关闭。",
     "author_association": "MEMBER",
     "pin": null,
     "reactions": {
-      "url": "https://api.github.com/repos/oh-my-omp/pm-e2e-code/issues/comments/6707309157/reactions",
+      "url": "https://api.github.com/repos/mouriya-s-lab/meerkat-e2e-code/issues/comments/6707309157/reactions",
       "total_count": 0,
       "+1": 0,
       "-1": 0,
