@@ -58,11 +58,15 @@ impl LoadedFile {
 /// hex): the value `git hash-object` gives the same file.
 pub fn blob_sha(bytes: &[u8]) -> String {
     use sha1::{Digest, Sha1};
+    use std::fmt::Write;
 
     let mut hasher = Sha1::new();
     hasher.update(format!("blob {}\0", bytes.len()).as_bytes());
     hasher.update(bytes);
-    format!("{:x}", hasher.finalize())
+    hasher.finalize().iter().fold(String::with_capacity(40), |mut hex, byte| {
+        write!(hex, "{byte:02x}").expect("writing to a String does not fail");
+        hex
+    })
 }
 
 impl AppConfig {

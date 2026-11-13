@@ -1020,5 +1020,6 @@ pub(super) fn keys_when_typing() -> KeyOptions {
     KeyOptions {
         when: When::Always,
         repeat: true,
+        pass_through: false,
     }
 }
