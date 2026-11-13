@@ -1,5 +1,6 @@
-//! Runs Meerkat in a native macOS window (`cargo run`), reading the
-//! Meerkat config directory `MEERKAT_CONFIG_DIR` names.
+//! Runs Meerkat in a native macOS window (`relax run --allow-c meerkat`
+//! while developing), reading the Meerkat config directory
+//! `MEERKAT_CONFIG_DIR` names.
 
 #[cfg(target_os = "macos")]
 fn main() -> impl std::process::Termination {

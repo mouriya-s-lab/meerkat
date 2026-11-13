@@ -1,5 +1,7 @@
 //! Meerkat (`nsh.json` `"root"` names [`App`]): one Rust
-//! app for macOS (`cargo run`) and the web (`nsh package --target web`).
+//! app for macOS (`relax run --allow-c meerkat` while developing,
+//! `nsh package --target macos` to ship) and the web
+//! (`nsh package --target web`).
 //! It owns no Meerkat state: it reads GitHub and the council and guardians
 //! programs, and shows what it read.
 

@@ -104,26 +104,36 @@ flowchart LR
 
 ### macOS 原生端
 
-需安装 Rust 工具链与 Xcode Command Line Tools。GitHub 凭据取自环境变量 `GH_TOKEN`，未设置时自动调用 `gh auth token` 获取：
+需安装 Rust 工具链与 Xcode Command Line Tools。GitHub 凭据取自环境变量 `GH_TOKEN`，未设置时自动调用 `gh auth token` 获取。
+
+开发时用 [Relax](https://github.com/makepad/relax)（Rust JIT）直接从源码运行：函数首次调用时才编译，保存文件后改动的函数体热补丁进运行中的窗口，界面状态保留；改了类型布局、import、trait 或 impl 头时，Relax 提示需要重启。Relax 从构建它的 checkout 读取自带的 std，构建后保持该目录原位。`--allow-c` 让 Relax 用 cargo 构建依赖里编译 C 的构建脚本（`nsh-platform-apple`、`onig_sys`、`ring`）：
 
 ```sh
-MEERKAT_CONFIG_DIR=$PWD/config.example cargo run
+git clone https://github.com/makepad/relax <relax dir>
+cargo build --release --manifest-path <relax dir>/Cargo.toml -p relax-runner --bin relax
+
+MEERKAT_CONFIG_DIR=$PWD/config.example relax run --allow-c meerkat
+relax test --allow-c meerkat -- --precompile --test-threads=1
 ```
 
-打包独立 `Meerkat.app`（需安装 [`nsh`](https://nsh.dev/docs/installation.md)、Homebrew `llvm` 与对应版本的 `wasm-bindgen`）：
+`tests/` 的界面测试会改写进程环境变量，并在 10 秒内等待界面出现：`--test-threads=1` 让它们逐个运行，`--precompile` 让 Relax 在第一个测试开始前编译完测试会调用的函数，避免编译时间占用等待时限。
+
+Relax 生成的代码比 rustc `--release` 慢，只用于编辑与运行循环；发布构建与打包仍由 rustc 完成（`nsh package`）。
+
+打包独立 `Meerkat.app`（需安装 [`nsh`](https://nsh.dev/docs/installation.md)）：
 
 ```sh
-deploy/package-macos.sh /tmp/meerkat-macos
+nsh package --target macos -o /tmp/meerkat-macos
 ```
 
 ### Web 端
 
-使用 `nsh` 编译静态站点后，通过仓库自带的 `deploy/Caddyfile` 启动同源反向代理（由代理注入 `GH_TOKEN`、提供 `/config/*` 只读挂载，并将写操作严格限制为目标配置仓库的单文件提交）：
+使用 `nsh` 编译静态站点（需 Homebrew `llvm` 与 `Cargo.lock` 中 `wasm-bindgen` 同版本的 `wasm-bindgen` CLI）后，通过仓库自带的 `deploy/Caddyfile` 启动同源反向代理（由代理注入 `GH_TOKEN`、提供 `/config/*` 只读挂载，并将写操作严格限制为目标配置仓库的单文件提交）：
 
 ```sh
 PATH=/opt/homebrew/opt/llvm/bin:$PATH nsh package --target web -o /tmp/meerkat-web
 
-LISTEN=:8088 SITE_DIR=/tmp/meerkat-web CONFIG_DIR=$PWD/config.example \
+LISTEN=:8088 SITE_DIR=/tmp/meerkat-web/Meerkat CONFIG_DIR=$PWD/config.example \
   GH_TOKEN=$(gh auth token) CONFIG_REPO=mouriya-s-lab/meerkat-config \
   COUNCIL_URL=http://127.0.0.1:7421 GUARDIANS_URL=http://127.0.0.1:7410 \
   DISPATCH_URL=http://127.0.0.1:47593 \
