@@ -13,7 +13,7 @@ use super::{
     agenda,
     icons::Icon,
     parts::{
-        Choice, Look, action, empty, github_bar, head_row, icon_button, kv, mono, nothing, press,
+        Choice, Look, action, empty, head_row, icon_button, kv, mono, nothing, press,
         row, search_field, segmented, small, source_bar, tag, th, token, votes_bar, meter,
     },
     shell::{Context, Nav, Split, graph_of, side, split},
@@ -286,7 +286,7 @@ pub fn page(sources: Sources, context: Rc<Context>, nav: Nav) -> impl IntoElemen
     let graph = computed(move || graph_of(sources, &agenda, state.human_only.get()));
     // The selected issue's comments: the inspector's matrix and the
     // detail opened on it (opening a detail selects its issue).
-    let comments = agenda::comments_of(sources, context.github, move || {
+    let comments = agenda::comments_of(sources, context.github.clone(), move || {
         state.selected.get()
     });
     // J / K move the selection through the list's rows.
@@ -377,7 +377,7 @@ fn list_page(sources: Sources, graph: Memo<Option<Rc<Graph>>>, opens: Opens) -> 
         .flex_1()
         .min_h(Points::ZERO)
         .child(filter_bar(graph, state))
-        .child(github_bar(sources.credential, sources.project, 0))
+        .child(source_bar(sources.project, 0))
         .child(source_bar(sources.queue, 0))
         .child(split(split_parts, |parts| {
             view()

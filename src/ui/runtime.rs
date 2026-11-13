@@ -13,7 +13,7 @@ use super::{
     icons::Icon,
     overview::running_asks,
     parts::{
-        Look, action, empty, error_text, github_bar, group_header, head_row, hint, kv, meter,
+        Look, action, empty, error_text, group_header, head_row, hint, kv, meter,
         mono, nothing, small, source_bar, th,
     },
     sessions::{self, OpenSession, duration},
@@ -670,7 +670,7 @@ fn limits(sources: Sources, context: Rc<Context>) -> View {
         .child(
             view()
                 .px(len(Space6))
-                .child(github_bar(sources.credential, sources.rate, 0))
+                .child(source_bar(sources.rate, 0))
                 .child(dynamic(move || {
                     let rate = sources.rate.get().map(|l| l.data);
                     let since = time::now_ms() - f64::from(hours) * 3_600_000.0;

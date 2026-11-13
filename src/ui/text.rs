@@ -111,8 +111,6 @@ pub enum Msg {
     /// The clock time of the last successful load, if any.
     LastLoaded(Option<String>),
     Retry,
-    /// A GitHub panel while the credential is fetched.
-    FetchingCredential,
     /// Why something did not come.
     Failure(Failure),
     /// What is wrong with the config: its file, key path and why.
@@ -661,23 +659,22 @@ fn failure(f: &mut fmt::Formatter<'_>, why: &Failure, lang: Lang) -> fmt::Result
             Zh => write!(f, "{url}: 响应无法解析：{error}"),
             En => write!(f, "{url}: the answer cannot be parsed: {error}"),
         },
-        Failure::CredentialPending => Msg::FetchingCredential.write(lang, f),
         Failure::ParseStopped(error) => match lang {
             Zh => write!(f, "解析中断：{error}"),
             En => write!(f, "Parsing stopped: {error}"),
         },
         Failure::NoCredential(NoCredential::GhFailed(error)) => match lang {
-            Zh => write!(f, "GH_TOKEN 为空，`gh auth token` 失败：{error}"),
-            En => write!(f, "GH_TOKEN is empty and `gh auth token` failed: {error}"),
+            Zh => write!(f, "`gh auth token` 失败：{error}"),
+            En => write!(f, "`gh auth token` failed: {error}"),
         },
         Failure::NoCredential(NoCredential::GhSilent) => f.write_str(pick(
             lang,
-            "GH_TOKEN 为空，`gh auth token` 没有输出",
-            "GH_TOKEN is empty and `gh auth token` printed nothing",
+            "`gh auth token` 没有输出",
+            "`gh auth token` printed nothing",
         )),
         Failure::NoCredential(NoCredential::GhCannotRun(error)) => match lang {
-            Zh => write!(f, "GH_TOKEN 为空，无法执行 `gh auth token`：{error}"),
-            En => write!(f, "GH_TOKEN is empty and `gh auth token` cannot run: {error}"),
+            Zh => write!(f, "无法执行 `gh auth token`：{error}"),
+            En => write!(f, "`gh auth token` cannot run: {error}"),
         },
         Failure::GraphQlNoData => f.write_str(pick(lang, "GraphQL 没有返回数据", "GraphQL returned no data")),
         Failure::ProjectNotFound { owner, number } => match lang {
@@ -961,7 +958,6 @@ impl Msg {
             },
             Msg::LastLoaded(None) => say(f, "还没有成功读取过", "never loaded"),
             Msg::Retry => say(f, "重试", "Retry"),
-            Msg::FetchingCredential => say(f, "正在获取 GitHub 凭据", "Fetching the GitHub credential"),
             Msg::Failure(why) => failure(f, why, lang),
             Msg::ConfigFailure(error) => config_error(f, error, lang),
             Msg::Problem(why) => problem(f, why, lang),

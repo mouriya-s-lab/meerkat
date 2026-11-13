@@ -390,16 +390,24 @@ pub fn path_without_gh(dir: &Path) {
     unsafe { std::env::set_var("PATH", format!("{}:/usr/bin:/bin", dir.display())) };
 }
 
-/// Sets `GH_TOKEN`, which the credential reads before `gh`.
-pub fn set_github_token(token: &str) {
-    // SAFETY: see [`path_with`].
-    unsafe { std::env::set_var("GH_TOKEN", token) };
-}
+/// Puts first on `PATH` a `gh` whose `gh auth token` prints `token`: the
+/// credential every GitHub request asks for. Its directory lives as long
+/// as the test process, as the app asks it for every request after the
+/// fixture starts.
+pub fn fake_gh(token: &str) {
+    use std::os::unix::fs::PermissionsExt;
 
-/// Removes `GH_TOKEN`, so the credential asks `gh`.
-pub fn clear_github_token() {
-    // SAFETY: see [`path_with`].
-    unsafe { std::env::remove_var("GH_TOKEN") };
+    let dir = std::env::temp_dir().join(format!("meerkat-fake-gh-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).expect("the fake gh's directory");
+    let path = dir.join("gh");
+    std::fs::write(&path, format!("#!/bin/sh\necho {token}\n")).expect("the fake gh's text");
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).expect("an executable gh");
+    let first = std::env::var_os("PATH")
+        .and_then(|path| std::env::split_paths(&path).next())
+        .is_some_and(|first| first == dir);
+    if !first {
+        path_with(&dir);
+    }
 }
 
 /// The Meerkat config directory the app loads: the fixture's copy of
@@ -543,7 +551,7 @@ fn copy_dir(from: &Path, to: &Path) {
 /// Meerkat in `lang` on a copy of the fixture config whose agenda repository is
 /// `repo`, answered from the detail recordings, `routes` ahead of them.
 pub fn start_detail(sandbox: &Sandbox, repo: &str, lang: Lang, routes: Vec<(String, StubRoute)>) -> Fixture {
-    set_github_token("gho_q4_detail_token");
+    fake_gh("gho_q4_detail_token");
     let dir = config_with_agenda(sandbox, repo);
     let mut routes = routes;
     routes.extend(detail_routes());

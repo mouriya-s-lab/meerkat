@@ -90,12 +90,12 @@ impl AgendaState {
 /// An issue's comments as last read, with the issue they are of.
 pub type Comments = Resource<(IssueRef, Rc<Vec<Comment>>), Failure>;
 
-/// The comments of the issue `issue()` names, read once `github` is in and
+/// The comments of the issue `issue()` names, read when it is named and
 /// again when the Project's `updatedAt` of it changes (a new comment
 /// changes it), not on every refresh: the GitHub API's allowance is shared.
 pub fn comments_of(
     sources: Sources,
-    github: Memo<Option<Rc<GitHub>>>,
+    github: Rc<GitHub>,
     issue: impl Fn() -> Option<IssueRef> + 'static,
 ) -> Comments {
     let key = computed(move || {
@@ -112,10 +112,13 @@ pub fn comments_of(
         Some((issue, updated))
     });
     resource(
-        move || Some((github.get()?, key.get()?)),
-        move |(github, (issue, _)): (Rc<GitHub>, (IssueRef, Option<String>)), _| async move {
-            let read = comments(&github, &issue).await?;
-            Result::Ok((issue, Rc::new(read)))
+        move || key.get(),
+        move |(issue, _): (IssueRef, Option<String>), _| {
+            let github = github.clone();
+            async move {
+                let read = comments(&github, &issue).await?;
+                Result::Ok((issue, Rc::new(read)))
+            }
         },
     )
 }

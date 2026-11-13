@@ -12,9 +12,7 @@ pub enum Failure {
     Said(String),
     /// The answer at `url` is not what was expected: the parser's words.
     Unparsable { url: String, error: String },
-    /// The GitHub credential is still being fetched.
-    CredentialPending,
-    /// There is no GitHub credential.
+    /// The local `gh` gave no GitHub credential.
     NoCredential(NoCredential),
     /// GraphQL answered with neither data nor errors.
     GraphQlNoData,
@@ -32,8 +30,7 @@ pub enum Failure {
     ParseStopped(String),
 }
 
-/// Why there is no GitHub credential (`GH_TOKEN` is empty, so `gh` was
-/// asked).
+/// Why the local `gh` gave no GitHub credential for a request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NoCredential {
     /// `gh auth token` failed: what it wrote to stderr, or the error

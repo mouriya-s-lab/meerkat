@@ -15,7 +15,7 @@ use std::{collections::BTreeMap, rc::Rc};
 
 use base64::{Engine, engine::general_purpose::STANDARD};
 use futures_util::future::{join_all, try_join_all};
-use nsh_core::prelude::{HttpRequest, Memo};
+use nsh_core::prelude::HttpRequest;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -128,14 +128,14 @@ type Files = BTreeMap<String, String>;
 /// build's addresses.
 #[derive(Debug, Clone)]
 pub struct ConfigRepoClient {
-    github: Memo<Option<Rc<GitHub>>>,
+    github: Rc<GitHub>,
     config: ConfigRepo,
     endpoints: Endpoints,
 }
 
 impl ConfigRepoClient {
     pub fn new(
-        github: Memo<Option<Rc<GitHub>>>,
+        github: Rc<GitHub>,
         config: ConfigRepo,
         endpoints: Endpoints,
     ) -> Self {
@@ -159,23 +159,10 @@ impl ConfigRepoClient {
         self.config.readers.of(path)
     }
 
-    /// The GitHub handle once the credential is in; `None`'s wait text
-    /// before that.
-    fn github(&self) -> Result<Rc<GitHub>, Failure> {
-        self.github.get().ok_or(Failure::CredentialPending)
-    }
-
     /// The branch's head commit and every file in it. The head is read as
     /// it is now; the tree is named by that commit, so any copy of it is
     /// the same tree.
     pub async fn listing(&self) -> Result<Listing, Failure> {
-        let github = self.github()?;
-        self.listing_with(&github).await
-    }
-
-    /// [`listing`] with its GitHub handle already resolved (the caller's
-    /// reactive gate decides when it may run).
-    pub async fn listing_with(&self, github: &GitHub) -> Result<Listing, Failure> {
         #[derive(Deserialize)]
         struct Branch {
             commit: Commit,
@@ -197,11 +184,13 @@ impl ConfigRepoClient {
             sha: String,
         }
         let repo = self.repo();
-        let branch: Branch = github
+        let branch: Branch = self
+            .github
             .get_current(&format!("/repos/{repo}/branches/{}", self.branch()))
             .await?;
         let head = branch.commit.sha;
-        let tree: Tree = github
+        let tree: Tree = self
+            .github
             .get(&format!("/repos/{repo}/git/trees/{head}?recursive=1"))
             .await?;
         if tree.truncated {
@@ -228,8 +217,8 @@ impl ConfigRepoClient {
             content: String,
             encoding: String,
         }
-        let github = self.github()?;
-        let contents: Contents = github
+        let contents: Contents = self
+            .github
             .get_current(&format!(
                 "/repos/{}/contents/{path}?ref={}",
                 self.repo(),
@@ -346,8 +335,8 @@ impl ConfigRepoClient {
             html_url: String,
         }
         let path = format!("/repos/{}/contents/{}", self.repo(), opened.path);
-        let github = self.github()?;
-        let response = github
+        let response = self
+            .github
             .put(
                 &path,
                 &Put {
@@ -360,14 +349,14 @@ impl ConfigRepoClient {
             .await?;
         match response.status() {
             200 | 201 => {
-                let answer: Answer = http::parse(&github.url(&path), &response.body)?;
+                let answer: Answer = http::parse(&self.github.url(&path), &response.body)?;
                 Ok(Saved::Committed {
                     commit: answer.commit.sha,
                     url: answer.commit.html_url,
                 })
             }
             409 => Ok(Saved::Conflict),
-            _ => Err(http::failure(&github.url(&path), &response)),
+            _ => Err(http::failure(&self.github.url(&path), &response)),
         }
     }
 }

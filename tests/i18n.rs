@@ -16,7 +16,7 @@
 //! only its holes vary: a number, or data, other messages' fixed words and
 //! runs without letters.
 //!
-//! The tests rewrite this process's `OMOMP_LANG`, `GH_TOKEN` and
+//! The tests rewrite this process's `OMOMP_LANG`, `PATH` (a fake `gh`) and
 //! `MEERKAT_CONFIG_DIR`: they take [`serial`]'s lock, so they run one at a time
 //! (the issue's commands add `--test-threads=1`).
 
@@ -77,7 +77,7 @@ fn every_page_in_english() -> Result<(), String> {
 #[test]
 fn language_follows_locale_change() -> Result<(), String> {
     let _serial = serial();
-    support::set_github_token("gho_q12_i18n_token");
+    support::fake_gh("gho_q12_i18n_token");
     let mut meerkat = Fixture::start(Lang::Zh);
     let data = Data::of(&support::config_dir(), &[]);
     wait_for_overview(&mut meerkat)?;
@@ -236,8 +236,8 @@ fn veto(markers: &[(String, serde_json::Value)]) -> (u32, u32, String, String) {
 /// with no GitHub credential and checks the panels that read GitHub.
 fn every_page(lang: Lang) -> Result<(), String> {
     let _serial = serial();
-    // The credential comes from `GH_TOKEN`: no `gh` runs.
-    support::set_github_token("gho_q12_i18n_token");
+    // The credential comes from a `gh` that prints a recorded token.
+    support::fake_gh("gho_q12_i18n_token");
     let mut meerkat = Fixture::start(lang);
     let data = Data::of(&support::config_dir(), &[]);
     let union = Union::new(lang, &data);
@@ -300,7 +300,7 @@ fn every_page(lang: Lang) -> Result<(), String> {
     if failures.is_empty() { Ok(()) } else { Err(failures.join("\n")) }
 }
 
-/// #23's `gh_missing`: no `GH_TOKEN` and no `gh` on `PATH`. The overview's
+/// #23's `gh_missing`: no `gh` on `PATH`. The overview's
 /// and the issues page's GitHub panels say why there is no credential; each
 /// text on them is checked. The reason holds the system's error running
 /// `gh`, which is data: the test asks the system for it the same way.
@@ -308,7 +308,6 @@ fn without_credential(lang: Lang) -> Result<Option<String>, String> {
     let path = std::env::var_os("PATH");
     let sandbox = support::Sandbox::new("i18n-gh-missing");
     support::path_without_gh(sandbox.dir());
-    support::clear_github_token();
     let system = std::process::Command::new("gh")
         .args(["auth", "token"])
         .output()
@@ -633,7 +632,6 @@ fn direct_failures() -> Vec<Failure> {
     vec![
         Failure::Said(s()),
         Failure::Unparsable { url: s(), error: s() },
-        Failure::CredentialPending,
         Failure::NoCredential(NoCredential::GhFailed(s())),
         Failure::NoCredential(NoCredential::GhSilent),
         Failure::NoCredential(NoCredential::GhCannotRun(s())),
@@ -730,7 +728,7 @@ fn instances() -> Vec<Msg> {
         LoadingConfig, AppName, AppMark, GitHubApi, Llm429, Stale, Online, Unreachable,
         Escalated, RateLow, RefreshNow, ShowList, ShowGraph, KeyRefresh, GroupIssues,
         GroupSessions, GroupCommands, NoResults, KeyUpDown, KeyEnter, KeyEscape, HintMove,
-        HintOpen, HintClose, PaletteHint, Retry, FetchingCredential, RunningWell,
+        HintOpen, HintClose, PaletteHint, Retry, RunningWell,
         NothingNeedsYou, WaitForYou, NeedsYou, NothingNeedsYouLine, Expand, OpenIssue,
         ViewSession, AllIssues, CouncilQueue, QueueEmpty, View, Programs, Total, Bases, NoBases,
         SessionErrors, NoErrors, RewarmSending, RewarmStarted, RewarmBusy, RewarmUnknown,

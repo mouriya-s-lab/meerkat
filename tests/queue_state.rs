@@ -9,7 +9,7 @@
 //! config whose agenda repository is that one, so each issue on the 「议题」
 //! page shows the queue's verdict.
 //!
-//! The tests rewrite this process's `OMOMP_LANG`, `GH_TOKEN` and
+//! The tests rewrite this process's `OMOMP_LANG`, `PATH` (a fake `gh`) and
 //! `MEERKAT_CONFIG_DIR`: they take [`serial`]'s lock, so they run one at a time
 //! (the issue's commands add `--test-threads=1`).
 
@@ -264,7 +264,7 @@ fn project_issues() -> Vec<serde_json::Value> {
 /// Meerkat in Chinese on a copy of the fixture config whose agenda repository is
 /// the one the queue lists, its queue answered with `queue`.
 fn start(sandbox: &Sandbox, queue: &str) -> Fixture {
-    support::set_github_token("gho_q26_queue_state_token");
+    support::fake_gh("gho_q26_queue_state_token");
     let dir = support::config_with_agenda(sandbox, DESIGN);
     let answer = StubRoute::Response(support::answer(200, queue));
     Fixture::start_in(Lang::Zh, &dir, vec![(QUEUE.to_owned(), answer)])

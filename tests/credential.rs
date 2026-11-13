@@ -1,14 +1,14 @@
-//! The four credential scenarios of #23, run against the real app on the
-//! headless engine (see `tests/support/`): `gh` is a script the test writes
-//! into a temporary directory and puts on `PATH`, and the council, guardians
-//! and GitHub answers are the recorded ones. The app speaks Chinese
+//! The credential scenarios, run against the real app on the headless
+//! engine (see `tests/support/`): `gh` is a script the test writes into a
+//! temporary directory and puts on `PATH`, and the council, guardians and
+//! GitHub answers are the recorded ones. The app speaks Chinese
 //! (`OMOMP_LANG=zh`): `gh_missing` reads the credential's reason, which
 //! Meerkat writes in Chinese.
 //!
-//! Each test rewrites this process's `PATH`, `GH_TOKEN` and `OMOMP_LANG`,
-//! which no two tests may do at once: they take [`serial`]'s lock, so
-//! `cargo test`'s parallel threads still run them one at a time (the issue's
-//! commands add `--test-threads=1`).
+//! Each test rewrites this process's `PATH` and `OMOMP_LANG`, which no two
+//! tests may do at once: they take [`serial`]'s lock, so `cargo test`'s
+//! parallel threads still run them one at a time (the issue's commands add
+//! `--test-threads=1`).
 
 mod support;
 
@@ -30,7 +30,7 @@ const SHOWN: Duration = Duration::from_secs(5);
 const REFRESH: Duration = Duration::from_secs(5);
 
 /// Holds the one credential test at a time: each rewrites the process's
-/// `PATH` and `GH_TOKEN`, which the app reads.
+/// `PATH`, where the app finds `gh`.
 fn serial() -> MutexGuard<'static, ()> {
     static ONE_AT_A_TIME: Mutex<()> = Mutex::new(());
     ONE_AT_A_TIME
@@ -61,41 +61,54 @@ fn programs_and_bases() -> Vec<String> {
 fn gh_hangs() -> Result<(), String> {
     let _serial = serial();
     let sandbox = Sandbox::new("gh-hangs");
-    // `gh` never answers: the credential has no way to arrive.
+    // `gh` never answers: no GitHub request can be made.
     sandbox.script("gh", "#!/bin/sh\nexec sleep 600\n");
     support::path_with(sandbox.dir());
-    support::clear_github_token();
 
     let mut meerkat = Fixture::start(LANG);
+    // The recorded council and guardians data shows while every GitHub
+    // request waits for `gh`.
     meerkat.wait_for_all(&programs_and_bases(), SHOWN)?;
-    // The GitHub panels say the credential is being fetched, while the
-    // recorded council and guardians data above stays on screen.
-    meerkat.wait_for(&meerkat.say(&Msg::FetchingCredential), SHOWN)?;
     Ok(())
 }
 
 #[test]
-fn gh_answers() -> Result<(), String> {
+fn gh_is_asked_for_every_request() -> Result<(), String> {
     let _serial = serial();
-    const TOKEN: &str = "gho_q23_recorded_token";
+    const FIRST: &str = "gho_q23_first_account";
+    const SECOND: &str = "gho_q23_second_account";
     let sandbox = Sandbox::new("gh-answers");
-    sandbox.script("gh", &format!("#!/bin/sh\necho {TOKEN}\n"));
+    // `gh` prints whichever token the file holds: the account it is on.
+    let account = sandbox.dir().join("token");
+    std::fs::write(&account, FIRST).map_err(|error| error.to_string())?;
+    sandbox.script("gh", &format!("#!/bin/sh\ncat {}\n", account.display()));
     support::path_with(sandbox.dir());
-    support::clear_github_token();
 
-    // GitHub answers only what carries the token the script printed.
-    let expected = format!("Bearer {TOKEN}");
-    let github: StubHandler = Arc::new(move |request, reply| {
-        let authorised = request
-            .headers
-            .iter()
-            .any(|(name, value)| name.eq_ignore_ascii_case("authorization") && *value == expected);
-        reply.send(if authorised {
-            support::project()
-        } else {
-            support::answer(401, r#"{"message":"Bad credentials"}"#)
-        });
-    });
+    // GitHub answers only what carries one of the two tokens, and keeps
+    // what each request carried.
+    let carried = Arc::new(Mutex::new(Vec::<String>::new()));
+    let github: StubHandler = {
+        let carried = carried.clone();
+        Arc::new(move |request, reply| {
+            let bearer = request
+                .headers
+                .iter()
+                .find(|(name, _)| name.eq_ignore_ascii_case("authorization"))
+                .map(|(_, value)| value.clone());
+            let authorised = bearer
+                .as_deref()
+                .is_some_and(|bearer| bearer == format!("Bearer {FIRST}") || bearer == format!("Bearer {SECOND}"));
+            carried
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .extend(bearer);
+            reply.send(if authorised {
+                support::project()
+            } else {
+                support::answer(401, r#"{"message":"Bad credentials"}"#)
+            });
+        })
+    };
     let mut meerkat = Fixture::start_with(
         LANG,
         vec![(format!("POST {}", project_url()), StubRoute::Handler(github))],
@@ -103,12 +116,17 @@ fn gh_answers() -> Result<(), String> {
 
     meerkat.open(Msg::PageIssues)?;
     meerkat.wait_for_any(&support::project_titles(), SHOWN)?;
-    // A refresh interval on (1 s): the Project is read again.
-    meerkat.wait_for_requests("POST", &project_url(), 2, REFRESH)?;
-    assert!(
-        meerkat.requests("POST", &project_url()) >= 2,
-        "the Project was not read again after a refresh interval"
-    );
+    // `gh` moves to another account while the app runs: a later request
+    // carries the new token, with no restart.
+    std::fs::write(&account, SECOND).map_err(|error| error.to_string())?;
+    let second = format!("Bearer {SECOND}");
+    let seen = carried.clone();
+    meerkat.wait_until("a request with gh's new token", REFRESH * 2, move |_| {
+        seen.lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .iter()
+            .any(|bearer| *bearer == second)
+    })?;
     Ok(())
 }
 
@@ -118,10 +136,9 @@ fn gh_missing() -> Result<(), String> {
     let sandbox = Sandbox::new("gh-missing");
     // `PATH` has no `gh` at all.
     support::path_without_gh(sandbox.dir());
-    support::clear_github_token();
 
     let mut meerkat = Fixture::start(LANG);
-    // `Credential::Missing`'s reason, as the GitHub panels write it.
+    // The reason `gh` gave no credential, as the GitHub panels write it.
     meerkat.wait_for_matching("无法执行 `gh auth token`", SHOWN)?;
     // The council and guardians are unaffected: their recorded data is on
     // screen with the missing credential.
@@ -129,30 +146,6 @@ fn gh_missing() -> Result<(), String> {
     assert!(
         shown.iter().all(|text| meerkat.shows(text)),
         "the recorded council and guardians data is not on screen with the missing credential"
-    );
-    Ok(())
-}
-
-#[test]
-fn gh_token_env() -> Result<(), String> {
-    let _serial = serial();
-    let sandbox = Sandbox::new("gh-token-env");
-    // The script writes a marker if it ever runs.
-    let marker = sandbox.dir().join("gh-ran");
-    sandbox.script(
-        "gh",
-        &format!("#!/bin/sh\ntouch {}\nexit 1\n", marker.display()),
-    );
-    support::path_with(sandbox.dir());
-    support::set_github_token("gho_q23_env_token");
-
-    let mut meerkat = Fixture::start(LANG);
-    meerkat.open(Msg::PageIssues)?;
-    meerkat.wait_for_any(&support::project_titles(), SHOWN)?;
-    assert!(
-        !marker.exists(),
-        "`gh` ran ({}) though GH_TOKEN was set",
-        marker.display()
     );
     Ok(())
 }

@@ -2,8 +2,8 @@
 //! and keeping its last value on its own. A refresh refetches every source
 //! that reads a remote directly; the implementation issues under way
 //! follow the Project, loading their comments again whenever its items
-//! load. The sources that read GitHub wait for its credential (fetched
-//! apart on macOS) and load once it is in; the programs' load at once.
+//! load. Every source loads at once; on macOS each GitHub request asks the
+//! local `gh` for its credential as it is made.
 
 use std::{future::Future, rc::Rc};
 
@@ -13,7 +13,7 @@ use crate::{
     config::AppConfig,
     failure::Failure,
     gh::{
-        Credential, GitHub,
+        GitHub,
         implementations::{self, Implementation},
         project::{self, ProjectItem},
         rate::{self, RateLimit},
@@ -45,12 +45,9 @@ pub struct ProgramSources {
     pub config: Source<Running>,
 }
 
-/// Every source of the overview, the GitHub credential they read with and
-/// when the last refresh began.
+/// Every source of the overview and when the last refresh began.
 #[derive(Clone, Copy)]
 pub struct Sources {
-    /// `None` while it is fetched: the GitHub sources have not loaded yet.
-    pub credential: Signal<Option<Credential>>,
     pub project: Source<Vec<ProjectItem>>,
     pub rate: Source<RateLimit>,
     pub implementations: Source<Vec<Implementation>>,
@@ -95,17 +92,8 @@ where
 }
 
 impl Sources {
-    /// Starts every source (the caller's owner keeps them); the GitHub
-    /// ones once `credential` is in.
-    pub fn new(config: &AppConfig, credential: Signal<Option<Credential>>, config_repo: Rc<ConfigRepoClient>) -> Self {
-        let api = config.endpoints.github_api.clone();
-        let github = computed(move || {
-            credential.with(|credential| {
-                credential
-                    .clone()
-                    .map(|credential| Rc::new(GitHub::new(api.clone(), credential)))
-            })
-        });
+    /// Starts every source (the caller's owner keeps them).
+    pub fn new(config: &AppConfig, github: Rc<GitHub>, config_repo: Rc<ConfigRepoClient>) -> Self {
         let project_ref = Rc::new(config.repos.agenda.project.clone());
         let fields = Rc::new(config.fields.clone());
         let council = Rc::new(ProgramClient::new(
@@ -117,25 +105,26 @@ impl Sources {
             config.endpoints.guardians.clone(),
         ));
 
-        let project = source_from(
-            move || github.get(),
-            move |github| {
-                let (project_ref, fields) = (project_ref.clone(), fields.clone());
-                async move { project::items(&github, &project_ref, &fields).await }
-            },
-        );
-        let rate = source_from(
-            move || github.get(),
-            |github| async move { rate::rate_limit(&github).await },
-        );
-        let implementations = source_from(
+        let project = source({
+            let github = github.clone();
             move || {
-                let github = github.get()?;
-                project.with(|items| {
-                    items.map(|items| (github, implementations::unfinished(&items.data)))
-                })
+                let (github, project_ref, fields) = (github.clone(), project_ref.clone(), fields.clone());
+                async move { project::items(&github, &project_ref, &fields).await }
+            }
+        });
+        let rate = source({
+            let github = github.clone();
+            move || {
+                let github = github.clone();
+                async move { rate::rate_limit(&github).await }
+            }
+        });
+        let implementations = source_from(
+            move || project.with(|items| items.map(|items| implementations::unfinished(&items.data))),
+            move |items| {
+                let github = github.clone();
+                async move { implementations::load(&github, items).await }
             },
-            |(github, items)| async move { implementations::load(&github, items).await },
         );
         let program = |client: &Rc<ProgramClient>| ProgramSources {
             program: client.program,
@@ -175,15 +164,11 @@ impl Sources {
                 async move { guardians.bases().await }
             }
         });
-        let config_files = source_from(
-            move || github.get().map(|github| (github, ())),
-            move |(github, ())| {
-                let config_repo = config_repo.clone();
-                async move { config_repo.listing_with(&github).await }
-            },
-        );
+        let config_files = source(move || {
+            let config_repo = config_repo.clone();
+            async move { config_repo.listing().await }
+        });
         Sources {
-            credential,
             project,
             rate,
             implementations,

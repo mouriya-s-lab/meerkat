@@ -104,7 +104,7 @@ flowchart LR
 
 ### macOS 原生端
 
-需安装 Rust 工具链与 Xcode Command Line Tools。GitHub 凭据取自环境变量 `GH_TOKEN`，未设置时自动调用 `gh auth token` 获取。
+需安装 Rust 工具链与 Xcode Command Line Tools。控制台不保存 GitHub 凭据：每次请求 GitHub 时向本机 `gh` 取当前账号的 token（`gh auth token`），`gh` 切换账号后下一次请求即生效。
 
 开发时用 [Relax](https://github.com/makepad/relax)（Rust JIT）直接从源码运行：函数首次调用时才编译，保存文件后改动的函数体热补丁进运行中的窗口，界面状态保留；改了类型布局、import、trait 或 impl 头时，Relax 提示需要重启。Relax 从构建它的 checkout 读取自带的 std，构建后保持该目录原位。`--allow-c` 让 Relax 用 cargo 构建依赖里编译 C 的构建脚本（`nsh-platform-apple`、`onig_sys`、`ring`）：
 
@@ -120,10 +120,10 @@ relax test --allow-c meerkat -- --precompile --test-threads=1
 
 Relax 生成的代码比 rustc `--release` 慢，只用于编辑与运行循环；发布构建与打包仍由 rustc 完成（`nsh package`）。
 
-打包独立 `Meerkat.app`（需安装 [`nsh`](https://nsh.dev/docs/installation.md)）：
+打包独立 `Meerkat.app` 并安装到 `~/Applications`（需安装 [`nsh`](https://nsh.dev/docs/installation.md)）。从 Finder 打开的应用拿不到 shell 的环境，脚本把配置目录与 `gh` 所在目录写进应用的 `LSEnvironment`：
 
 ```sh
-nsh package --target macos -o /tmp/meerkat-macos
+deploy/install-macos.sh <meerkat-config checkout>
 ```
 
 ### Web 端

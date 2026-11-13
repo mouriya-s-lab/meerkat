@@ -7,7 +7,7 @@
 //! Project's items, the council's queue and sessions, and each comment's
 //! last line `<!-- meerkat:<kind> {json} -->`.
 //!
-//! The tests rewrite this process's `OMOMP_LANG`, `GH_TOKEN` and
+//! The tests rewrite this process's `OMOMP_LANG`, `PATH` (a fake `gh`) and
 //! `MEERKAT_CONFIG_DIR`: each takes [`serial`]'s lock, so they run one at a
 //! time whatever `--test-threads` says.
 

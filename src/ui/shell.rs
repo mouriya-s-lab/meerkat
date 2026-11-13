@@ -33,7 +33,7 @@ use crate::{
         AppConfig, Attention, ColorToken::*, ConfigError, Digest, FontToken, LengthToken::*, LoadedFile,
     },
     dag::{self, Council, Graph},
-    gh::{Credential, GitHub, IssueRef},
+    gh::{GitHub, IssueRef},
     configrepo::ConfigRepoClient,
     programs::{BaseState, Program, ProgramClient, SessionState},
     sources::{ProgramSources, Sources},
@@ -194,8 +194,7 @@ impl Nav {
 
 /// What the pages need besides their sources.
 pub struct Context {
-    /// The GitHub client, once its credential is in.
-    pub github: Memo<Option<Rc<GitHub>>>,
+    pub github: Rc<GitHub>,
     pub council: ProgramClient,
     pub guardians: ProgramClient,
     pub attention: Attention,
@@ -281,21 +280,13 @@ pub fn app(config: AppConfig, tokens: Tokens) -> AnyElement {
 
 /// The app's sources start now and refresh every `config.refresh`.
 fn shell(config: &AppConfig) -> View {
-    let credential = Credential::for_this_build();
-    let api = config.endpoints.github_api.clone();
-    let github = computed(move || {
-        credential.with(|credential| {
-            credential
-                .clone()
-                .map(|credential| Rc::new(GitHub::new(api.clone(), credential)))
-        })
-    });
+    let github = Rc::new(GitHub::new(config.endpoints.github_api.clone()));
     let config_repo = Rc::new(ConfigRepoClient::new(
-        github,
+        github.clone(),
         config.config_repo.clone(),
         config.endpoints.clone(),
     ));
-    let sources = Sources::new(config, credential, config_repo.clone());
+    let sources = Sources::new(config, github.clone(), config_repo.clone());
     set_interval(config.refresh, move || sources.refresh());
     let now = signal(time::now_ms());
     set_interval(std::time::Duration::from_secs(1), move || {

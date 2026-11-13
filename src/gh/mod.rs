@@ -12,7 +12,7 @@ pub mod rate;
 
 use std::fmt;
 
-pub use client::{Credential, GitHub};
+pub use client::GitHub;
 
 use crate::config::RepoName;
 

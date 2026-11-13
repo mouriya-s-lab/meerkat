@@ -167,7 +167,7 @@ pub fn page(sources: Sources, context: Rc<Context>, nav: Nav) -> impl IntoElemen
             loaded.is_some_and(|loaded| loaded.data.iter().any(|i| i.item.issue == *issue))
         })
     };
-    let comments = comments_of(sources, context.github, move || {
+    let comments = comments_of(sources, context.github.clone(), move || {
         state.selected.get().filter(|issue| !held(issue))
     });
     let here = Here {
